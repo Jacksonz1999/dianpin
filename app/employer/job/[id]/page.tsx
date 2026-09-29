@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import {
   getApplicationsByJob,
-  getDemoEmployerId,
   getJobById,
   getJobTypes,
   getSeekerProfileByUserId,
@@ -9,6 +8,7 @@ import {
   getUserById,
   markSubmittedApplicationsAsViewed,
 } from "@/lib/db";
+import { requireRole } from "@/lib/auth/session";
 import {
   CandidateListView,
   type CandidateRow,
@@ -22,14 +22,13 @@ export default async function EmployerJobCandidatesPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await requireRole("employer", `/employer/job/${id}`);
+
   const job = await getJobById(id);
   if (!job) notFound();
 
-  const [store, employerId] = await Promise.all([
-    getStoreById(job.store_id),
-    getDemoEmployerId(),
-  ]);
-  if (!store || store.owner_user_id !== employerId) notFound();
+  const store = await getStoreById(job.store_id);
+  if (!store || store.owner_user_id !== session.userId) notFound();
 
   // Opening this page is how the "new" badge on the dashboard gets cleared.
   await markSubmittedApplicationsAsViewed(job.id);

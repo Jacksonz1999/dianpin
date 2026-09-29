@@ -171,22 +171,42 @@ export async function getApplicationsByJob(
     .orderBy(asc(applications.created_at));
 }
 
-export async function getUserById(id: string): Promise<User | null> {
-  const [row] = await db.select().from(users).where(eq(users.id, id));
-  if (!row) return null;
+function toUser(row: typeof users.$inferSelect): User {
   // users.locale is plain text in Postgres (AGENTS.md §5 doesn't list it
   // among the enumerated columns), but the app only ever writes 'zh'/'es'.
   return { ...row, locale: row.locale as Locale };
 }
 
-/** Demo seeker used to power the /me/applications placeholder before auth (WP4) exists. */
-export async function getDemoSeekerId(): Promise<string> {
-  return "u_seek_1";
+export async function getUserById(id: string): Promise<User | null> {
+  const [row] = await db.select().from(users).where(eq(users.id, id));
+  return row ? toUser(row) : null;
 }
 
-/** Demo employer used to power the /employer/* placeholders before auth (WP4) exists. */
-export async function getDemoEmployerId(): Promise<string> {
-  return "u_emp_jinlong";
+export async function getUserByEmail(email: string): Promise<User | null> {
+  const [row] = await db.select().from(users).where(eq(users.email, email));
+  return row ? toUser(row) : null;
+}
+
+export interface CreateUserInput {
+  role: "seeker" | "employer";
+  email: string;
+  name: string;
+  locale: Locale;
+}
+
+/** Creates a brand-new account. Only called from the auth callback, the first time an identifier verifies successfully. */
+export async function createUser(input: CreateUserInput): Promise<User> {
+  const [row] = await db
+    .insert(users)
+    .values({
+      id: `u_${randomUUID()}`,
+      role: input.role,
+      email: input.email,
+      name: input.name,
+      locale: input.locale,
+    })
+    .returning();
+  return toUser(row);
 }
 
 export async function getSeekerProfileByUserId(

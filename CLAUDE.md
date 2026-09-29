@@ -41,10 +41,10 @@ npm run dev          # 本地开发，http://localhost:3000
 
 - [x] WP0 之前：产品方案 + `index.html` 交互原型（单文件、localStorage、含双端完整流程）
 - [x] WP0 Next.js 工程骨架（不接数据库）
-- [ ] WP1 数据库（Drizzle + Postgres + 迁移 + 种子）
-- [ ] WP2 求职者端页面
-- [ ] WP3 雇主端页面
-- [ ] WP4 认证（WhatsApp OTP，非短信 —— 见 AGENTS.md §4）
+- [x] WP1 数据库（Drizzle + Postgres + 迁移 + 种子）
+- [x] WP2 求职者端页面
+- [x] WP3 雇主端页面
+- [x] WP4 认证（v1 邮箱魔法链接，抽象为 provider 接口，预留 whatsapp 实现位 —— 见 AGENTS.md §4）
 - [ ] WP5 部署配置（Railway）+ CI + 图片上传
 
 `index.html` 是交互蓝本，**不要删除**。迁移到 Next.js 后需逐项对照它验证行为是否一致。

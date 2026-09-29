@@ -29,6 +29,8 @@ export function JobDetailView({
   city,
   jobType,
   jobTypes,
+  isLoggedIn,
+  isLoggedInSeeker,
   existingApplication,
   hasProfile,
   initialProfileValues,
@@ -38,6 +40,8 @@ export function JobDetailView({
   city: City;
   jobType: JobType;
   jobTypes: JobType[];
+  isLoggedIn: boolean;
+  isLoggedInSeeker: boolean;
   existingApplication: Application | null;
   hasProfile: boolean;
   initialProfileValues: SeekerProfileFormValues;
@@ -135,7 +139,7 @@ export function JobDetailView({
             {t("job.yourApplicationStatus")}：
             {t(`applicationStatus.${existingApplication.status}`)}
           </div>
-        ) : (
+        ) : isLoggedInSeeker ? (
           <button
             type="button"
             onClick={() => setApplyOpen(true)}
@@ -143,15 +147,31 @@ export function JobDetailView({
           >
             {t("job.applyButton")}
           </button>
+        ) : (
+          <Link
+            href={`/login?role=seeker&next=${encodeURIComponent(`/job/${job.id}`)}`}
+            className="flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--color-primary-text)]"
+          >
+            {t("job.applyButton")}
+          </Link>
         )}
 
-        <button
-          type="button"
-          onClick={() => setReportOpen(true)}
-          className="min-h-[44px] rounded-full border border-[var(--color-border)] px-4 text-sm text-[var(--color-text-muted)]"
-        >
-          {t("job.reportButton")}
-        </button>
+        {isLoggedIn ? (
+          <button
+            type="button"
+            onClick={() => setReportOpen(true)}
+            className="min-h-[44px] rounded-full border border-[var(--color-border)] px-4 text-sm text-[var(--color-text-muted)]"
+          >
+            {t("job.reportButton")}
+          </button>
+        ) : (
+          <Link
+            href={`/login?role=seeker&next=${encodeURIComponent(`/job/${job.id}`)}`}
+            className="flex min-h-[44px] items-center justify-center rounded-full border border-[var(--color-border)] px-4 text-sm text-[var(--color-text-muted)]"
+          >
+            {t("job.reportButton")}
+          </Link>
+        )}
       </div>
 
       <ApplyModal

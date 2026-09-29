@@ -26,6 +26,9 @@ export type SalaryPeriod = "hour" | "day" | "month";
 
 export type ReportTargetType = "job" | "store";
 
+/** Auth provider channels (WP4) — "email" ships in v1, "whatsapp" is a reserved slot. */
+export type AuthChannel = "email" | "whatsapp";
+
 export interface City {
   id: string;
   name_zh: string;
@@ -43,10 +46,12 @@ export interface JobType {
 export interface User {
   id: string;
   role: UserRole;
-  phone: string;
+  phone: string | null;
   wechat: string | null;
   name: string;
   locale: Locale;
+  /** Login identifier for the email-magic-link auth provider (WP4). */
+  email: string | null;
   created_at: string;
 }
 

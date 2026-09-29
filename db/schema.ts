@@ -100,10 +100,17 @@ export const jobTypes = pgTable("job_types", {
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   role: userRoleEnum("role").notNull(),
-  phone: text("phone").notNull(),
+  // Nullable (WP4): an account created via email magic-link signup has no
+  // phone until the user fills it in on their profile — see
+  // lib/db.ts's saveSeekerProfile.
+  phone: text("phone"),
   wechat: text("wechat"),
   name: text("name").notNull(),
   locale: text("locale").notNull(),
+  // Login identifier for the email-magic-link provider (WP4). Nullable
+  // because seed/demo users predate auth and AGENTS.md §5 doesn't list
+  // this column — see the WP4 PR description for why it was added.
+  email: text("email").unique(),
   created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
     .notNull()
     .defaultNow(),
@@ -298,3 +305,48 @@ export const reports = pgTable("reports", {
   reason: text("reason").notNull(),
   status: text("status").notNull().default("pending"),
 });
+
+// ---------------------------------------------------------------------------
+// Auth (WP4) — not part of AGENTS.md §5's 9 tables, added to implement the
+// login flow AGENTS.md §4 calls for. See lib/auth/ and the WP4 PR
+// description for the full design.
+// ---------------------------------------------------------------------------
+
+export const authChannelEnum = pgEnum("auth_channel", ["email", "whatsapp"]);
+
+export const authChallenges = pgTable(
+  "auth_challenges",
+  {
+    id: text("id").primaryKey(),
+    channel: authChannelEnum("channel").notNull(),
+    // Email address or phone number, depending on channel.
+    identifier: text("identifier").notNull(),
+    // SHA-256 of the single-use token/code — never store it in plaintext.
+    code_hash: text("code_hash").notNull(),
+    // Role a brand-new account gets if this challenge is the one that
+    // creates it; ignored when the identifier already has an account.
+    intended_role: userRoleEnum("intended_role").notNull(),
+    // Where to send the user back to after a successful login.
+    next_path: text("next_path"),
+    attempts: integer("attempts").notNull().default(0),
+    ip: text("ip"),
+    expires_at: timestamp("expires_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    consumed_at: timestamp("consumed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    created_at: timestamp("created_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("auth_challenges_identifier_idx").on(table.identifier),
+    index("auth_challenges_ip_idx").on(table.ip),
+  ]
+);
