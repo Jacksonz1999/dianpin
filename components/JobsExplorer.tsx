@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getJobs } from "@/lib/db";
+import { searchJobs } from "@/app/actions";
 import type { City, Job, JobType, Store } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
 import { JobCard } from "./JobCard";
@@ -32,7 +32,7 @@ export function JobsExplorer({
     let cancelled = false;
     const salaryMinNum = salaryMin ? Number(salaryMin) : undefined;
 
-    getJobs({
+    searchJobs({
       status: "active",
       city: city || undefined,
       jobType: jobType || undefined,
