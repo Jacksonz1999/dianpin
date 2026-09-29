@@ -53,16 +53,33 @@ export interface User {
 export interface SeekerProfile {
   user_id: string;
   job_types: string[];
-  experience_years: number;
-  available_from: string;
-  residence_status: ResidenceStatus;
-  expected_salary_min: number;
-  expected_salary_max: number;
+  experience_years: number | null;
+  available_from: string | null;
+  residence_status: ResidenceStatus | null;
+  expected_salary_min: number | null;
+  expected_salary_max: number | null;
   preferred_cities: string[];
   live_in_ok: boolean;
   languages: string[];
-  bio: string;
-  avatar: string;
+  bio: string | null;
+  avatar: string | null;
+}
+
+/**
+ * The "最小档案" fields collected by the apply-flow onboarding form and by
+ * the /me profile editor (AGENTS.md's 姓名/工种/经验/可到岗/居留状态/期望
+ * 月薪/联系方式). name/phone live on `users`; the rest on
+ * `seeker_profiles` — see lib/db.ts's saveSeekerProfile.
+ */
+export interface SeekerProfileFormValues {
+  name: string;
+  phone: string;
+  jobTypes: string[];
+  experienceYears: number | null;
+  availableFrom: string | null;
+  residenceStatus: ResidenceStatus | null;
+  expectedSalaryMin: number | null;
+  expectedSalaryMax: number | null;
 }
 
 export interface Store {

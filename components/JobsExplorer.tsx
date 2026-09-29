@@ -26,7 +26,14 @@ export function JobsExplorer({
   const [mealsIncluded, setMealsIncluded] = useState(false);
   const [residenceOk, setResidenceOk] = useState(false);
   const [salaryMin, setSalaryMin] = useState<string>("");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
+
+  useEffect(() => {
+    const handle = setTimeout(() => setSearch(searchInput), 300);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +46,7 @@ export function JobsExplorer({
       mealsIncluded: mealsIncluded || undefined,
       residenceOk: residenceOk || undefined,
       salaryMin: Number.isFinite(salaryMinNum) ? salaryMinNum : undefined,
+      search: search || undefined,
     }).then((result) => {
       if (!cancelled) setJobs(result);
     });
@@ -46,7 +54,7 @@ export function JobsExplorer({
     return () => {
       cancelled = true;
     };
-  }, [city, jobType, mealsIncluded, residenceOk, salaryMin]);
+  }, [city, jobType, mealsIncluded, residenceOk, salaryMin, search]);
 
   const storesById = useMemo(
     () => new Map(stores.map((s) => [s.id, s])),
@@ -66,11 +74,20 @@ export function JobsExplorer({
     setMealsIncluded(false);
     setResidenceOk(false);
     setSalaryMin("");
+    setSearchInput("");
   }
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4">
       <h1 className="text-lg font-semibold">{t("home.title")}</h1>
+
+      <input
+        type="search"
+        value={searchInput}
+        onChange={(e) => setSearchInput(e.target.value)}
+        placeholder={t("home.search.placeholder")}
+        className="min-h-[44px] rounded-full border border-[var(--color-border)] px-4 text-sm"
+      />
 
       <div className="flex gap-2 overflow-x-auto">
         <button

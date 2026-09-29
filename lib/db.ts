@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
@@ -5,10 +6,13 @@ import {
   cities,
   jobTypes,
   jobs,
+  reports,
   reviews,
+  seekerProfiles,
   stores,
   users,
 } from "@/db/schema";
+import { canTransitionApplication } from "./status-machine";
 import type { Locale } from "./i18n";
 import type {
   Application,
@@ -16,7 +20,11 @@ import type {
   Job,
   JobStatus,
   JobType,
+  Report,
+  ReportTargetType,
   Review,
+  SeekerProfile,
+  SeekerProfileFormValues,
   Store,
   User,
 } from "./types";
@@ -36,6 +44,8 @@ export interface JobFilters {
   residenceOk?: boolean;
   salaryMin?: number;
   status?: JobStatus;
+  /** Free-text match against job title (zh/es) and store name (zh/es). */
+  search?: string;
 }
 
 export async function getCities(): Promise<City[]> {
@@ -49,6 +59,11 @@ export async function getCityById(id: string): Promise<City | null> {
 
 export async function getJobTypes(): Promise<JobType[]> {
   return db.select().from(jobTypes);
+}
+
+export async function getJobTypeById(id: string): Promise<JobType | null> {
+  const [row] = await db.select().from(jobTypes).where(eq(jobTypes.id, id));
+  return row ?? null;
 }
 
 export async function getStores(): Promise<Store[]> {
@@ -90,6 +105,18 @@ export async function getJobs(filters: JobFilters = {}): Promise<Job[]> {
   }
   if (filters.salaryMin) {
     conditions.push(gte(monthlySalaryMax, filters.salaryMin));
+  }
+  if (filters.search?.trim()) {
+    const term = `%${filters.search.trim()}%`;
+    conditions.push(sql`(
+      ${jobs.title_zh} ILIKE ${term} OR
+      ${jobs.title_es} ILIKE ${term} OR
+      EXISTS (
+        SELECT 1 FROM ${stores}
+        WHERE ${stores.id} = ${jobs.store_id}
+          AND (${stores.name_zh} ILIKE ${term} OR ${stores.name_es} ILIKE ${term})
+      )
+    )`);
   }
 
   return db
@@ -152,4 +179,146 @@ export async function getDemoSeekerId(): Promise<string> {
 /** Demo employer used to power the /employer/* placeholders before auth (WP4) exists. */
 export async function getDemoEmployerId(): Promise<string> {
   return "u_emp_jinlong";
+}
+
+export async function getSeekerProfileByUserId(
+  userId: string
+): Promise<SeekerProfile | null> {
+  const [row] = await db
+    .select()
+    .from(seekerProfiles)
+    .where(eq(seekerProfiles.user_id, userId));
+  return row ?? null;
+}
+
+export interface SaveSeekerProfileInput extends SeekerProfileFormValues {
+  userId: string;
+}
+
+/**
+ * Creates or updates the seeker's minimal profile ("姓名/工种/经验/可到岗/
+ * 居留状态/期望月薪/联系方式" per AGENTS.md's apply-flow onboarding) in one
+ * call: the name/contact fields live on `users`, everything else on
+ * `seeker_profiles`. Fields this form doesn't collect (bio, avatar,
+ * preferred_cities, languages, live_in_ok) are left untouched on update.
+ */
+export async function saveSeekerProfile(
+  input: SaveSeekerProfileInput
+): Promise<{ user: User; profile: SeekerProfile }> {
+  const [userRow] = await db
+    .update(users)
+    .set({ name: input.name, phone: input.phone })
+    .where(eq(users.id, input.userId))
+    .returning();
+
+  const profileValues = {
+    job_types: input.jobTypes,
+    experience_years: input.experienceYears,
+    available_from: input.availableFrom,
+    residence_status: input.residenceStatus,
+    expected_salary_min: input.expectedSalaryMin,
+    expected_salary_max: input.expectedSalaryMax,
+  };
+
+  const [profileRow] = await db
+    .insert(seekerProfiles)
+    .values({ user_id: input.userId, ...profileValues })
+    .onConflictDoUpdate({
+      target: seekerProfiles.user_id,
+      set: profileValues,
+    })
+    .returning();
+
+  return {
+    user: { ...userRow, locale: userRow.locale as Locale },
+    profile: profileRow,
+  };
+}
+
+export async function getApplicationForJobAndSeeker(
+  jobId: string,
+  seekerUserId: string
+): Promise<Application | null> {
+  const [row] = await db
+    .select()
+    .from(applications)
+    .where(
+      and(
+        eq(applications.job_id, jobId),
+        eq(applications.seeker_user_id, seekerUserId)
+      )
+    );
+  return row ?? null;
+}
+
+export interface CreateApplicationInput {
+  jobId: string;
+  seekerUserId: string;
+  message: string;
+}
+
+export async function createApplication(
+  input: CreateApplicationInput
+): Promise<Application> {
+  const [row] = await db
+    .insert(applications)
+    .values({
+      id: `app_${randomUUID()}`,
+      job_id: input.jobId,
+      seeker_user_id: input.seekerUserId,
+      message: input.message,
+    })
+    .returning();
+  return row;
+}
+
+/**
+ * Moves an application to `withdrawn`, per the state machine in
+ * lib/status-machine.ts (submitted/viewed/contacted -> withdrawn only;
+ * hired/rejected/withdrawn are terminal).
+ */
+export async function withdrawApplication(
+  applicationId: string
+): Promise<Application> {
+  const [existing] = await db
+    .select()
+    .from(applications)
+    .where(eq(applications.id, applicationId));
+
+  if (!existing) {
+    throw new Error(`Application ${applicationId} not found`);
+  }
+  if (!canTransitionApplication(existing.status, "withdrawn")) {
+    throw new Error(
+      `Cannot withdraw application ${applicationId} from status "${existing.status}"`
+    );
+  }
+
+  const [row] = await db
+    .update(applications)
+    .set({ status: "withdrawn", updated_at: new Date().toISOString() })
+    .where(eq(applications.id, applicationId))
+    .returning();
+  return row;
+}
+
+export interface CreateReportInput {
+  targetType: ReportTargetType;
+  targetId: string;
+  reporterUserId: string;
+  reason: string;
+}
+
+export async function createReport(input: CreateReportInput): Promise<Report> {
+  const [row] = await db
+    .insert(reports)
+    .values({
+      id: `report_${randomUUID()}`,
+      target_type: input.targetType,
+      target_id: input.targetId,
+      reporter_user_id: input.reporterUserId,
+      reason: input.reason,
+    })
+    .returning();
+  return row;
 }
