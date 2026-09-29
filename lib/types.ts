@@ -153,6 +153,40 @@ export interface Report {
   status: string;
 }
 
+/** Fields collected by the employer's "创建门店" form; owner_user_id is supplied separately by the caller. */
+export interface StoreFormValues {
+  nameZh: string;
+  nameEs: string;
+  city: string;
+  district: string;
+  address: string;
+  category: string;
+  coverImage: string;
+}
+
+/**
+ * Fields collected by the employer's templated "发布岗位" form — all the
+ * structured columns jobs.* requires, no free-text-only posting allowed.
+ * store_id/status are supplied separately by the caller.
+ */
+export interface JobFormValues {
+  titleZh: string;
+  titleEs: string;
+  jobType: string;
+  district: string;
+  salaryMin: number;
+  salaryMax: number;
+  salaryPeriod: SalaryPeriod;
+  headcount: number;
+  schedule: string;
+  liveIn: boolean;
+  mealsIncluded: boolean;
+  languageRequired: string;
+  residenceRequired: ResidenceRequired;
+  descriptionZh: string;
+  descriptionEs: string;
+}
+
 /** Monthly-normalized salary, used for the salary-floor filter (hour×8×22, day×22). */
 export function normalizeSalaryToMonth(
   amount: number,

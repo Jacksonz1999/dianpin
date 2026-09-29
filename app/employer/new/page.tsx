@@ -1,14 +1,14 @@
-"use client";
+import { getDemoEmployerId, getJobTypes, getStoresByOwner } from "@/lib/db";
+import { JobCreateForm } from "@/components/JobCreateForm";
 
-import { useLocale } from "@/components/LocaleProvider";
+export const dynamic = "force-dynamic";
 
-export default function EmployerNewJobPage() {
-  const { t } = useLocale();
+export default async function EmployerNewJobPage() {
+  const employerId = await getDemoEmployerId();
+  const [stores, jobTypes] = await Promise.all([
+    getStoresByOwner(employerId),
+    getJobTypes(),
+  ]);
 
-  return (
-    <div className="flex flex-col gap-4 px-4 py-6">
-      <h1 className="text-lg font-semibold">{t("employer.post.title")}</h1>
-      <p className="text-sm text-[var(--color-text-muted)]">{t("common.comingSoon")}</p>
-    </div>
-  );
+  return <JobCreateForm stores={stores} jobTypes={jobTypes} />;
 }
