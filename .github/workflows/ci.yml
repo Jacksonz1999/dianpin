@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  typecheck-and-build:
+    runs-on: ubuntu-latest
+    env:
+      # lib/db.ts (via db/client.ts) requires DATABASE_URL to be set to
+      # construct its connection pool at module load time, but the pool
+      # only connects lazily on the first query. Every page in this repo
+      # is `export const dynamic = "force-dynamic"`, so `next build` never
+      # executes a page's data fetching at build time — it only imports
+      # the route modules — so a placeholder value is enough here. Real
+      # migrations/build against a real database happen in Railway's
+      # buildCommand (see railway.toml), not in this workflow.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_placeholder
+      AUTH_SECRET: ci-placeholder-secret-not-used-at-build-time
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx tsc --noEmit
+
+      - run: npm run build
