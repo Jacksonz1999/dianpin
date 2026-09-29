@@ -1,10 +1,10 @@
 import {
   getApplicationsByJob,
   getCities,
-  getDemoEmployerId,
   getJobsByStore,
   getStoresByOwner,
 } from "@/lib/db";
+import { requireRole } from "@/lib/auth/session";
 import {
   EmployerDashboardView,
   type JobWithNewCount,
@@ -14,9 +14,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function EmployerDashboardPage() {
-  const employerId = await getDemoEmployerId();
+  const session = await requireRole("employer", "/employer");
   const [stores, cities] = await Promise.all([
-    getStoresByOwner(employerId),
+    getStoresByOwner(session.userId),
     getCities(),
   ]);
 

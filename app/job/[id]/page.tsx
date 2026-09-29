@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import {
   getApplicationForJobAndSeeker,
   getCityById,
-  getDemoSeekerId,
   getJobById,
   getJobTypeById,
   getJobTypes,
@@ -10,6 +9,7 @@ import {
   getStoreById,
   getUserById,
 } from "@/lib/db";
+import { getSession } from "@/lib/auth/session";
 import { JobDetailView } from "@/components/JobDetailView";
 
 export const dynamic = "force-dynamic";
@@ -23,21 +23,29 @@ export default async function JobDetailPage({
   const job = await getJobById(id);
   if (!job) notFound();
 
-  const [store, city, jobType, allJobTypes, seekerId] = await Promise.all([
+  const [store, city, jobType, allJobTypes, session] = await Promise.all([
     getStoreById(job.store_id),
     getCityById(job.city),
     getJobTypeById(job.job_type),
     getJobTypes(),
-    getDemoSeekerId(),
+    getSession(),
   ]);
 
   if (!store || !city || !jobType) notFound();
 
-  const [existingApplication, seekerProfile, seekerUser] = await Promise.all([
-    getApplicationForJobAndSeeker(job.id, seekerId),
-    getSeekerProfileByUserId(seekerId),
-    getUserById(seekerId),
-  ]);
+  // Browsing stays anonymous per AGENTS.md §6; only applying requires a
+  // seeker session, so everything below is optional/null when logged out
+  // or logged in as an employer.
+  const isSeeker = session?.role === "seeker";
+  const seekerId = isSeeker ? session.userId : null;
+
+  const [existingApplication, seekerProfile, seekerUser] = seekerId
+    ? await Promise.all([
+        getApplicationForJobAndSeeker(job.id, seekerId),
+        getSeekerProfileByUserId(seekerId),
+        getUserById(seekerId),
+      ])
+    : [null, null, null];
 
   return (
     <JobDetailView
@@ -46,6 +54,8 @@ export default async function JobDetailPage({
       city={city}
       jobType={jobType}
       jobTypes={allJobTypes}
+      isLoggedIn={!!session}
+      isLoggedInSeeker={isSeeker}
       existingApplication={existingApplication}
       hasProfile={!!seekerProfile}
       initialProfileValues={{

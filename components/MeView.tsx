@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { JobType, SeekerProfile, User } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
+import { LogoutButton } from "./LogoutButton";
 import { ProfileEditModal } from "./ProfileEditModal";
 
 export function MeView({
@@ -41,7 +41,9 @@ export function MeView({
       <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <p className="text-base font-medium">{user?.name ?? t("common.loading")}</p>
         {user && (
-          <p className="text-sm text-[var(--color-text-muted)]">{user.phone}</p>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            {user.email ?? user.phone ?? t("me.profile.notSet")}
+          </p>
         )}
       </div>
 
@@ -117,12 +119,7 @@ export function MeView({
         </div>
       )}
 
-      <Link
-        href="/employer"
-        className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[var(--color-border)] px-4 text-sm"
-      >
-        {t("me.roleSwitch")}
-      </Link>
+      <LogoutButton />
 
       <ProfileEditModal
         open={editOpen}

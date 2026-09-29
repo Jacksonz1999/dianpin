@@ -1,16 +1,12 @@
-import {
-  getApplicationsBySeeker,
-  getDemoSeekerId,
-  getJobById,
-  getStoreById,
-} from "@/lib/db";
+import { getApplicationsBySeeker, getJobById, getStoreById } from "@/lib/db";
+import { requireRole } from "@/lib/auth/session";
 import { ApplicationsView, type ApplicationRow } from "@/components/ApplicationsView";
 
 export const dynamic = "force-dynamic";
 
 export default async function ApplicationsPage() {
-  const seekerId = await getDemoSeekerId();
-  const applications = await getApplicationsBySeeker(seekerId);
+  const session = await requireRole("seeker", "/me/applications");
+  const applications = await getApplicationsBySeeker(session.userId);
 
   const rows: ApplicationRow[] = await Promise.all(
     applications.map(async (application) => {

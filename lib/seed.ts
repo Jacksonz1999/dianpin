@@ -25,17 +25,17 @@ export const seedJobTypes: JobType[] = [
 ];
 
 export const seedUsers: User[] = [
-  { id: "u_emp_hualian", role: "employer", phone: "+34600100001", wechat: "hualian_boss", name: "陈老板", locale: "zh", created_at: "2026-01-10T09:00:00Z" },
-  { id: "u_emp_jinlong", role: "employer", phone: "+34600100002", wechat: "jinlong_mgr", name: "李经理", locale: "zh", created_at: "2026-01-12T09:00:00Z" },
-  { id: "u_emp_reina", role: "employer", phone: "+34600100003", wechat: null, name: "王姐", locale: "zh", created_at: "2026-02-01T09:00:00Z" },
-  { id: "u_emp_oriental", role: "employer", phone: "+34600100004", wechat: "oriental_super", name: "张总", locale: "zh", created_at: "2026-01-20T09:00:00Z" },
-  { id: "u_emp_modanueva", role: "employer", phone: "+34600100005", wechat: null, name: "刘老板", locale: "es", created_at: "2026-03-05T09:00:00Z" },
-  { id: "u_emp_longmen", role: "employer", phone: "+34600100006", wechat: "longmen_bar", name: "赵老板", locale: "zh", created_at: "2026-02-18T09:00:00Z" },
-  { id: "u_seek_1", role: "seeker", phone: "+34600200001", wechat: "xiaoyu_2026", name: "小宇", locale: "zh", created_at: "2026-04-01T09:00:00Z" },
-  { id: "u_seek_2", role: "seeker", phone: "+34600200002", wechat: null, name: "阿芳", locale: "zh", created_at: "2026-04-03T09:00:00Z" },
-  { id: "u_seek_3", role: "seeker", phone: "+34600200003", wechat: "leo_zhang", name: "张磊", locale: "zh", created_at: "2026-04-10T09:00:00Z" },
-  { id: "u_seek_4", role: "seeker", phone: "+34600200004", wechat: null, name: "美美", locale: "es", created_at: "2026-05-02T09:00:00Z" },
-  { id: "u_seek_5", role: "seeker", phone: "+34600200005", wechat: "chenchen88", name: "陈晨", locale: "zh", created_at: "2026-05-15T09:00:00Z" },
+  { id: "u_emp_hualian", role: "employer", phone: "+34600100001", wechat: "hualian_boss", name: "陈老板", locale: "zh", email: "hualian.boss@example.com", created_at: "2026-01-10T09:00:00Z" },
+  { id: "u_emp_jinlong", role: "employer", phone: "+34600100002", wechat: "jinlong_mgr", name: "李经理", locale: "zh", email: "jinlong.mgr@example.com", created_at: "2026-01-12T09:00:00Z" },
+  { id: "u_emp_reina", role: "employer", phone: "+34600100003", wechat: null, name: "王姐", locale: "zh", email: "reina.sushi@example.com", created_at: "2026-02-01T09:00:00Z" },
+  { id: "u_emp_oriental", role: "employer", phone: "+34600100004", wechat: "oriental_super", name: "张总", locale: "zh", email: "oriental.super@example.com", created_at: "2026-01-20T09:00:00Z" },
+  { id: "u_emp_modanueva", role: "employer", phone: "+34600100005", wechat: null, name: "刘老板", locale: "es", email: "moda.nueva@example.com", created_at: "2026-03-05T09:00:00Z" },
+  { id: "u_emp_longmen", role: "employer", phone: "+34600100006", wechat: "longmen_bar", name: "赵老板", locale: "zh", email: "longmen.bar@example.com", created_at: "2026-02-18T09:00:00Z" },
+  { id: "u_seek_1", role: "seeker", phone: "+34600200001", wechat: "xiaoyu_2026", name: "小宇", locale: "zh", email: "xiaoyu@example.com", created_at: "2026-04-01T09:00:00Z" },
+  { id: "u_seek_2", role: "seeker", phone: "+34600200002", wechat: null, name: "阿芳", locale: "zh", email: "afang@example.com", created_at: "2026-04-03T09:00:00Z" },
+  { id: "u_seek_3", role: "seeker", phone: "+34600200003", wechat: "leo_zhang", name: "张磊", locale: "zh", email: "leizhang@example.com", created_at: "2026-04-10T09:00:00Z" },
+  { id: "u_seek_4", role: "seeker", phone: "+34600200004", wechat: null, name: "美美", locale: "es", email: "meimei@example.com", created_at: "2026-05-02T09:00:00Z" },
+  { id: "u_seek_5", role: "seeker", phone: "+34600200005", wechat: "chenchen88", name: "陈晨", locale: "zh", email: "chenchen@example.com", created_at: "2026-05-15T09:00:00Z" },
 ];
 
 export const seedStores: Store[] = [
