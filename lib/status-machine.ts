@@ -1,4 +1,8 @@
-import type { ApplicationStatus, JobStatus } from "./types";
+import type {
+  ApplicationStatus,
+  JobStatus,
+  StoreVerificationStatus,
+} from "./types";
 
 /**
  * Centralized state machines for `applications.status` and `jobs.status`.
@@ -39,6 +43,17 @@ export function applicationRevealsContact(status: ApplicationStatus): boolean {
   return status === "contacted" || status === "hired";
 }
 
+/**
+ * Statuses an employer is allowed to move an application to. Same table as
+ * canTransitionApplication, minus "withdrawn" — that's a seeker-only action
+ * (see app/me/applications), never something an employer sets.
+ */
+export function nextEmployerApplicationStatuses(
+  from: ApplicationStatus
+): ApplicationStatus[] {
+  return nextApplicationStatuses(from).filter((s) => s !== "withdrawn");
+}
+
 const JOB_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
   draft: ["active"],
   active: ["paused", "filled", "closed"],
@@ -62,4 +77,15 @@ export function isTerminalJobStatus(status: JobStatus): boolean {
 /** Only jobs in this status should appear in the public job feed. */
 export function isJobPubliclyVisible(status: JobStatus): boolean {
   return status === "active";
+}
+
+/**
+ * unverified/rejected -> pending is the only transition an employer
+ * triggers (submitting for review). pending -> verified/rejected is an
+ * admin action with no UI yet (out of scope for WP3's employer side).
+ */
+export function canSubmitStoreForVerification(
+  status: StoreVerificationStatus
+): boolean {
+  return status === "unverified" || status === "rejected";
 }

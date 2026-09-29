@@ -12,12 +12,19 @@ import {
   stores,
   users,
 } from "@/db/schema";
-import { canTransitionApplication } from "./status-machine";
+import {
+  applicationRevealsContact,
+  canSubmitStoreForVerification,
+  canTransitionApplication,
+  canTransitionJob,
+} from "./status-machine";
 import type { Locale } from "./i18n";
 import type {
   Application,
+  ApplicationStatus,
   City,
   Job,
+  JobFormValues,
   JobStatus,
   JobType,
   Report,
@@ -26,6 +33,7 @@ import type {
   SeekerProfile,
   SeekerProfileFormValues,
   Store,
+  StoreFormValues,
   User,
 } from "./types";
 
@@ -235,6 +243,16 @@ export async function saveSeekerProfile(
   };
 }
 
+export async function getApplicationById(
+  id: string
+): Promise<Application | null> {
+  const [row] = await db
+    .select()
+    .from(applications)
+    .where(eq(applications.id, id));
+  return row ?? null;
+}
+
 export async function getApplicationForJobAndSeeker(
   jobId: string,
   seekerUserId: string
@@ -319,6 +337,162 @@ export async function createReport(input: CreateReportInput): Promise<Report> {
       reporter_user_id: input.reporterUserId,
       reason: input.reason,
     })
+    .returning();
+  return row;
+}
+
+export async function createStore(
+  input: StoreFormValues & { ownerUserId: string }
+): Promise<Store> {
+  const [row] = await db
+    .insert(stores)
+    .values({
+      id: `store_${randomUUID()}`,
+      owner_user_id: input.ownerUserId,
+      name_zh: input.nameZh,
+      name_es: input.nameEs,
+      city: input.city,
+      district: input.district,
+      address: input.address,
+      category: input.category,
+      cover_image: input.coverImage,
+    })
+    .returning();
+  return row;
+}
+
+/**
+ * unverified/rejected -> pending only (see canSubmitStoreForVerification).
+ * pending -> verified/rejected is an admin action with no UI yet.
+ */
+export async function submitStoreForVerification(
+  storeId: string
+): Promise<Store> {
+  const [existing] = await db
+    .select()
+    .from(stores)
+    .where(eq(stores.id, storeId));
+
+  if (!existing) {
+    throw new Error(`Store ${storeId} not found`);
+  }
+  if (!canSubmitStoreForVerification(existing.verification_status)) {
+    throw new Error(
+      `Cannot submit store ${storeId} for verification from status "${existing.verification_status}"`
+    );
+  }
+
+  const [row] = await db
+    .update(stores)
+    .set({ verification_status: "pending" })
+    .where(eq(stores.id, storeId))
+    .returning();
+  return row;
+}
+
+/**
+ * Creates a job from the templated "发布岗位" form. city/district are
+ * taken from the store, not the form — a job's location always matches
+ * where its store actually is, so it isn't a separate free-choice field.
+ */
+export async function createJob(
+  input: JobFormValues & { storeId: string; city: string; status: "draft" | "active" }
+): Promise<Job> {
+  const [row] = await db
+    .insert(jobs)
+    .values({
+      id: `job_${randomUUID()}`,
+      store_id: input.storeId,
+      title_zh: input.titleZh,
+      title_es: input.titleEs,
+      job_type: input.jobType,
+      city: input.city,
+      district: input.district,
+      salary_min: input.salaryMin,
+      salary_max: input.salaryMax,
+      salary_period: input.salaryPeriod,
+      headcount: input.headcount,
+      schedule: input.schedule,
+      live_in: input.liveIn,
+      meals_included: input.mealsIncluded,
+      language_required: input.languageRequired,
+      residence_required: input.residenceRequired,
+      description_zh: input.descriptionZh,
+      description_es: input.descriptionEs,
+      status: input.status,
+    })
+    .returning();
+  return row;
+}
+
+export async function updateJobStatus(
+  jobId: string,
+  nextStatus: JobStatus
+): Promise<Job> {
+  const [existing] = await db.select().from(jobs).where(eq(jobs.id, jobId));
+
+  if (!existing) {
+    throw new Error(`Job ${jobId} not found`);
+  }
+  if (!canTransitionJob(existing.status, nextStatus)) {
+    throw new Error(
+      `Cannot move job ${jobId} from status "${existing.status}" to "${nextStatus}"`
+    );
+  }
+
+  const [row] = await db
+    .update(jobs)
+    .set({ status: nextStatus })
+    .where(eq(jobs.id, jobId))
+    .returning();
+  return row;
+}
+
+/** Called when the employer opens a job's candidate list — clears the "new" badge. */
+export async function markSubmittedApplicationsAsViewed(
+  jobId: string
+): Promise<void> {
+  await db
+    .update(applications)
+    .set({ status: "viewed", updated_at: new Date().toISOString() })
+    .where(
+      and(eq(applications.job_id, jobId), eq(applications.status, "submitted"))
+    );
+}
+
+/**
+ * Employer-side status advance (viewed/contacted/hired/rejected — never
+ * withdrawn, see lib/status-machine.ts's nextEmployerApplicationStatuses).
+ * Once contact is revealed it stays revealed even if the status later
+ * moves to a non-revealing one.
+ */
+export async function advanceApplicationStatus(
+  applicationId: string,
+  nextStatus: ApplicationStatus
+): Promise<Application> {
+  const [existing] = await db
+    .select()
+    .from(applications)
+    .where(eq(applications.id, applicationId));
+
+  if (!existing) {
+    throw new Error(`Application ${applicationId} not found`);
+  }
+  if (!canTransitionApplication(existing.status, nextStatus)) {
+    throw new Error(
+      `Cannot move application ${applicationId} from status "${existing.status}" to "${nextStatus}"`
+    );
+  }
+
+  const [row] = await db
+    .update(applications)
+    .set({
+      status: nextStatus,
+      contact_revealed:
+        existing.contact_revealed || applicationRevealsContact(nextStatus),
+      updated_at: new Date().toISOString(),
+    })
+    .where(eq(applications.id, applicationId))
     .returning();
   return row;
 }

@@ -2,20 +2,33 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  advanceApplicationStatus,
   createApplication,
+  createJob,
   createReport,
+  createStore,
+  getApplicationById,
   getApplicationForJobAndSeeker,
+  getDemoEmployerId,
   getDemoSeekerId,
+  getJobById,
   getJobs,
   getSeekerProfileByUserId,
+  getStoreById,
   saveSeekerProfile,
+  submitStoreForVerification,
+  updateJobStatus,
   withdrawApplication,
   type JobFilters,
 } from "@/lib/db";
 import type {
+  ApplicationStatus,
   Job,
+  JobFormValues,
+  JobStatus,
   ReportTargetType,
   SeekerProfileFormValues,
+  StoreFormValues,
 } from "@/lib/types";
 
 /**
@@ -121,4 +134,78 @@ export async function submitReportAction(input: {
     reporterUserId: seekerId,
     reason: input.reason,
   });
+}
+
+export async function createStoreAction(
+  input: StoreFormValues
+): Promise<{ ok: true; storeId: string }> {
+  const employerId = await getDemoEmployerId();
+  const store = await createStore({ ownerUserId: employerId, ...input });
+  revalidatePath("/employer");
+  return { ok: true, storeId: store.id };
+}
+
+async function assertOwnsStore(storeId: string): Promise<void> {
+  const [employerId, store] = await Promise.all([
+    getDemoEmployerId(),
+    getStoreById(storeId),
+  ]);
+  if (!store || store.owner_user_id !== employerId) {
+    throw new Error(`Store ${storeId} is not owned by the current employer`);
+  }
+}
+
+export async function submitStoreVerificationAction(
+  storeId: string
+): Promise<void> {
+  await assertOwnsStore(storeId);
+  await submitStoreForVerification(storeId);
+  revalidatePath("/employer");
+}
+
+export async function createJobAction(
+  input: JobFormValues & { storeId: string; status: "draft" | "active" }
+): Promise<{ ok: true; jobId: string } | { ok: false; error: string }> {
+  const store = await getStoreById(input.storeId);
+  if (!store) {
+    return { ok: false, error: "store_not_found" };
+  }
+  await assertOwnsStore(input.storeId);
+
+  const job = await createJob({ ...input, city: store.city });
+  revalidatePath("/employer");
+  return { ok: true, jobId: job.id };
+}
+
+async function assertOwnsJob(jobId: string): Promise<void> {
+  const job = await getJobById(jobId);
+  if (!job) {
+    throw new Error(`Job ${jobId} not found`);
+  }
+  await assertOwnsStore(job.store_id);
+}
+
+export async function updateJobStatusAction(
+  jobId: string,
+  status: JobStatus
+): Promise<void> {
+  await assertOwnsJob(jobId);
+  await updateJobStatus(jobId, status);
+  revalidatePath("/employer");
+  revalidatePath(`/employer/job/${jobId}`);
+}
+
+export async function advanceApplicationStatusAction(
+  applicationId: string,
+  status: ApplicationStatus
+): Promise<void> {
+  const application = await getApplicationById(applicationId);
+  if (!application) {
+    throw new Error(`Application ${applicationId} not found`);
+  }
+  await assertOwnsJob(application.job_id);
+
+  await advanceApplicationStatus(applicationId, status);
+  revalidatePath(`/employer/job/${application.job_id}`);
+  revalidatePath("/employer");
 }
