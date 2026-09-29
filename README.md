@@ -40,8 +40,8 @@ npm run db:studio    # Drizzle Studio，浏览本地数据库
 1. 在 Railway 新建项目，添加一个 Postgres 插件和一个从本仓库部署的服务
 2. 在该服务的环境变量里填入 AGENTS.md §7 列出的变量（同 `.env.example`，尤其是 `DATABASE_URL`——用 Railway Postgres 插件提供的连接串、`AUTH_SECRET`、`NEXT_PUBLIC_SITE_URL`——填最终域名）
 3. 推送到 `main`（或手动触发部署）。Railway 会：
-   - 用 nixpacks 检测 Node 项目并 `npm install`
-   - 执行 `railway.toml` 里的 `buildCommand`：先 `npm run db:migrate` 把待应用的迁移跑到 Railway Postgres 上，再 `npm run build` 产出生产构建（含 standalone 输出，体积更小）
+   - 用 nixpacks 检测 Node 项目并 `npm install`，执行 `railway.toml` 里的 `buildCommand`（`npm run build`，产出含 standalone 输出的生产构建）
+   - **构建阶段没有私有网络访问权限，连不到 `postgres.railway.internal`**，所以数据库迁移/种子不能放在 `buildCommand` 里（放进去会导致 `DATABASE_URL` 解析失败、构建报错）。它们放在 `preDeployCommand`（`npm run db:migrate && npm run db:seed`），这一步在部署阶段执行，和运行中的服务共享同一个私有网络，能正常连到 Railway Postgres
    - 用 `npm start` 启动，Railway 按 `healthcheckPath = "/api/health"` 探活，失败时按 `restartPolicyType = "ON_FAILURE"` 重启
 4. 域名与 CDN：参考 AGENTS.md §7（建议 `.es`，DNS 托管 Cloudflare）
 5. 图片上传：不要让 Railway 直接吐图片，走 Cloudflare R2（见 `.env.example` 里的 `R2_*`，功能尚未实现，见 AGENTS.md 当前进度）
