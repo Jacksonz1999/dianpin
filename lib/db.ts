@@ -1,12 +1,15 @@
+import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
+import { db } from "@/db/client";
 import {
-  seedApplications,
-  seedCities,
-  seedJobTypes,
-  seedJobs,
-  seedReviews,
-  seedStores,
-  seedUsers,
-} from "./seed";
+  applications,
+  cities,
+  jobTypes,
+  jobs,
+  reviews,
+  stores,
+  users,
+} from "@/db/schema";
+import type { Locale } from "./i18n";
 import type {
   Application,
   City,
@@ -17,14 +20,13 @@ import type {
   Store,
   User,
 } from "./types";
-import { normalizeSalaryToMonth } from "./types";
 
 /**
- * In-memory data access layer backed by lib/seed.ts.
+ * Postgres-backed data access layer (Drizzle ORM + node-postgres).
  *
- * Every function is async and returns a Promise so page code never
- * changes when this file is swapped for a real Postgres/Drizzle
- * implementation in WP1 — only the function bodies here change.
+ * This replaces the WP0 in-memory version — every exported function keeps
+ * the same name, parameters and return shape, so app/ and components/ call
+ * this exactly as before; only the implementation changed.
  */
 
 export interface JobFilters {
@@ -37,82 +39,109 @@ export interface JobFilters {
 }
 
 export async function getCities(): Promise<City[]> {
-  return seedCities;
+  return db.select().from(cities);
 }
 
 export async function getCityById(id: string): Promise<City | null> {
-  return seedCities.find((c) => c.id === id) ?? null;
+  const [row] = await db.select().from(cities).where(eq(cities.id, id));
+  return row ?? null;
 }
 
 export async function getJobTypes(): Promise<JobType[]> {
-  return seedJobTypes;
+  return db.select().from(jobTypes);
 }
 
 export async function getStores(): Promise<Store[]> {
-  return seedStores;
+  return db.select().from(stores);
 }
 
 export async function getStoreById(id: string): Promise<Store | null> {
-  return seedStores.find((s) => s.id === id) ?? null;
+  const [row] = await db.select().from(stores).where(eq(stores.id, id));
+  return row ?? null;
 }
 
 export async function getStoresByOwner(ownerUserId: string): Promise<Store[]> {
-  return seedStores.filter((s) => s.owner_user_id === ownerUserId);
+  return db.select().from(stores).where(eq(stores.owner_user_id, ownerUserId));
 }
+
+/**
+ * hour/day salaries are normalized to a monthly figure (hour×8×22,
+ * day×22) before being compared against `filters.salaryMin`, per
+ * AGENTS.md §5. Expressed as a SQL CASE so the comparison happens in the
+ * database rather than after fetching rows.
+ */
+const monthlySalaryMax = sql<number>`
+  case ${jobs.salary_period}
+    when 'hour' then ${jobs.salary_max} * 8 * 22
+    when 'day' then ${jobs.salary_max} * 22
+    else ${jobs.salary_max}
+  end
+`;
 
 export async function getJobs(filters: JobFilters = {}): Promise<Job[]> {
   const status = filters.status ?? "active";
 
-  const filtered = seedJobs.filter((job) => {
-    if (job.status !== status) return false;
-    if (filters.city && job.city !== filters.city) return false;
-    if (filters.jobType && job.job_type !== filters.jobType) return false;
-    if (filters.mealsIncluded && !job.meals_included) return false;
-    if (filters.residenceOk && job.residence_required === "required") {
-      return false;
-    }
-    if (filters.salaryMin) {
-      const monthlyMax = normalizeSalaryToMonth(
-        job.salary_max,
-        job.salary_period
-      );
-      if (monthlyMax < filters.salaryMin) return false;
-    }
-    return true;
-  });
+  const conditions = [eq(jobs.status, status)];
+  if (filters.city) conditions.push(eq(jobs.city, filters.city));
+  if (filters.jobType) conditions.push(eq(jobs.job_type, filters.jobType));
+  if (filters.mealsIncluded) conditions.push(eq(jobs.meals_included, true));
+  if (filters.residenceOk) {
+    conditions.push(sql`${jobs.residence_required} <> 'required'`);
+  }
+  if (filters.salaryMin) {
+    conditions.push(gte(monthlySalaryMax, filters.salaryMin));
+  }
 
-  return filtered.sort(
-    (a, b) =>
-      new Date(b.published_at).getTime() - new Date(a.published_at).getTime()
-  );
+  return db
+    .select()
+    .from(jobs)
+    .where(and(...conditions))
+    .orderBy(desc(jobs.published_at));
 }
 
 export async function getJobById(id: string): Promise<Job | null> {
-  return seedJobs.find((j) => j.id === id) ?? null;
+  const [row] = await db.select().from(jobs).where(eq(jobs.id, id));
+  return row ?? null;
 }
 
 export async function getJobsByStore(storeId: string): Promise<Job[]> {
-  return seedJobs.filter((j) => j.store_id === storeId);
+  return db.select().from(jobs).where(eq(jobs.store_id, storeId));
 }
 
 export async function getReviewsByStore(storeId: string): Promise<Review[]> {
-  return seedReviews.filter((r) => r.store_id === storeId);
+  return db
+    .select()
+    .from(reviews)
+    .where(eq(reviews.store_id, storeId))
+    .orderBy(desc(reviews.created_at));
 }
 
 export async function getApplicationsBySeeker(
   seekerUserId: string
 ): Promise<Application[]> {
-  return seedApplications.filter((a) => a.seeker_user_id === seekerUserId);
+  return db
+    .select()
+    .from(applications)
+    .where(eq(applications.seeker_user_id, seekerUserId))
+    .orderBy(desc(applications.created_at));
 }
 
 export async function getApplicationsByJob(
   jobId: string
 ): Promise<Application[]> {
-  return seedApplications.filter((a) => a.job_id === jobId);
+  return db
+    .select()
+    .from(applications)
+    .where(eq(applications.job_id, jobId))
+    .orderBy(asc(applications.created_at));
 }
 
 export async function getUserById(id: string): Promise<User | null> {
-  return seedUsers.find((u) => u.id === id) ?? null;
+  const [row] = await db.select().from(users).where(eq(users.id, id));
+  if (!row) return null;
+  // users.locale is plain text in Postgres (AGENTS.md §5 doesn't list it
+  // among the enumerated columns), but the app only ever writes 'zh'/'es'.
+  return { ...row, locale: row.locale as Locale };
 }
 
 /** Demo seeker used to power the /me/applications placeholder before auth (WP4) exists. */
