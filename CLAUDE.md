@@ -45,6 +45,7 @@ npm run dev          # 本地开发，http://localhost:3000
 - [x] WP2 求职者端页面
 - [x] WP3 雇主端页面
 - [x] WP4 认证（v1 邮箱魔法链接，抽象为 provider 接口，预留 whatsapp 实现位 —— 见 AGENTS.md §4）
-- [ ] WP5 部署配置（Railway）+ CI + 图片上传
+- [x] WP5a 部署配置（Railway）+ CI（railway.toml / next.config standalone / /api/health / GitHub Actions CI / README）
+- [ ] WP5b 图片上传（R2）——env 变量已在 `.env.example` 预留，功能未实现
 
 `index.html` 是交互蓝本，**不要删除**。迁移到 Next.js 后需逐项对照它验证行为是否一致。
