@@ -1,6 +1,7 @@
 "use client";
 
 import type { User } from "@/lib/types";
+import { LegalLinks } from "./LegalLinks";
 import { useLocale } from "./LocaleProvider";
 import { LogoutButton } from "./LogoutButton";
 
@@ -21,6 +22,7 @@ export function EmployerMeView({ user }: { user: User | null }) {
       </div>
 
       <LogoutButton />
+      <LegalLinks />
     </div>
   );
 }

@@ -60,10 +60,10 @@ export function JobDetailView({
     job.salary_min === job.salary_max
       ? `${job.salary_min}`
       : `${job.salary_min}-${job.salary_max}`;
-  const salaryText =
-    locale === "es"
-      ? `${salaryRange} €/${periodLabel}`
-      : `${salaryRange} 元/${periodLabel}`;
+  // Every job on this platform is Spain-based and priced in euros — there
+  // is no currency field in the data model because there's only ever one
+  // currency. Always show €, in every locale.
+  const salaryText = `${salaryRange} €/${periodLabel}`;
   const publishedDate = new Date(job.published_at).toLocaleDateString(
     locale === "es" ? "es-ES" : "zh-CN"
   );
