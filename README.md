@@ -50,6 +50,20 @@ npm run db:studio    # Drizzle Studio，浏览本地数据库
 
 **部署前必须避开的坑**（详见 AGENTS.md §7）：Railway 服务不会休眠、按时长计费；Railway Postgres 没有自动故障转移，需自行定期 `pg_dump` 备份；不要在 Hobby 套餐跑常驻后台 worker。
 
+### 启用 Cloudflare Turnstile（可选）
+
+不配置这两个变量时登录页会一直用内置的算术验证码，代码已经处理好这个降级（见 `lib/auth/turnstile.ts`），不会报错或白屏。要换成 Turnstile：
+
+1. 打开 [Turnstile 控制台](https://dash.cloudflare.com/?to=/:account/turnstile)，新建一个 widget，Domain 填你的正式域名（如 `dianpin-production.up.railway.app` 或自定义域名）
+2. 拿到 **Site Key** 和 **Secret Key**
+3. 在 Railway 该服务的 Variables 里加：
+   ```
+   NEXT_PUBLIC_TURNSTILE_SITEKEY = <刚才的 Site Key>
+   TURNSTILE_SECRET              = <刚才的 Secret Key>
+   ```
+4. 两个变量必须同时填——代码只有在都存在时才会切换到 Turnstile（`lib/auth/turnstile.ts` 的 `isTurnstileConfigured()`），只填一个等同于都没填
+5. 保存后 Railway 会自动重新部署，之后 `/login` 页面会加载 Turnstile 组件（CSP 已经放行了 `challenges.cloudflare.com`，不需要再改 `next.config.ts`）
+
 ## CI
 
 `.github/workflows/ci.yml` 在每个 PR 上跑 `npx tsc --noEmit` 和 `npm run build`，用占位 `DATABASE_URL`/`AUTH_SECRET`（构建期只做模块导入与路由收集，不会真的连接数据库或签发 token，见工作流文件内注释）。

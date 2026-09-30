@@ -74,104 +74,110 @@ export function JobDetailView({
         ← {t("job.backToList")}
       </Link>
 
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold">{title}</h1>
-        <p className="text-lg font-semibold text-[var(--color-primary)]">
-          {salaryText}
-        </p>
-        <p className="text-xs text-[var(--color-text-muted)]">
-          {t("job.publishedAt", { date: publishedDate })}
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm">
-        <Field label={t("home.filters.jobType")} value={`${jobType.icon} ${jobTypeName}`} />
-        <Field label={cityName} value={job.district} />
-        <Field label={t("job.scheduleLabel")} value={job.schedule} />
-        <Field label={t("job.headcountLabel")} value={t("job.headcount", { count: job.headcount })} />
-        <Field
-          label={t("job.mealsLabel")}
-          value={job.meals_included ? t("job.mealsIncluded") : t("job.mealsNotIncluded")}
-        />
-        <Field label={t("job.liveIn")} value={job.live_in ? t("common.yes") : t("common.no")} />
-        <Field label={t("job.languageLabel")} value={job.language_required} />
-        <Field
-          label={t("job.residenceLabel")}
-          value={t(`residenceRequired.${job.residence_required}`)}
-        />
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium">{t("job.description")}</h2>
-        <p className="whitespace-pre-line text-sm text-[var(--color-text-muted)]">
-          {description}
-        </p>
-      </div>
-
-      <Link
-        href={`/store/${store.id}`}
-        className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
-      >
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">{t("job.storeSection")}</span>
-          <span className="text-xs text-[var(--color-primary)]">
-            {t("job.viewStore")} →
-          </span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-base font-semibold">{storeName}</span>
-          <span className="rounded-full bg-[var(--color-bg)] px-2 py-1 text-xs">
-            {t(`verificationStatus.${store.verification_status}`)}
-          </span>
-        </div>
-        <span className="text-xs text-[var(--color-text-muted)]">
-          {store.rating_count > 0
-            ? `★ ${store.rating_avg.toFixed(1)} (${store.rating_count})`
-            : t("store.noRatingYet")}
-          {" · "}
-          {cityName} {store.district}
-        </span>
-      </Link>
-
-      <div className="flex flex-col gap-2">
-        {existingApplication ? (
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4 text-center text-sm">
-            {t("job.yourApplicationStatus")}：
-            {t(`applicationStatus.${existingApplication.status}`)}
+      <div className="lg:grid lg:grid-cols-[1fr_320px] lg:items-start lg:gap-8">
+        <article className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-xl font-semibold">{title}</h1>
+            <p className="text-lg font-semibold text-[var(--color-primary)]">
+              {salaryText}
+            </p>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              {t("job.publishedAt", { date: publishedDate })}
+            </p>
           </div>
-        ) : isLoggedInSeeker ? (
-          <button
-            type="button"
-            onClick={() => setApplyOpen(true)}
-            className="min-h-[44px] rounded-full bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--color-primary-text)]"
-          >
-            {t("job.applyButton")}
-          </button>
-        ) : (
-          <Link
-            href={`/login?role=seeker&next=${encodeURIComponent(`/job/${job.id}`)}`}
-            className="flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--color-primary-text)]"
-          >
-            {t("job.applyButton")}
-          </Link>
-        )}
 
-        {isLoggedIn ? (
-          <button
-            type="button"
-            onClick={() => setReportOpen(true)}
-            className="min-h-[44px] rounded-full border border-[var(--color-border)] px-4 text-sm text-[var(--color-text-muted)]"
-          >
-            {t("job.reportButton")}
-          </button>
-        ) : (
+          <div className="grid grid-cols-2 gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm">
+            <Field label={t("home.filters.jobType")} value={`${jobType.icon} ${jobTypeName}`} />
+            <Field label={cityName} value={job.district} />
+            <Field label={t("job.scheduleLabel")} value={job.schedule} />
+            <Field label={t("job.headcountLabel")} value={t("job.headcount", { count: job.headcount })} />
+            <Field
+              label={t("job.mealsLabel")}
+              value={job.meals_included ? t("job.mealsIncluded") : t("job.mealsNotIncluded")}
+            />
+            <Field label={t("job.liveIn")} value={job.live_in ? t("common.yes") : t("common.no")} />
+            <Field label={t("job.languageLabel")} value={job.language_required} />
+            <Field
+              label={t("job.residenceLabel")}
+              value={t(`residenceRequired.${job.residence_required}`)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <h2 className="text-sm font-medium">{t("job.description")}</h2>
+            <p className="whitespace-pre-line text-sm text-[var(--color-text-muted)]">
+              {description}
+            </p>
+          </div>
+        </article>
+
+        <aside className="mt-4 flex flex-col gap-4 lg:sticky lg:top-20 lg:mt-0">
           <Link
-            href={`/login?role=seeker&next=${encodeURIComponent(`/job/${job.id}`)}`}
-            className="flex min-h-[44px] items-center justify-center rounded-full border border-[var(--color-border)] px-4 text-sm text-[var(--color-text-muted)]"
+            href={`/store/${store.id}`}
+            className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
           >
-            {t("job.reportButton")}
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">{t("job.storeSection")}</span>
+              <span className="text-xs text-[var(--color-primary)]">
+                {t("job.viewStore")} →
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-base font-semibold">{storeName}</span>
+              <span className="rounded-full bg-[var(--color-bg)] px-2 py-1 text-xs">
+                {t(`verificationStatus.${store.verification_status}`)}
+              </span>
+            </div>
+            <span className="text-xs text-[var(--color-text-muted)]">
+              {store.rating_count > 0
+                ? `★ ${store.rating_avg.toFixed(1)} (${store.rating_count})`
+                : t("store.noRatingYet")}
+              {" · "}
+              {cityName} {store.district}
+            </span>
           </Link>
-        )}
+
+          <div className="flex flex-col gap-2">
+            {existingApplication ? (
+              <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] p-4 text-center text-sm">
+                {t("job.yourApplicationStatus")}：
+                {t(`applicationStatus.${existingApplication.status}`)}
+              </div>
+            ) : isLoggedInSeeker ? (
+              <button
+                type="button"
+                onClick={() => setApplyOpen(true)}
+                className="min-h-[44px] rounded-full bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--color-primary-text)]"
+              >
+                {t("job.applyButton")}
+              </button>
+            ) : (
+              <Link
+                href={`/login?role=seeker&next=${encodeURIComponent(`/job/${job.id}`)}`}
+                className="flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--color-primary-text)]"
+              >
+                {t("job.applyButton")}
+              </Link>
+            )}
+
+            {isLoggedIn ? (
+              <button
+                type="button"
+                onClick={() => setReportOpen(true)}
+                className="min-h-[44px] rounded-full border border-[var(--color-border)] px-4 text-sm text-[var(--color-text-muted)]"
+              >
+                {t("job.reportButton")}
+              </button>
+            ) : (
+              <Link
+                href={`/login?role=seeker&next=${encodeURIComponent(`/job/${job.id}`)}`}
+                className="flex min-h-[44px] items-center justify-center rounded-full border border-[var(--color-border)] px-4 text-sm text-[var(--color-text-muted)]"
+              >
+                {t("job.reportButton")}
+              </Link>
+            )}
+          </div>
+        </aside>
       </div>
 
       <ApplyModal

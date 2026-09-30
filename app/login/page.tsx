@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { generateCaptcha } from "@/lib/auth/captcha";
 import { getTurnstileSiteKey, isTurnstileConfigured } from "@/lib/auth/turnstile";
 import { LoginForm } from "@/components/LoginForm";
@@ -16,6 +17,9 @@ export default async function LoginPage({
   // behavior change from before this env var existed.
   const captcha = generateCaptcha();
   const defaultRole: UserRole = params.role === "employer" ? "employer" : "seeker";
+  // proxy.ts stamps this per request; the Turnstile <Script> needs it to
+  // run under the enforced nonce-based CSP (see proxy.ts).
+  const nonce = (await headers()).get("x-nonce");
 
   return (
     <LoginForm
@@ -24,6 +28,7 @@ export default async function LoginPage({
       nextPath={params.next ?? null}
       error={params.error ?? null}
       turnstileSiteKey={isTurnstileConfigured() ? getTurnstileSiteKey() : null}
+      nonce={nonce}
     />
   );
 }
