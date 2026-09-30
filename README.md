@@ -43,7 +43,7 @@ npm run db:studio    # Drizzle Studio，浏览本地数据库
 2. 在该服务的环境变量里填入 AGENTS.md §7 列出的变量（同 `.env.example`，尤其是 `DATABASE_URL`——用 Railway Postgres 插件提供的连接串、`AUTH_SECRET`、`NEXT_PUBLIC_SITE_URL`——填最终域名）
 3. 推送到 `main`（或手动触发部署）。Railway 会：
    - 用 nixpacks 检测 Node 项目并 `npm install`，执行 `railway.toml` 里的 `buildCommand`（`npm run build`，产出含 standalone 输出的生产构建）
-   - **构建阶段没有私有网络访问权限，连不到 `postgres.railway.internal`**，所以数据库迁移/种子不能放在 `buildCommand` 里（放进去会导致 `DATABASE_URL` 解析失败、构建报错）。它们放在 `preDeployCommand`（`npm run db:migrate && npm run db:seed`），这一步在部署阶段执行，和运行中的服务共享同一个私有网络，能正常连到 Railway Postgres
+   - **构建阶段没有私有网络访问权限，连不到 `postgres.railway.internal`**，所以数据库迁移不能放在 `buildCommand` 里（放进去会导致 `DATABASE_URL` 解析失败、构建报错）。迁移放在 `preDeployCommand`（`npm run db:migrate`），这一步在部署阶段执行，和运行中的服务共享同一个私有网络，能正常连到 Railway Postgres。**`db:seed` 不在自动部署流程里**——见下面「演示数据 vs 真实数据」，需要种子数据时手动在 Railway 控制台的 Shell 里跑
    - 用 `npm start` 启动，Railway 按 `healthcheckPath = "/api/health"` 探活，失败时按 `restartPolicyType = "ON_FAILURE"` 重启
 4. 域名与 CDN：参考 AGENTS.md §7（建议 `.es`，DNS 托管 Cloudflare）
 5. 图片上传：不要让 Railway 直接吐图片，走 Cloudflare R2（见 `.env.example` 里的 `R2_*`，功能尚未实现，见 AGENTS.md 当前进度）
@@ -63,6 +63,29 @@ npm run db:studio    # Drizzle Studio，浏览本地数据库
    ```
 4. 两个变量必须同时填——代码只有在都存在时才会切换到 Turnstile（`lib/auth/turnstile.ts` 的 `isTurnstileConfigured()`），只填一个等同于都没填
 5. 保存后 Railway 会自动重新部署，之后 `/login` 页面会加载 Turnstile 组件（CSP 已经放行了 `challenges.cloudflare.com`，不需要再改 `next.config.ts`）
+
+## 演示数据 vs 真实数据
+
+`stores`/`jobs` 表有一个 `is_seed` 字段，只有 `db/seed.ts` 插入的行会置为 `true`，通过网站正常发布的门店/岗位、CSV 导入的门店/岗位都是 `false`——这样才能把演示数据整体清空而不动真实数据。
+
+```bash
+npm run db:seed         # 灌演示数据（本地开发用）。生产环境（NODE_ENV=production）默认拒绝执行，
+                         # 除非显式设置 ALLOW_SEED=true —— 演示数据不该悄悄出现在生产库里
+npm run db:seed:clear   # 删掉所有 is_seed=true 的门店/岗位（及其投递/评价/举报），真实数据不受影响
+```
+
+演示门店一律是 `verification_status: "unverified"`（`db/seed.ts` 插入时强制覆盖，不管 `lib/seed.ts` 里写的是什么）——认证徽章是这个产品最核心的信任标志，演示数据不能冒充它。
+
+### 导入真实门店/岗位（CSV）
+
+```bash
+npm run db:import -- path/to/file.csv --dry-run   # 先看会写入/跳过哪些行，不实际写库
+npm run db:import -- path/to/file.csv              # 真正导入
+```
+
+CSV 表头（中文，顺序见 `db/import-csv.ts` 顶部注释）：`门店名称 / 城市 / 区域 / 门店地址 / 门店类型 / 老板称呼 / 联系电话 / 认证状态 / 工种 / 薪资类型 / 薪资下限 / 薪资上限 / 货币 / 工作时间 / 招聘人数 / 包吃 / 包住 / 可住宿 / 语言要求 / 居留要求 / 岗位描述 / 发布日期`。
+
+门店按「名称 + 城市」去重（已存在就复用，不会重复建店），门店主账号按手机号去重（同一个号码第二次出现会复用同一个账号）。城市、工种两列按当前数据库里 `cities`/`job_types` 表的中文名匹配，不认识的值会跳过该行并打印原因；下限/上限、货币（仅收 €/EUR）等字段也会做基本校验。已知的简化：`jobs` 表只有一个 `live_in` 布尔字段（AGENTS.md §5 就是这么定义的），CSV 里「包住」「可住宿」两列只要有一个填「是」就置 `live_in = true`——要把这两个概念拆成两个真字段是产品层面的决定，不是这个导入脚本能自己定的。
 
 ## CI
 

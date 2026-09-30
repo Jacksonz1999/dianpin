@@ -1,6 +1,7 @@
 "use client";
 
 import type { JobType, ResidenceStatus, SeekerProfileFormValues } from "@/lib/types";
+import { renderJobTypeIcon } from "@/lib/job-type-icons";
 import { useLocale } from "./LocaleProvider";
 
 const RESIDENCE_STATUSES: ResidenceStatus[] = [
@@ -75,13 +76,14 @@ export function SeekerProfileForm({
                 type="button"
                 onClick={() => toggleJobType(jt.id)}
                 className={
-                  "min-h-[36px] rounded-full px-3 text-sm " +
+                  "inline-flex min-h-[36px] items-center gap-1 rounded-full px-3 text-sm " +
                   (active
                     ? "bg-[var(--color-primary)] text-[var(--color-primary-text)]"
                     : "bg-[var(--color-bg)] text-[var(--color-text-muted)]")
                 }
               >
-                {jt.icon} {locale === "es" ? jt.name_es : jt.name_zh}
+                {renderJobTypeIcon(jt.id, "h-3.5 w-3.5 shrink-0")}
+                {locale === "es" ? jt.name_es : jt.name_zh}
               </button>
             );
           })}

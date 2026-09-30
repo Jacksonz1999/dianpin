@@ -141,8 +141,10 @@ export function JobsExplorer({
             >
               <option value={ALL}>{t("common.all")}</option>
               {jobTypes.map((jt) => (
+                // <option> can only render plain text (browsers strip any
+                // child elements), so no icon here — just the name.
                 <option key={jt.id} value={jt.id}>
-                  {jt.icon} {locale === "es" ? jt.name_es : jt.name_zh}
+                  {locale === "es" ? jt.name_es : jt.name_zh}
                 </option>
               ))}
             </select>

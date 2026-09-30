@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { renderJobTypeIcon } from "@/lib/job-type-icons";
 import type {
   Application,
   City,
@@ -14,7 +15,7 @@ import { useLocale } from "./LocaleProvider";
 import { ApplyModal } from "./ApplyModal";
 import { ReportModal } from "./ReportModal";
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs text-[var(--color-text-muted)]">{label}</span>
@@ -87,7 +88,15 @@ export function JobDetailView({
           </div>
 
           <div className="grid grid-cols-2 gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm">
-            <Field label={t("home.filters.jobType")} value={`${jobType.icon} ${jobTypeName}`} />
+            <Field
+              label={t("home.filters.jobType")}
+              value={
+                <span className="inline-flex items-center gap-1">
+                  {renderJobTypeIcon(jobType.id, "h-3.5 w-3.5 shrink-0")}
+                  {jobTypeName}
+                </span>
+              }
+            />
             <Field label={cityName} value={job.district} />
             <Field label={t("job.scheduleLabel")} value={job.schedule} />
             <Field label={t("job.headcountLabel")} value={t("job.headcount", { count: job.headcount })} />
@@ -124,15 +133,17 @@ export function JobDetailView({
             </div>
             <div className="flex items-center justify-between">
               <span className="text-base font-semibold">{storeName}</span>
-              <span className="rounded-full bg-[var(--color-bg)] px-2 py-1 text-xs">
-                {t(`verificationStatus.${store.verification_status}`)}
-              </span>
+              {(store.verification_status === "verified" ||
+                store.verification_status === "pending") && (
+                <span className="rounded-full bg-[var(--color-bg)] px-2 py-1 text-xs">
+                  {t(`verificationStatus.${store.verification_status}`)}
+                </span>
+              )}
             </div>
             <span className="text-xs text-[var(--color-text-muted)]">
-              {store.rating_count > 0
-                ? `★ ${store.rating_avg.toFixed(1)} (${store.rating_count})`
-                : t("store.noRatingYet")}
-              {" · "}
+              {store.rating_count > 0 && (
+                <>★ {store.rating_avg.toFixed(1)} ({store.rating_count}) · </>
+              )}
               {cityName} {store.district}
             </span>
           </Link>

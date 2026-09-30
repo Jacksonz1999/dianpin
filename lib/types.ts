@@ -102,6 +102,7 @@ export interface Store {
   verified_at: string | null;
   rating_avg: number;
   rating_count: number;
+  is_seed: boolean;
 }
 
 export interface Job {
@@ -127,6 +128,7 @@ export interface Job {
   published_at: string;
   expires_at: string | null;
   views: number;
+  is_seed: boolean;
 }
 
 export interface Application {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { City, Job, JobType, Store } from "@/lib/types";
+import { renderJobTypeIcon } from "@/lib/job-type-icons";
 import { useLocale } from "./LocaleProvider";
 
 // Every job on this platform is Spain-based and priced in euros — always
@@ -36,7 +37,7 @@ export function JobCard({
   const periodLabel = t(`job.salaryPeriod.${job.salary_period}`);
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <div className="flex h-full flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold leading-snug">{title}</h3>
         <span className="shrink-0 text-sm font-semibold text-[var(--color-primary)]">
@@ -49,8 +50,9 @@ export function JobCard({
       </p>
 
       <div className="flex flex-wrap gap-1.5 text-xs">
-        <span className="rounded-full bg-[var(--color-bg)] px-2 py-1">
-          {jobType.icon} {jobTypeName}
+        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-bg)] px-2 py-1">
+          {renderJobTypeIcon(jobType.id, "h-3.5 w-3.5 shrink-0")}
+          {jobTypeName}
         </span>
         <span className="rounded-full bg-[var(--color-bg)] px-2 py-1">
           {job.meals_included ? t("job.mealsIncluded") : t("job.mealsNotIncluded")}
@@ -65,9 +67,10 @@ export function JobCard({
         </span>
       </div>
 
-      <div className="flex items-center justify-between pt-1">
+      <div className="mt-auto flex items-center justify-between pt-1">
         <span className="text-xs text-[var(--color-text-muted)]">
-          {t("job.headcount", { count: job.headcount })} · {t("job.views", { count: job.views })}
+          {t("job.headcount", { count: job.headcount })} ·{" "}
+          {job.views > 0 ? t("job.views", { count: job.views }) : t("job.viewsNew")}
         </span>
         <Link
           href={`/job/${job.id}`}

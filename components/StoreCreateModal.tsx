@@ -47,13 +47,17 @@ export function StoreCreateModal({
     }
     setError(null);
     setSaving(true);
-    await createStoreAction({
+    const result = await createStoreAction({
       ...value,
       coverImage: value.coverImage.trim() || DEFAULT_COVER_IMAGE,
     });
     setSaving(false);
-    router.refresh();
-    onClose();
+    if (result.ok) {
+      router.refresh();
+      onClose();
+    } else {
+      setError(t(`store.error.${result.error}`));
+    }
   }
 
   return (

@@ -113,7 +113,7 @@ export function JobCreateForm({
       });
       router.refresh();
     } else {
-      setError(result.error);
+      setError(t(`job.error.${result.error}`));
     }
   }
 
@@ -170,8 +170,9 @@ export function JobCreateForm({
           className="min-h-[44px] rounded-lg border border-[var(--color-border)] px-3"
         >
           {jobTypes.map((jt) => (
+            // <option> can only render plain text — see JobsExplorer.tsx.
             <option key={jt.id} value={jt.id}>
-              {jt.icon} {locale === "es" ? jt.name_es : jt.name_zh}
+              {locale === "es" ? jt.name_es : jt.name_zh}
             </option>
           ))}
         </select>

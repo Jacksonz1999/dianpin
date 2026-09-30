@@ -16,8 +16,37 @@ export function Header() {
       {/* Matches the outer wrapper's breakpoints in app/layout.tsx so this
           bar's content lines up with the page content below it. */}
       <div className="mx-auto flex max-w-[560px] items-center justify-between px-4 py-3 md:max-w-3xl lg:max-w-6xl lg:px-6">
-        <Link href={isEmployer ? "/employer" : "/"} className="text-base font-semibold">
-          {t("app.name")}
+        <Link
+          href={isEmployer ? "/employer" : "/"}
+          className="flex items-center gap-2.5"
+        >
+          <svg
+            viewBox="0 0 64 64"
+            className="h-7 w-7 shrink-0 text-[var(--color-primary)]"
+            aria-hidden="true"
+          >
+            <g fill="currentColor">
+              <rect x="14" y="14" width="36" height="6" rx="1.5" />
+              <circle cx="18.5" cy="20" r="4.5" />
+              <circle cx="27.5" cy="20" r="4.5" />
+              <circle cx="36.5" cy="20" r="4.5" />
+              <circle cx="45.5" cy="20" r="4.5" />
+            </g>
+            <path
+              d="M22 41 29 48 42 34.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <span className="text-base font-semibold">{t("app.name")}</span>
+          <span
+            className="hidden border-l border-[var(--color-border)] pl-2.5 text-[10px] tracking-[0.14em] text-[var(--color-text-muted)] md:inline"
+          >
+            DIANPIN
+          </span>
         </Link>
 
         {/* Below md, BottomNav (components/BottomNav.tsx) is the nav surface. */}

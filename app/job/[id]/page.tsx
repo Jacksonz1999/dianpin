@@ -9,6 +9,7 @@ import {
   getSeekerProfileByUserId,
   getStoreById,
   getUserById,
+  incrementJobViews,
 } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { jobMetadata, jobPostingJsonLd, jsonLdScriptContent } from "@/lib/seo";
@@ -42,6 +43,12 @@ export default async function JobDetailPage({
   const { id } = await params;
   const job = await getJobById(id);
   if (!job) notFound();
+
+  // Fire-and-forget: registers this view for the *next* page load, doesn't
+  // block or affect what's rendered now (see incrementJobViews in lib/db.ts).
+  void incrementJobViews(job.id).catch((err) => {
+    console.error(`[job/${job.id}] failed to increment views:`, err);
+  });
 
   const [store, city, jobType, allJobTypes, session] = await Promise.all([
     getStoreById(job.store_id),
