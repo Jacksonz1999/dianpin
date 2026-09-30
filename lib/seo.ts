@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { City, Job, Store } from "./types";
-import { getSiteUrl } from "./site-url";
+import { absUrl, getSiteUrl } from "./site-url";
 
 export const SITE_NAME = "店聘 DianPin";
 
@@ -40,7 +40,7 @@ function truncate(text: string, maxLength: number): string {
 }
 
 export function jobMetadata(job: Job, store: Store, city: City): Metadata {
-  const url = `${getSiteUrl()}/job/${job.id}`;
+  const url = absUrl(`/job/${job.id}`);
   const title = `${job.title_zh} - ${store.name_zh} · ${city.name_zh} | ${SITE_NAME}`;
   const description = truncate(
     job.description_zh.trim() ||
@@ -69,7 +69,7 @@ export function jobMetadata(job: Job, store: Store, city: City): Metadata {
 }
 
 export function storeMetadata(store: Store, city: City): Metadata {
-  const url = `${getSiteUrl()}/store/${store.id}`;
+  const url = absUrl(`/store/${store.id}`);
   const title = `${store.name_zh} · ${city.name_zh} | ${SITE_NAME}`;
   const description = truncate(
     `${store.name_zh}（${store.category}）· ${city.name_zh}${store.district} · 在店聘查看该店招聘信息与真实评价`,
@@ -109,7 +109,7 @@ export function jobPostingJsonLd(
   store: Store,
   city: City
 ): Record<string, unknown> {
-  const url = `${getSiteUrl()}/job/${job.id}`;
+  const url = absUrl(`/job/${job.id}`);
 
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org/",
@@ -125,7 +125,7 @@ export function jobPostingJsonLd(
     hiringOrganization: {
       "@type": "Organization",
       name: store.name_zh,
-      sameAs: `${getSiteUrl()}/store/${store.id}`,
+      sameAs: absUrl(`/store/${store.id}`),
     },
     jobLocation: {
       "@type": "Place",

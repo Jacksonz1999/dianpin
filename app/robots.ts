@@ -1,9 +1,7 @@
 import type { MetadataRoute } from "next";
-import { getSiteUrl } from "@/lib/site-url";
+import { absUrl } from "@/lib/site-url";
 
 export default function robots(): MetadataRoute.Robots {
-  const siteUrl = getSiteUrl();
-
   return {
     rules: {
       userAgent: "*",
@@ -12,6 +10,6 @@ export default function robots(): MetadataRoute.Robots {
       // and /login in particular shouldn't show up in search results.
       disallow: ["/me", "/employer", "/login", "/auth", "/api"],
     },
-    sitemap: `${siteUrl}/sitemap.xml`,
+    sitemap: absUrl("/sitemap.xml"),
   };
 }

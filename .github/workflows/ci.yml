@@ -18,6 +18,13 @@ jobs:
       # buildCommand (see railway.toml), not in this workflow.
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_placeholder
       AUTH_SECRET: ci-placeholder-secret-not-used-at-build-time
+      # `next build` always runs with NODE_ENV=production, and
+      # lib/site-url.ts now throws in production if this is unset (see
+      # that file's comment for why — a missing/wrong value here is
+      # exactly how canonical URLs silently point at the wrong domain).
+      # CI never serves real traffic, so a placeholder is fine here; the
+      # real value is set in Railway's service Variables.
+      NEXT_PUBLIC_SITE_URL: https://ci-placeholder.example.com
     steps:
       - uses: actions/checkout@v4
 
