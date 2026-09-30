@@ -34,6 +34,26 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // www.dianpin.eu -> dianpin.eu (canonical/sitemap/JSON-LD all use the
+      // root domain — see lib/site-url.ts — so www must not serve its own
+      // copy or it's duplicate content). Path and query string carry
+      // through automatically via :path* — see Next's redirects() docs.
+      //
+      // Deliberately does NOT match dianpin-production.up.railway.app:
+      // Railway's own health check hits that host directly, and a 308
+      // there would make the health check fail and the deploy look
+      // unhealthy. The old Railway domain stays reachable (canonical
+      // already points off it) until its traffic is confirmed at zero.
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.dianpin.eu" }],
+        destination: "https://dianpin.eu/:path*",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

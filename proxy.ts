@@ -12,11 +12,20 @@ export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isDev = process.env.NODE_ENV === "development";
 
+  // Space-separated list of extra origins store/job photos may load from,
+  // e.g. "https://res.cloudinary.com https://*.supabase.co" — set once an
+  // image CDN is picked (AGENTS.md §7: never serve images from Railway
+  // itself). Unset today, so img-src stays exactly 'self' data: — this
+  // only widens the policy once someone opts in, never on its own. This
+  // is a plain env var (not NEXT_PUBLIC_*): it's read here in proxy.ts,
+  // which runs server-side only, not shipped to the browser bundle.
+  const imageCdnHosts = process.env.IMAGE_CDN_HOSTS?.trim();
+
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://challenges.cloudflare.com${isDev ? " 'unsafe-eval'" : ""};
     style-src 'self' 'unsafe-inline';
-    img-src 'self' data:;
+    img-src 'self' data:${imageCdnHosts ? ` ${imageCdnHosts}` : ""};
     connect-src 'self';
     frame-src https://challenges.cloudflare.com;
     frame-ancestors 'none';
