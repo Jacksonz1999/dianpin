@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { cache } from "react";
 import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
@@ -60,10 +61,15 @@ export async function getCities(): Promise<City[]> {
   return db.select().from(cities);
 }
 
-export async function getCityById(id: string): Promise<City | null> {
+// Wrapped in React's cache() because generateMetadata() and the page body
+// both call this for the same job/store detail page — without it, adding
+// generateMetadata would silently double every one of these queries per
+// request. cache() memoizes per-request only, never across requests, so
+// this can't leak stale data between visitors.
+export const getCityById = cache(async (id: string): Promise<City | null> => {
   const [row] = await db.select().from(cities).where(eq(cities.id, id));
   return row ?? null;
-}
+});
 
 export async function getJobTypes(): Promise<JobType[]> {
   return db.select().from(jobTypes);
@@ -78,10 +84,10 @@ export async function getStores(): Promise<Store[]> {
   return db.select().from(stores);
 }
 
-export async function getStoreById(id: string): Promise<Store | null> {
+export const getStoreById = cache(async (id: string): Promise<Store | null> => {
   const [row] = await db.select().from(stores).where(eq(stores.id, id));
   return row ?? null;
-}
+});
 
 export async function getStoresByOwner(ownerUserId: string): Promise<Store[]> {
   return db.select().from(stores).where(eq(stores.owner_user_id, ownerUserId));
@@ -134,10 +140,10 @@ export async function getJobs(filters: JobFilters = {}): Promise<Job[]> {
     .orderBy(desc(jobs.published_at));
 }
 
-export async function getJobById(id: string): Promise<Job | null> {
+export const getJobById = cache(async (id: string): Promise<Job | null> => {
   const [row] = await db.select().from(jobs).where(eq(jobs.id, id));
   return row ?? null;
-}
+});
 
 export async function getJobsByStore(storeId: string): Promise<Job[]> {
   return db.select().from(jobs).where(eq(jobs.store_id, storeId));

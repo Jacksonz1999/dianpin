@@ -4,6 +4,7 @@ import { useState } from "react";
 import { requestLoginLinkAction } from "@/app/auth-actions";
 import type { MathCaptcha } from "@/lib/auth/captcha";
 import type { UserRole } from "@/lib/types";
+import { LegalLinks } from "./LegalLinks";
 import { useLocale } from "./LocaleProvider";
 
 export function LoginForm({
@@ -140,6 +141,8 @@ export function LoginForm({
           </button>
         </div>
       )}
+
+      <LegalLinks />
     </div>
   );
 }

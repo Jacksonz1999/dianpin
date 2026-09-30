@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { JobType, SeekerProfile, User } from "@/lib/types";
+import { LegalLinks } from "./LegalLinks";
 import { useLocale } from "./LocaleProvider";
 import { LogoutButton } from "./LogoutButton";
 import { ProfileEditModal } from "./ProfileEditModal";
@@ -120,6 +121,7 @@ export function MeView({
       )}
 
       <LogoutButton />
+      <LegalLinks />
 
       <ProfileEditModal
         open={editOpen}

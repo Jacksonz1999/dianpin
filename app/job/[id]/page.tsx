@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   getApplicationForJobAndSeeker,
@@ -10,9 +11,28 @@ import {
   getUserById,
 } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
+import { jobMetadata, jobPostingJsonLd, jsonLdScriptContent } from "@/lib/seo";
 import { JobDetailView } from "@/components/JobDetailView";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const job = await getJobById(id);
+  if (!job) return {};
+
+  const [store, city] = await Promise.all([
+    getStoreById(job.store_id),
+    getCityById(job.city),
+  ]);
+  if (!store || !city) return {};
+
+  return jobMetadata(job, store, city);
+}
 
 export default async function JobDetailPage({
   params,
@@ -48,26 +68,34 @@ export default async function JobDetailPage({
     : [null, null, null];
 
   return (
-    <JobDetailView
-      job={job}
-      store={store}
-      city={city}
-      jobType={jobType}
-      jobTypes={allJobTypes}
-      isLoggedIn={!!session}
-      isLoggedInSeeker={isSeeker}
-      existingApplication={existingApplication}
-      hasProfile={!!seekerProfile}
-      initialProfileValues={{
-        name: seekerUser?.name ?? "",
-        phone: seekerUser?.phone ?? "",
-        jobTypes: seekerProfile?.job_types ?? [],
-        experienceYears: seekerProfile?.experience_years ?? null,
-        availableFrom: seekerProfile?.available_from?.slice(0, 10) ?? null,
-        residenceStatus: seekerProfile?.residence_status ?? null,
-        expectedSalaryMin: seekerProfile?.expected_salary_min ?? null,
-        expectedSalaryMax: seekerProfile?.expected_salary_max ?? null,
-      }}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScriptContent(jobPostingJsonLd(job, store, city)),
+        }}
+      />
+      <JobDetailView
+        job={job}
+        store={store}
+        city={city}
+        jobType={jobType}
+        jobTypes={allJobTypes}
+        isLoggedIn={!!session}
+        isLoggedInSeeker={isSeeker}
+        existingApplication={existingApplication}
+        hasProfile={!!seekerProfile}
+        initialProfileValues={{
+          name: seekerUser?.name ?? "",
+          phone: seekerUser?.phone ?? "",
+          jobTypes: seekerProfile?.job_types ?? [],
+          experienceYears: seekerProfile?.experience_years ?? null,
+          availableFrom: seekerProfile?.available_from?.slice(0, 10) ?? null,
+          residenceStatus: seekerProfile?.residence_status ?? null,
+          expectedSalaryMin: seekerProfile?.expected_salary_min ?? null,
+          expectedSalaryMax: seekerProfile?.expected_salary_max ?? null,
+        }}
+      />
+    </>
   );
 }

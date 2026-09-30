@@ -3,10 +3,12 @@ import "./globals.css";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
+import { getSiteUrl } from "@/lib/site-url";
+import { homeMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "店聘 DianPin",
-  description: "面向西班牙华人的门店招聘平台",
+  metadataBase: new URL(getSiteUrl()),
+  ...homeMetadata(),
 };
 
 export const viewport: Viewport = {

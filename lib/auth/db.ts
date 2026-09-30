@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, count, eq, gte } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNull } from "drizzle-orm";
 import { db } from "@/db/client";
 import { authChallenges } from "@/db/schema";
 import type { AuthChannel, UserRole } from "@/lib/types";
@@ -72,6 +72,32 @@ export async function consumeAuthChallenge(id: string): Promise<void> {
     .update(authChallenges)
     .set({ consumed_at: new Date().toISOString() })
     .where(eq(authChallenges.id, id));
+}
+
+/**
+ * Most recent not-yet-consumed, not-yet-expired challenge for this
+ * identifier+channel, if any — lets the caller skip minting (and
+ * emailing) a brand new token when the last one it sent is still good.
+ */
+export async function getLatestActiveChallenge(
+  identifier: string,
+  channel: AuthChannel
+): Promise<AuthChallengeRow | null> {
+  const now = new Date().toISOString();
+  const [row] = await db
+    .select()
+    .from(authChallenges)
+    .where(
+      and(
+        eq(authChallenges.identifier, identifier),
+        eq(authChallenges.channel, channel),
+        isNull(authChallenges.consumed_at),
+        gte(authChallenges.expires_at, now)
+      )
+    )
+    .orderBy(desc(authChallenges.created_at))
+    .limit(1);
+  return row ?? null;
 }
 
 /** Powers the per-identifier and per-IP rate limits on requesting a login link. */

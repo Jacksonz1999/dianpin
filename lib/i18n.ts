@@ -26,7 +26,7 @@ const zh: Dict = {
   "common.yes": "是",
   "common.no": "否",
   "common.month": "月",
-  "common.perMonth": "元/月",
+  "common.perMonth": "€/月",
 
   "home.title": "找工作",
   "home.citySwitch": "切换城市",
@@ -35,7 +35,7 @@ const zh: Dict = {
   "home.filters.jobType": "工种",
   "home.filters.mealsIncluded": "包吃住",
   "home.filters.residenceOk": "可无居留",
-  "home.filters.salaryMin": "薪资下限（元/月）",
+  "home.filters.salaryMin": "薪资下限（€/月）",
   "home.filters.title": "筛选",
 
   "job.salaryPeriod.hour": "时",
@@ -139,7 +139,7 @@ const zh: Dict = {
   "profile.experienceYears": "工作经验（年）",
   "profile.availableFrom": "可到岗时间",
   "profile.residenceStatus": "居留状态",
-  "profile.expectedSalary": "期望月薪（元/月）",
+  "profile.expectedSalary": "期望月薪（€/月）",
   "profile.save": "保存资料",
   "profile.saving": "保存中…",
   "profile.saved": "资料已保存",
@@ -249,6 +249,90 @@ const zh: Dict = {
   "employer.job.noProfile": "还没有完善求职资料",
   "employer.job.jobStatusLabel": "岗位状态",
   "employer.job.backToDashboard": "返回工作台",
+
+  // --- 合规页面（隐私政策 / 服务条款 / 法律声明）---
+  // ⚠️ 以下内容是按 GDPR + 西班牙 LSSI-CE 结构撰写的草稿，[方括号] 标出的
+  // 是需要产品/法务侧补充的真实信息（运营主体名称、税号、地址、联系邮箱
+  // 等）——填完之前不能当作最终合规文本使用，详见 PR 描述。
+  "legal.placeholderNotice":
+    "⚠️ 本页内容为合规草稿，标有 [方括号] 的信息尚未填写真实数据，暂不构成最终法律文本。",
+  "legal.lastUpdated": "最后更新：{date}",
+
+  "legal.footer.privacy": "隐私政策",
+  "legal.footer.terms": "服务条款",
+  "legal.footer.legal": "法律声明",
+
+  "legal.privacy.title": "隐私政策",
+  "legal.privacy.section.controller.heading": "数据控制者",
+  "legal.privacy.section.controller.body":
+    "店聘 DianPin（以下简称\"本平台\"）由 [运营主体名称/负责人姓名]（税号/NIF：[NIF/CIF]，地址：[地址]）运营，是本平台用户个人数据的数据控制者。如对本政策或您的个人数据有任何疑问，请联系：[联系邮箱]。",
+  "legal.privacy.section.dataCollected.heading": "我们收集哪些数据",
+  "legal.privacy.section.dataCollected.body":
+    "求职者：姓名、邮箱、电话/微信（可选）、语言偏好、工种、工作经验、可到岗时间、居留状态、期望薪资等求职资料。\n\n雇主：姓名、邮箱、电话/微信（可选）、所属门店信息（门店名称、地址、类别、认证材料）。\n\n所有用户：登录记录（用于安全与限流）、投递/职位浏览记录（用于提供撮合服务）。我们不收集也不需要您的身份证件号码或银行账户信息。",
+  "legal.privacy.section.purposes.heading": "处理目的与法律依据",
+  "legal.privacy.section.purposes.body":
+    "提供求职者与雇主之间的撮合服务（法律依据：履行与您的服务合同，GDPR 第 6(1)(b) 条）。\n\n通过邮箱魔法链接完成登录验证（法律依据：履行服务合同）。\n\n防止账号滥用、欺诈与骚扰（法律依据：我们的合法利益，GDPR 第 6(1)(f) 条），包括登录请求的限流与验证码校验。\n\n雇主标记\"已联系\"候选人后向其展示联系方式，用于双方后续沟通（法律依据：履行服务合同，且经求职者主动投递岗位默示同意）。",
+  "legal.privacy.section.retention.heading": "数据保留期限",
+  "legal.privacy.section.retention.body":
+    "账号相关数据在账号存续期间保留。您可随时联系我们注销账号，我们将在收到请求后 30 天内删除您的个人数据，法律法规要求另行保留的除外（如反欺诈记录的必要留存）。登录验证记录（auth_challenges）在有效期（15 分钟）后自动失效，我们会定期清理过期记录。",
+  "legal.privacy.section.recipients.heading": "数据接收方与传输",
+  "legal.privacy.section.recipients.body":
+    "我们使用第三方服务商处理部分数据：数据库与应用托管（Railway，服务器位于欧盟境内）、发信服务（用于投递登录邮件）。这些服务商仅在提供上述服务所必需的范围内处理您的数据，我们已与其签署符合 GDPR 要求的数据处理协议（如适用）。我们不会将您的个人数据出售给第三方，也不会用于与撮合服务无关的广告投放。",
+  "legal.privacy.section.rights.heading": "您的权利",
+  "legal.privacy.section.rights.body":
+    "根据 GDPR，您有权：访问我们持有的您的个人数据；要求更正不准确的数据；要求删除数据（\"被遗忘权\"）；限制或反对某些处理；以结构化、常用格式获取您的数据（数据可携带权）。行使上述权利请发邮件至 [联系邮箱]，我们将在一个月内答复。如您认为我们的处理方式侵犯了您的权利，您也有权向西班牙数据保护局（AEPD, www.aepd.es）投诉。",
+  "legal.privacy.section.cookies.heading": "Cookie 与本地存储",
+  "legal.privacy.section.cookies.body":
+    "本平台仅使用两类浏览器本地存储，均为提供服务所必需，不涉及广告追踪：登录会话 Cookie（签名加密，用于保持登录状态）；语言偏好（存储在浏览器 localStorage，不会同步到服务器）。我们目前不使用任何第三方分析或广告 Cookie。如未来接入此类工具，我们会在此更新说明并加入 Cookie 同意横幅。",
+  "legal.privacy.section.minors.heading": "未成年人",
+  "legal.privacy.section.minors.body":
+    "本平台面向达到西班牙法定劳动年龄（一般为 16 周岁）的求职者。我们不会有意收集未满 16 周岁未成年人的个人数据。",
+  "legal.privacy.section.changes.heading": "政策变更",
+  "legal.privacy.section.changes.body":
+    "我们可能不时更新本隐私政策，更新后会修改页面顶部的\"最后更新\"日期。重大变更会通过站内通知告知您。",
+
+  "legal.terms.title": "服务条款",
+  "legal.terms.section.acceptance.heading": "条款接受",
+  "legal.terms.section.acceptance.body":
+    "使用店聘 DianPin 即表示您同意本服务条款。如您不同意，请不要使用本平台。",
+  "legal.terms.section.service.heading": "服务说明",
+  "legal.terms.section.service.body":
+    "本平台为求职者与西班牙华人门店雇主提供岗位信息展示、结构化筛选、在线投递与候选人管理服务。免登录可浏览岗位与门店信息；投递岗位、发布岗位或查看联系方式需要登录。本平台仅提供信息撮合服务，不是任何雇佣关系的一方，不对雇主与求职者之间达成的雇佣条款、薪资支付等承担责任。",
+  "legal.terms.section.account.heading": "账号与登录",
+  "legal.terms.section.account.body":
+    "本平台采用邮箱魔法链接免密码登录：登录链接 15 分钟内有效、仅可使用一次。请妥善保管您的邮箱账号安全，因您的邮箱被盗用导致的损失由您自行承担。请勿使用他人邮箱注册账号。",
+  "legal.terms.section.conduct.heading": "用户行为规范",
+  "legal.terms.section.conduct.body":
+    "使用本平台时，您承诺：不发布虚假、误导性的岗位或求职信息；不发布含歧视性要求（如基于性别、年龄、民族的非法限制）的招聘信息；不骚扰其他用户；不利用平台漏洞或自动化工具（机器人）批量注册、批量投递或刷取验证码。违反上述规范的账号可能被限制或封禁。",
+  "legal.terms.section.verification.heading": "门店认证说明",
+  "legal.terms.section.verification.body":
+    "\"已认证\"标识仅代表该门店已按本平台的核验流程提交并通过基础资料审核，不构成本平台对该门店经营合法性、财务状况或劳动条件的担保。求职者仍应自行核实雇主信息。",
+  "legal.terms.section.liability.heading": "责任限制",
+  "legal.terms.section.liability.body":
+    "本平台按\"现状\"提供服务，不保证服务不中断或完全无错误。在法律允许的最大范围内，本平台不对因使用本服务产生的间接、附带或衍生损失承担责任。",
+  "legal.terms.section.termination.heading": "服务终止",
+  "legal.terms.section.termination.body":
+    "您可随时停止使用本平台并申请注销账号。如您严重违反本条款，本平台有权暂停或终止您的账号。",
+  "legal.terms.section.law.heading": "适用法律与管辖",
+  "legal.terms.section.law.body":
+    "本条款适用西班牙法律。因本条款产生的争议，由[管辖法院所在地，如马德里]有管辖权的法院管辖，消费者权益保护法律另有强制性规定的除外。",
+
+  "legal.legal.title": "法律声明",
+  "legal.legal.section.identity.heading": "网站运营者信息",
+  "legal.legal.section.identity.body":
+    "根据西班牙《信息社会服务和电子商务法》（LSSI-CE）第 10 条，特此声明：\n\n运营主体：[公司名称/负责人姓名]\n税号（NIF/CIF）：[NIF/CIF]\n注册地址：[地址]\n联系邮箱：[联系邮箱]\n网站域名：dianpin-production.up.railway.app（正式域名待补充）",
+  "legal.legal.section.purpose.heading": "网站宗旨",
+  "legal.legal.section.purpose.body":
+    "本网站旨在为西班牙华人社区提供门店招聘信息撮合服务。访问和使用本网站即表示您接受本法律声明与相应的服务条款、隐私政策。",
+  "legal.legal.section.ip.heading": "知识产权",
+  "legal.legal.section.ip.body":
+    "本网站的设计、界面、代码及\"店聘 DianPin\"名称与标识归运营方所有，未经授权不得复制、转载或用于商业用途。门店与岗位内容的知识产权归发布该信息的雇主所有。",
+  "legal.legal.section.disclaimer.heading": "责任免除",
+  "legal.legal.section.disclaimer.body":
+    "运营方不对用户发布内容的真实性、准确性负责，但会对经核实的虚假信息或违规内容进行处理（见举报功能）。因网络中断、第三方服务故障等不可抗力导致的服务中断，运营方不承担责任。",
+  "legal.legal.section.law.heading": "适用法律与管辖法院",
+  "legal.legal.section.law.body":
+    "本声明适用西班牙法律，任何争议提交[管辖法院所在地]有管辖权的法院解决。",
 };
 
 const es: Dict = {
@@ -495,6 +579,90 @@ const es: Dict = {
   "employer.job.noProfile": "Aún no ha completado su perfil",
   "employer.job.jobStatusLabel": "Estado del empleo",
   "employer.job.backToDashboard": "Volver al panel",
+
+  // --- Páginas legales (Política de privacidad / Términos / Aviso legal) ---
+  // ⚠️ Borrador conforme a RGPD + LSSI-CE. Los textos entre [corchetes]
+  // son datos reales que faltan por completar (razón social, NIF,
+  // domicilio, email de contacto) — ver descripción del PR.
+  "legal.placeholderNotice":
+    "⚠️ Esta página es un borrador de cumplimiento normativo. La información entre [corchetes] aún no se ha rellenado con datos reales y de momento no constituye el texto legal definitivo.",
+  "legal.lastUpdated": "Última actualización: {date}",
+
+  "legal.footer.privacy": "Política de privacidad",
+  "legal.footer.terms": "Términos de servicio",
+  "legal.footer.legal": "Aviso legal",
+
+  "legal.privacy.title": "Política de privacidad",
+  "legal.privacy.section.controller.heading": "Responsable del tratamiento",
+  "legal.privacy.section.controller.body":
+    "店聘 DianPin (en adelante, \"la plataforma\") está operada por [nombre de la entidad/titular] (NIF/CIF: [NIF/CIF], domicilio: [dirección]), responsable del tratamiento de los datos personales de los usuarios de esta plataforma. Para cualquier consulta sobre esta política o sus datos personales, contacte con: [email de contacto].",
+  "legal.privacy.section.dataCollected.heading": "Qué datos recopilamos",
+  "legal.privacy.section.dataCollected.body":
+    "Buscadores de empleo: nombre, email, teléfono/WeChat (opcional), idioma preferido, tipo de trabajo, experiencia, disponibilidad, estatus de residencia, salario esperado y demás datos del perfil.\n\nEmpleadores: nombre, email, teléfono/WeChat (opcional), datos de la tienda (nombre, dirección, categoría, documentación de verificación).\n\nTodos los usuarios: registros de inicio de sesión (seguridad y límite de solicitudes), historial de postulaciones/visualización de empleos (para prestar el servicio de emparejamiento). No recopilamos ni necesitamos su número de documento de identidad ni datos bancarios.",
+  "legal.privacy.section.purposes.heading": "Finalidades y base jurídica",
+  "legal.privacy.section.purposes.body":
+    "Prestar el servicio de emparejamiento entre buscadores de empleo y empleadores (base jurídica: ejecución del contrato de servicio, art. 6(1)(b) RGPD).\n\nVerificar el inicio de sesión mediante enlace mágico por email (base jurídica: ejecución del contrato de servicio).\n\nPrevenir el abuso de cuentas, fraude y acoso (base jurídica: interés legítimo, art. 6(1)(f) RGPD), incluyendo límites de solicitudes y verificación captcha.\n\nMostrar los datos de contacto del candidato al empleador tras marcarlo como \"contactado\" (base jurídica: ejecución del contrato de servicio, con consentimiento implícito del buscador al postularse).",
+  "legal.privacy.section.retention.heading": "Plazo de conservación",
+  "legal.privacy.section.retention.body":
+    "Los datos de la cuenta se conservan mientras esta permanezca activa. Puede solicitar la baja de su cuenta en cualquier momento; eliminaremos sus datos personales en un plazo de 30 días desde la solicitud, salvo obligación legal de conservación (p. ej. registros antifraude). Los registros de verificación de inicio de sesión (auth_challenges) caducan automáticamente tras 15 minutos y se depuran periódicamente.",
+  "legal.privacy.section.recipients.heading": "Destinatarios y transferencias de datos",
+  "legal.privacy.section.recipients.body":
+    "Utilizamos proveedores externos para parte del tratamiento: alojamiento de base de datos y aplicación (Railway, servidores ubicados en la UE) y servicio de envío de correo (para los enlaces de inicio de sesión). Estos proveedores solo tratan sus datos en la medida necesaria para prestar dichos servicios, con acuerdos de tratamiento de datos conformes al RGPD cuando corresponda. No vendemos sus datos personales a terceros ni los usamos para publicidad ajena al servicio.",
+  "legal.privacy.section.rights.heading": "Sus derechos",
+  "legal.privacy.section.rights.body":
+    "Conforme al RGPD, usted tiene derecho a: acceder a los datos personales que tratamos sobre usted; solicitar la rectificación de datos inexactos; solicitar la supresión (\"derecho al olvido\"); limitar u oponerse a determinados tratamientos; y obtener sus datos en un formato estructurado y de uso común (portabilidad). Para ejercer estos derechos, escriba a [email de contacto]; responderemos en el plazo de un mes. Si considera que el tratamiento vulnera sus derechos, también puede presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD, www.aepd.es).",
+  "legal.privacy.section.cookies.heading": "Cookies y almacenamiento local",
+  "legal.privacy.section.cookies.body":
+    "La plataforma solo utiliza dos tipos de almacenamiento local del navegador, ambos estrictamente necesarios para el servicio y sin fines de seguimiento publicitario: la cookie de sesión de inicio de sesión (firmada y cifrada, para mantener la sesión iniciada) y la preferencia de idioma (guardada en localStorage del navegador, no se sincroniza con el servidor). Actualmente no usamos cookies de análisis ni publicidad de terceros. Si en el futuro incorporamos alguna, actualizaremos este aviso y añadiremos un banner de consentimiento de cookies.",
+  "legal.privacy.section.minors.heading": "Menores de edad",
+  "legal.privacy.section.minors.body":
+    "Esta plataforma está dirigida a buscadores de empleo que hayan alcanzado la edad legal laboral en España (generalmente 16 años). No recopilamos intencionadamente datos personales de menores de 16 años.",
+  "legal.privacy.section.changes.heading": "Cambios en esta política",
+  "legal.privacy.section.changes.body":
+    "Podemos actualizar esta política de privacidad ocasionalmente; al hacerlo, actualizaremos la fecha de \"última actualización\" en la parte superior de la página. Los cambios sustanciales se comunicarán mediante avisos dentro de la plataforma.",
+
+  "legal.terms.title": "Términos de servicio",
+  "legal.terms.section.acceptance.heading": "Aceptación de los términos",
+  "legal.terms.section.acceptance.body":
+    "Al usar 店聘 DianPin, usted acepta estos términos de servicio. Si no está de acuerdo, no utilice la plataforma.",
+  "legal.terms.section.service.heading": "Descripción del servicio",
+  "legal.terms.section.service.body":
+    "Esta plataforma ofrece a buscadores de empleo y empleadores de tiendas chinas en España un servicio de publicación de ofertas, filtrado estructurado, postulación en línea y gestión de candidatos. Se puede consultar ofertas y tiendas sin registrarse; postularse, publicar ofertas o ver datos de contacto requiere iniciar sesión. La plataforma solo presta un servicio de intermediación informativa; no es parte de ninguna relación laboral y no asume responsabilidad por las condiciones laborales o el pago de salarios acordados entre empleador y candidato.",
+  "legal.terms.section.account.heading": "Cuenta e inicio de sesión",
+  "legal.terms.section.account.body":
+    "Esta plataforma utiliza inicio de sesión sin contraseña mediante enlace mágico por email: el enlace es válido 15 minutos y de un solo uso. Mantenga segura el acceso a su cuenta de correo; no nos hacemos responsables de las pérdidas derivadas del acceso no autorizado a su email. No utilice el correo de otra persona para registrarse.",
+  "legal.terms.section.conduct.heading": "Normas de conducta",
+  "legal.terms.section.conduct.body":
+    "Al usar la plataforma, usted se compromete a: no publicar ofertas o perfiles falsos o engañosos; no publicar ofertas con requisitos discriminatorios ilegales (por género, edad, origen étnico, etc.); no acosar a otros usuarios; no utilizar vulnerabilidades de la plataforma ni herramientas automatizadas (bots) para registrarse, postularse o resolver captchas en masa. Las cuentas que incumplan estas normas podrán ser restringidas o suspendidas.",
+  "legal.terms.section.verification.heading": "Sobre la verificación de tiendas",
+  "legal.terms.section.verification.body":
+    "La insignia \"verificada\" indica únicamente que la tienda ha superado nuestro proceso básico de revisión documental; no constituye una garantía por parte de la plataforma sobre la legalidad, situación financiera o condiciones laborales de dicha tienda. Los buscadores de empleo deben verificar la información del empleador por su cuenta.",
+  "legal.terms.section.liability.heading": "Limitación de responsabilidad",
+  "legal.terms.section.liability.body":
+    "El servicio se presta \"tal cual\", sin garantía de disponibilidad ininterrumpida ni ausencia total de errores. En la medida permitida por la ley, la plataforma no será responsable de daños indirectos, incidentales o derivados del uso del servicio.",
+  "legal.terms.section.termination.heading": "Terminación del servicio",
+  "legal.terms.section.termination.body":
+    "Puede dejar de usar la plataforma y solicitar la baja de su cuenta en cualquier momento. En caso de incumplimiento grave de estos términos, la plataforma podrá suspender o cancelar su cuenta.",
+  "legal.terms.section.law.heading": "Ley aplicable y jurisdicción",
+  "legal.terms.section.law.body":
+    "Estos términos se rigen por la legislación española. Cualquier controversia derivada de estos términos se someterá a los juzgados y tribunales de [ciudad de la jurisdicción, p. ej. Madrid], salvo disposición legal imperativa en materia de protección de consumidores.",
+
+  "legal.legal.title": "Aviso legal",
+  "legal.legal.section.identity.heading": "Datos identificativos del titular",
+  "legal.legal.section.identity.body":
+    "En cumplimiento del artículo 10 de la Ley 34/2002, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), se informa:\n\nTitular: [nombre de la entidad/titular]\nNIF/CIF: [NIF/CIF]\nDomicilio: [dirección]\nEmail de contacto: [email de contacto]\nDominio: dianpin-production.up.railway.app (dominio definitivo pendiente)",
+  "legal.legal.section.purpose.heading": "Objeto del sitio web",
+  "legal.legal.section.purpose.body":
+    "Este sitio web tiene como finalidad ofrecer un servicio de intermediación de ofertas de empleo en tiendas para la comunidad china en España. El acceso y uso de este sitio implica la aceptación de este aviso legal y de los correspondientes términos de servicio y política de privacidad.",
+  "legal.legal.section.ip.heading": "Propiedad intelectual",
+  "legal.legal.section.ip.body":
+    "El diseño, la interfaz, el código y la marca \"店聘 DianPin\" son propiedad del titular; queda prohibida su reproducción o uso comercial sin autorización. Los derechos sobre el contenido de tiendas y ofertas pertenecen al empleador que los publica.",
+  "legal.legal.section.disclaimer.heading": "Exención de responsabilidad",
+  "legal.legal.section.disclaimer.body":
+    "El titular no se responsabiliza de la veracidad del contenido publicado por los usuarios, si bien actuará ante contenido falso o infractor verificado (ver la función de denuncia). El titular no será responsable de interrupciones del servicio derivadas de fallos de red o de terceros proveedores por causa de fuerza mayor.",
+  "legal.legal.section.law.heading": "Ley aplicable y jurisdicción",
+  "legal.legal.section.law.body":
+    "Este aviso se rige por la legislación española. Cualquier controversia se someterá a los juzgados y tribunales de [ciudad de la jurisdicción].",
 };
 
 const dictionaries: Record<Locale, Dict> = { zh, es };

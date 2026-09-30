@@ -6,11 +6,13 @@ import { redirect } from "next/navigation";
 import {
   countRecentChallenges,
   createAuthChallenge,
+  getLatestActiveChallenge,
 } from "@/lib/auth/db";
 import { verifyCaptcha } from "@/lib/auth/captcha";
 import { sanitizeNextPath } from "@/lib/auth/next-path";
 import { clearSession } from "@/lib/auth/session";
 import { getAuthProvider } from "@/lib/auth/providers";
+import { getSiteUrl } from "@/lib/site-url";
 import type { UserRole } from "@/lib/types";
 
 const CHALLENGE_TTL_MINUTES = 15;
@@ -18,6 +20,14 @@ const MAX_PER_IDENTIFIER_PER_WINDOW = 3;
 const IDENTIFIER_WINDOW_MINUTES = 15;
 const MAX_PER_IP_PER_WINDOW = 10;
 const IP_WINDOW_MINUTES = 60;
+// A double form submit, a browser back-button resend, or someone tapping
+// "send link" twice shouldn't mint a second token and fire a second
+// email while the first one is still fresh — cheap to dedupe and it
+// protects the sending domain's reputation for free. The raw code itself
+// can't be "reused" for a real resend (only its hash is ever persisted,
+// by design — see createAuthChallenge), so within this window we just
+// skip sending again rather than resend the same link.
+const RESEND_DEDUP_SECONDS = 60;
 
 async function getClientIp(): Promise<string> {
   const h = await headers();
@@ -68,6 +78,18 @@ export async function requestLoginLinkAction(input: {
 
   const ip = await getClientIp();
 
+  const recentChallenge = await getLatestActiveChallenge(email, "email");
+  if (
+    recentChallenge &&
+    Date.now() - new Date(recentChallenge.created_at).getTime() <
+      RESEND_DEDUP_SECONDS * 1000
+  ) {
+    // A still-valid link went out moments ago — tell the caller it
+    // "succeeded" (same as a real send) without minting or emailing a
+    // second one.
+    return { ok: true };
+  }
+
   const [byIdentifier, byIp] = await Promise.all([
     countRecentChallenges({
       identifier: email,
@@ -97,8 +119,7 @@ export async function requestLoginLinkAction(input: {
     expiresAt,
   });
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const verifyUrl = `${siteUrl}/auth/callback?challenge=${challenge.id}&code=${rawCode}`;
+  const verifyUrl = `${getSiteUrl()}/auth/callback?challenge=${challenge.id}&code=${rawCode}`;
 
   try {
     await getAuthProvider().deliverCode({

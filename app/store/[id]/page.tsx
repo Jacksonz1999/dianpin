@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   getCityById,
@@ -7,9 +8,25 @@ import {
   getStoreById,
   getUserById,
 } from "@/lib/db";
+import { storeMetadata } from "@/lib/seo";
 import { StoreDetailView } from "@/components/StoreDetailView";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const store = await getStoreById(id);
+  if (!store) return {};
+
+  const city = await getCityById(store.city);
+  if (!city) return {};
+
+  return storeMetadata(store, city);
+}
 
 export default async function StoreDetailPage({
   params,
