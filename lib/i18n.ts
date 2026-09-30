@@ -328,7 +328,7 @@ const zh: Dict = {
   "legal.legal.title": "法律声明",
   "legal.legal.section.identity.heading": "网站运营者信息",
   "legal.legal.section.identity.body":
-    "根据西班牙《信息社会服务和电子商务法》（LSSI-CE）第 10 条，特此声明：\n\n运营主体：[公司名称/负责人姓名]\n税号（NIF/CIF）：[NIF/CIF]\n注册地址：[地址]\n联系邮箱：[联系邮箱]\n网站域名：dianpin-production.up.railway.app（正式域名待补充）",
+    "根据西班牙《信息社会服务和电子商务法》（LSSI-CE）第 10 条，特此声明：\n\n运营主体：[公司名称/负责人姓名]\n税号（NIF/CIF）：[NIF/CIF]\n注册地址：[地址]\n联系邮箱：[联系邮箱]\n网站域名：dianpin.eu",
   "legal.legal.section.purpose.heading": "网站宗旨",
   "legal.legal.section.purpose.body":
     "本网站旨在为西班牙华人社区提供门店招聘信息撮合服务。访问和使用本网站即表示您接受本法律声明与相应的服务条款、隐私政策。",
@@ -666,7 +666,7 @@ const es: Dict = {
   "legal.legal.title": "Aviso legal",
   "legal.legal.section.identity.heading": "Datos identificativos del titular",
   "legal.legal.section.identity.body":
-    "En cumplimiento del artículo 10 de la Ley 34/2002, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), se informa:\n\nTitular: [nombre de la entidad/titular]\nNIF/CIF: [NIF/CIF]\nDomicilio: [dirección]\nEmail de contacto: [email de contacto]\nDominio: dianpin-production.up.railway.app (dominio definitivo pendiente)",
+    "En cumplimiento del artículo 10 de la Ley 34/2002, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), se informa:\n\nTitular: [nombre de la entidad/titular]\nNIF/CIF: [NIF/CIF]\nDomicilio: [dirección]\nEmail de contacto: [email de contacto]\nDominio: dianpin.eu",
   "legal.legal.section.purpose.heading": "Objeto del sitio web",
   "legal.legal.section.purpose.body":
     "Este sitio web tiene como finalidad ofrecer un servicio de intermediación de ofertas de empleo en tiendas para la comunidad china en España. El acceso y uso de este sitio implica la aceptación de este aviso legal y de los correspondientes términos de servicio y política de privacidad.",
