@@ -13,6 +13,7 @@ import { sanitizeNextPath } from "@/lib/auth/next-path";
 import { clearSession } from "@/lib/auth/session";
 import { getAuthProvider } from "@/lib/auth/providers";
 import { getSiteUrl } from "@/lib/site-url";
+import { isTurnstileConfigured, verifyTurnstileToken } from "@/lib/auth/turnstile";
 import type { UserRole } from "@/lib/types";
 
 const CHALLENGE_TTL_MINUTES = 15;
@@ -59,6 +60,9 @@ export async function requestLoginLinkAction(input: {
   nextPath: string | null;
   captchaToken: string;
   captchaAnswer: string;
+  /** Cloudflare Turnstile response token — only used/required when
+   * TURNSTILE_SECRET + NEXT_PUBLIC_TURNSTILE_SITEKEY are both set. */
+  turnstileToken?: string;
   /** Hidden field real users never fill; non-empty means a bot. */
   honeypot: string;
 }): Promise<RequestLoginLinkResult> {
@@ -67,7 +71,17 @@ export async function requestLoginLinkAction(input: {
     return { ok: true };
   }
 
-  if (!verifyCaptcha(input.captchaToken, input.captchaAnswer)) {
+  const ip = await getClientIp();
+
+  // Server decides which check applies based on its own env config, never
+  // on anything the client claims — a client can't opt out of Turnstile
+  // by pretending it's using the math captcha instead once Turnstile is
+  // actually configured, and vice versa.
+  if (isTurnstileConfigured()) {
+    if (!(await verifyTurnstileToken(input.turnstileToken ?? "", ip))) {
+      return { ok: false, error: "captcha_failed" };
+    }
+  } else if (!verifyCaptcha(input.captchaToken, input.captchaAnswer)) {
     return { ok: false, error: "captcha_failed" };
   }
 
@@ -75,8 +89,6 @@ export async function requestLoginLinkAction(input: {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, error: "invalid_email" };
   }
-
-  const ip = await getClientIp();
 
   const recentChallenge = await getLatestActiveChallenge(email, "email");
   if (
