@@ -4,18 +4,16 @@ import Link from "next/link";
 import type { City, Job, JobType, Store } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
 
-function formatSalary(
-  job: Job,
-  locale: "zh" | "es",
-  periodLabel: string
-): string {
+// Every job on this platform is Spain-based and priced in euros — always
+// show €, in every locale (see the same fix and rationale already applied
+// to components/JobDetailView.tsx; this card has its own independent
+// copy of the same formatting logic, missed in that earlier pass).
+function formatSalary(job: Job, periodLabel: string): string {
   const range =
     job.salary_min === job.salary_max
       ? `${job.salary_min}`
       : `${job.salary_min}-${job.salary_max}`;
-  return locale === "es"
-    ? `${range} €/${periodLabel}`
-    : `${range} 元/${periodLabel}`;
+  return `${range} €/${periodLabel}`;
 }
 
 export function JobCard({
@@ -42,7 +40,7 @@ export function JobCard({
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold leading-snug">{title}</h3>
         <span className="shrink-0 text-sm font-semibold text-[var(--color-primary)]">
-          {formatSalary(job, locale, periodLabel)}
+          {formatSalary(job, periodLabel)}
         </span>
       </div>
 

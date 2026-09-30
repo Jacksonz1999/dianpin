@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ComponentType } from "react";
+import { ClipboardIcon, PlusIcon, SearchIcon, SendIcon, UserIcon } from "./icons";
 import { useLocale } from "./LocaleProvider";
 
 type Tab = {
   href: string;
   label: string;
-  icon: string;
+  Icon: ComponentType<{ className?: string }>;
 };
 
 export function BottomNav() {
@@ -18,14 +20,14 @@ export function BottomNav() {
 
   const tabs: Tab[] = isEmployer
     ? [
-        { href: "/employer", label: t("nav.employer.dashboard"), icon: "📋" },
-        { href: "/employer/new", label: t("nav.employer.post"), icon: "➕" },
-        { href: "/employer/me", label: t("nav.employer.me"), icon: "👤" },
+        { href: "/employer", label: t("nav.employer.dashboard"), Icon: ClipboardIcon },
+        { href: "/employer/new", label: t("nav.employer.post"), Icon: PlusIcon },
+        { href: "/employer/me", label: t("nav.employer.me"), Icon: UserIcon },
       ]
     : [
-        { href: "/", label: t("nav.seeker.jobs"), icon: "🔍" },
-        { href: "/me/applications", label: t("nav.seeker.applications"), icon: "📨" },
-        { href: "/me", label: t("nav.seeker.me"), icon: "👤" },
+        { href: "/", label: t("nav.seeker.jobs"), Icon: SearchIcon },
+        { href: "/me/applications", label: t("nav.seeker.applications"), Icon: SendIcon },
+        { href: "/me", label: t("nav.seeker.me"), Icon: UserIcon },
       ];
 
   return (
@@ -34,6 +36,7 @@ export function BottomNav() {
         {tabs.map((tab) => {
           const active =
             tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
+          const Icon = tab.Icon;
           return (
             <Link
               key={tab.href}
@@ -41,9 +44,7 @@ export function BottomNav() {
               className="flex min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5 py-2 text-xs"
               aria-current={active ? "page" : undefined}
             >
-              <span className="text-lg leading-none" aria-hidden>
-                {tab.icon}
-              </span>
+              <Icon className="h-5 w-5" />
               <span
                 className={
                   active
