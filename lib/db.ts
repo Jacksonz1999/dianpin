@@ -19,6 +19,7 @@ import {
   canTransitionApplication,
   canTransitionJob,
 } from "./status-machine";
+import { assertNotPlaceholder } from "./validation";
 import type { Locale } from "./i18n";
 import type {
   Application,
@@ -144,6 +145,19 @@ export const getJobById = cache(async (id: string): Promise<Job | null> => {
   const [row] = await db.select().from(jobs).where(eq(jobs.id, id));
   return row ?? null;
 });
+
+/**
+ * Fire-and-forget from the job detail page — the displayed count is as of
+ * page load, this registers for the next viewer. No per-viewer dedup (no
+ * session/cookie plumbing for anonymous browsing), so it's a raw hit
+ * counter, not unique visitors.
+ */
+export async function incrementJobViews(id: string): Promise<void> {
+  await db
+    .update(jobs)
+    .set({ views: sql`${jobs.views} + 1` })
+    .where(eq(jobs.id, id));
+}
 
 export async function getJobsByStore(storeId: string): Promise<Job[]> {
   return db.select().from(jobs).where(eq(jobs.store_id, storeId));
@@ -370,6 +384,9 @@ export async function createReport(input: CreateReportInput): Promise<Report> {
 export async function createStore(
   input: StoreFormValues & { ownerUserId: string }
 ): Promise<Store> {
+  assertNotPlaceholder("nameZh", input.nameZh);
+  assertNotPlaceholder("nameEs", input.nameEs);
+
   const [row] = await db
     .insert(stores)
     .values({
@@ -424,6 +441,11 @@ export async function submitStoreForVerification(
 export async function createJob(
   input: JobFormValues & { storeId: string; city: string; status: "draft" | "active" }
 ): Promise<Job> {
+  assertNotPlaceholder("titleZh", input.titleZh);
+  assertNotPlaceholder("titleEs", input.titleEs);
+  assertNotPlaceholder("descriptionZh", input.descriptionZh);
+  assertNotPlaceholder("descriptionEs", input.descriptionEs);
+
   const [row] = await db
     .insert(jobs)
     .values({

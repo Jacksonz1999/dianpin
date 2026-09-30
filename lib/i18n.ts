@@ -47,6 +47,7 @@ const zh: Dict = {
   "job.headcount": "招 {count} 人",
   "job.viewDetail": "查看详情",
   "job.views": "{count} 次浏览",
+  "job.viewsNew": "新发布",
 
   "residenceRequired.none": "居留不限",
   "residenceRequired.prefer": "有居留优先",
@@ -197,6 +198,10 @@ const zh: Dict = {
   "login.error.already_used": "该登录链接已被使用过",
   "login.error.expired": "登录链接已过期，请重新获取",
   "login.error.too_many_attempts": "尝试次数过多，请重新获取登录链接",
+
+  "job.error.store_not_found": "找不到对应的门店，请刷新后重试",
+  "job.error.placeholder_content": "标题或描述里含有「示例/测试」等占位文字，请填写真实内容",
+  "store.error.placeholder_content": "门店名称里含有「示例/测试」等占位文字，请填写真实门店名",
 
   "employer.dashboard.newStoreCta": "+ 新建门店",
   "employer.dashboard.noStores": "还没有门店，先创建一个吧",
@@ -380,6 +385,7 @@ const es: Dict = {
   "job.headcount": "{count} vacantes",
   "job.viewDetail": "Ver detalles",
   "job.views": "{count} vistas",
+  "job.viewsNew": "Recién publicado",
 
   "residenceRequired.none": "Residencia no requerida",
   "residenceRequired.prefer": "Se prefiere residencia",
@@ -530,6 +536,10 @@ const es: Dict = {
   "login.error.already_used": "Este enlace ya fue utilizado",
   "login.error.expired": "El enlace ha expirado, solicita uno nuevo",
   "login.error.too_many_attempts": "Demasiados intentos, solicita un nuevo enlace",
+
+  "job.error.store_not_found": "No se encontró la tienda, actualiza la página e inténtalo de nuevo",
+  "job.error.placeholder_content": "El título o la descripción parecen texto de ejemplo/prueba, escribe contenido real",
+  "store.error.placeholder_content": "El nombre de la tienda parece texto de ejemplo/prueba, escribe el nombre real",
 
   "employer.dashboard.newStoreCta": "+ Nueva tienda",
   "employer.dashboard.noStores": "Aún no tienes tiendas, crea una primero",

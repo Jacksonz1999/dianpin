@@ -4,7 +4,7 @@ buildCommand = "npm run build"
 
 [deploy]
 startCommand = "npm start"
-preDeployCommand = "npm run db:migrate && npm run db:seed"
+preDeployCommand = "npm run db:migrate"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"

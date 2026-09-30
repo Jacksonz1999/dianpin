@@ -35,16 +35,22 @@ export function StoreDetailView({
       <div className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-xl font-semibold">{name}</h1>
-          <span className="shrink-0 rounded-full bg-[var(--color-bg)] px-2 py-1 text-xs">
-            {t(`verificationStatus.${store.verification_status}`)}
-          </span>
+          {/* unverified/rejected show nothing rather than a badge that
+              undersells or oversells trust the store hasn't earned —
+              see AGENTS.md §1 "门店验证" as the product's core differentiator. */}
+          {(store.verification_status === "verified" ||
+            store.verification_status === "pending") && (
+            <span className="shrink-0 rounded-full bg-[var(--color-bg)] px-2 py-1 text-xs">
+              {t(`verificationStatus.${store.verification_status}`)}
+            </span>
+          )}
         </div>
         <p className="text-sm text-[var(--color-text-muted)]">{store.category}</p>
-        <p className="text-sm">
-          {store.rating_count > 0
-            ? `★ ${store.rating_avg.toFixed(1)} (${store.rating_count})`
-            : t("store.noRatingYet")}
-        </p>
+        {store.rating_count > 0 && (
+          <p className="text-sm">
+            ★ {store.rating_avg.toFixed(1)} ({store.rating_count})
+          </p>
+        )}
         <p className="text-sm text-[var(--color-text-muted)]">
           {t("store.addressLabel")}：{cityName} {store.district}，{store.address}
         </p>

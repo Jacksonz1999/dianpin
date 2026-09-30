@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { getSiteUrl } from "@/lib/site-url";
 import type { AuthProvider, DeliverCodeInput } from "./types";
 
 /**
@@ -36,6 +37,10 @@ export const emailProvider: AuthProvider = {
         verifyUrl,
       ].join("\n"),
       html: [
+        // A recognizable logo header makes this read as a real product
+        // email rather than a bare link, which is exactly what phishing
+        // mail looks like without one.
+        `<p><img src="${getSiteUrl()}/brand-mark.png" alt="店聘 DianPin" width="48" height="48" /></p>`,
         "<p>点击链接登录店聘（15 分钟内有效，只能使用一次）：</p>",
         `<p><a href="${verifyUrl}">${verifyUrl}</a></p>`,
         "<hr/>",

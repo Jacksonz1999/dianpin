@@ -20,6 +20,7 @@ import {
   type JobFilters,
 } from "@/lib/db";
 import { requireRole, requireSession } from "@/lib/auth/session";
+import { PlaceholderValueError } from "@/lib/validation";
 import type {
   ApplicationStatus,
   Job,
@@ -150,11 +151,18 @@ export async function submitReportAction(input: {
 
 export async function createStoreAction(
   input: StoreFormValues
-): Promise<{ ok: true; storeId: string }> {
+): Promise<{ ok: true; storeId: string } | { ok: false; error: string }> {
   const session = await requireRole("employer", "/employer");
-  const store = await createStore({ ownerUserId: session.userId, ...input });
-  revalidatePath("/employer");
-  return { ok: true, storeId: store.id };
+  try {
+    const store = await createStore({ ownerUserId: session.userId, ...input });
+    revalidatePath("/employer");
+    return { ok: true, storeId: store.id };
+  } catch (err) {
+    if (err instanceof PlaceholderValueError) {
+      return { ok: false, error: "placeholder_content" };
+    }
+    throw err;
+  }
 }
 
 async function assertOwnsStore(storeId: string, employerId: string): Promise<void> {
@@ -184,9 +192,16 @@ export async function createJobAction(
   }
   await assertOwnsStore(input.storeId, session.userId);
 
-  const job = await createJob({ ...input, city: store.city });
-  revalidatePath("/employer");
-  return { ok: true, jobId: job.id };
+  try {
+    const job = await createJob({ ...input, city: store.city });
+    revalidatePath("/employer");
+    return { ok: true, jobId: job.id };
+  } catch (err) {
+    if (err instanceof PlaceholderValueError) {
+      return { ok: false, error: "placeholder_content" };
+    }
+    throw err;
+  }
 }
 
 async function assertOwnsJob(jobId: string, employerId: string): Promise<void> {

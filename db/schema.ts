@@ -168,6 +168,10 @@ export const stores = pgTable("stores", {
     .notNull()
     .default(0),
   rating_count: integer("rating_count").notNull().default(0),
+  // True only for rows loaded by db/seed.ts (demo data). Lets production
+  // hide/exclude demo content and `npm run db:seed:clear` wipe it without
+  // touching real store/job rows, which never set this.
+  is_seed: boolean("is_seed").notNull().default(false),
 });
 
 // ---------------------------------------------------------------------------
@@ -220,6 +224,8 @@ export const jobs = pgTable(
       .defaultNow(),
     expires_at: timestamp("expires_at", { withTimezone: true, mode: "string" }),
     views: integer("views").notNull().default(0),
+    // See stores.is_seed — same demo/real split, set by db/seed.ts only.
+    is_seed: boolean("is_seed").notNull().default(false),
   },
   (table) => [
     index("jobs_city_job_type_status_idx").on(

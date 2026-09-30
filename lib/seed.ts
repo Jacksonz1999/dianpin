@@ -38,7 +38,10 @@ export const seedUsers: User[] = [
   { id: "u_seek_5", role: "seeker", phone: "+34600200005", wechat: "chenchen88", name: "陈晨", locale: "zh", email: "chenchen@example.com", created_at: "2026-05-15T09:00:00Z" },
 ];
 
-export const seedStores: Store[] = [
+// is_seed isn't part of this literal data — db/seed.ts stamps it (and
+// forces verification_status to "unverified") on every row as it inserts,
+// so that invariant can't drift from what actually gets loaded.
+export const seedStores: Omit<Store, "is_seed">[] = [
   {
     id: "store_hualian",
     owner_user_id: "u_emp_hualian",
@@ -137,7 +140,8 @@ export const seedStores: Store[] = [
   },
 ];
 
-export const seedJobs: Job[] = [
+// See seedStores above — is_seed is stamped by db/seed.ts, not here.
+export const seedJobs: Omit<Job, "is_seed">[] = [
   {
     id: "job_1",
     store_id: "store_hualian",
