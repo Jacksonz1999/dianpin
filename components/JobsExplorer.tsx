@@ -119,95 +119,99 @@ export function JobsExplorer({
         ))}
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">{t("home.filters.title")}</span>
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="text-xs text-[var(--color-text-muted)] underline"
-          >
-            {t("common.reset")}
-          </button>
+      <div className="lg:grid lg:grid-cols-[256px_1fr] lg:items-start lg:gap-6">
+        <aside className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 lg:sticky lg:top-20 lg:self-start">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">{t("home.filters.title")}</span>
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="text-xs text-[var(--color-text-muted)] underline"
+            >
+              {t("common.reset")}
+            </button>
+          </div>
+
+          <label className="flex flex-col gap-1 text-sm">
+            {t("home.filters.jobType")}
+            <select
+              value={jobType}
+              onChange={(e) => setJobType(e.target.value)}
+              className="min-h-[44px] rounded-lg border border-[var(--color-border)] px-3"
+            >
+              <option value={ALL}>{t("common.all")}</option>
+              {jobTypes.map((jt) => (
+                <option key={jt.id} value={jt.id}>
+                  {jt.icon} {locale === "es" ? jt.name_es : jt.name_zh}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex min-h-[44px] items-center justify-between text-sm">
+            {t("home.filters.mealsIncluded")}
+            <input
+              type="checkbox"
+              checked={mealsIncluded}
+              onChange={(e) => setMealsIncluded(e.target.checked)}
+              className="h-5 w-5"
+            />
+          </label>
+
+          <label className="flex min-h-[44px] items-center justify-between text-sm">
+            {t("home.filters.residenceOk")}
+            <input
+              type="checkbox"
+              checked={residenceOk}
+              onChange={(e) => setResidenceOk(e.target.checked)}
+              className="h-5 w-5"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            {t("home.filters.salaryMin")}
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={salaryMin}
+              onChange={(e) => setSalaryMin(e.target.value)}
+              placeholder="0"
+              className="min-h-[44px] rounded-lg border border-[var(--color-border)] px-3"
+            />
+          </label>
+        </aside>
+
+        <div className="mt-4 flex flex-col gap-3 lg:mt-0">
+          <p className="text-sm text-[var(--color-text-muted)]">
+            {t("home.resultsCount", { count: jobs.length })}
+          </p>
+
+          {jobs.length === 0 ? (
+            <p className="py-8 text-center text-sm text-[var(--color-text-muted)]">
+              {t("home.empty")}
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 lg:gap-4">
+              {jobs.map((job) => {
+                const store = storesById.get(job.store_id);
+                const type = jobTypesById.get(job.job_type);
+                const cityInfo = citiesById.get(job.city);
+                if (!store || !type || !cityInfo) return null;
+                return (
+                  <JobCard
+                    key={job.id}
+                    job={job}
+                    store={store}
+                    jobType={type}
+                    city={cityInfo}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
-
-        <label className="flex flex-col gap-1 text-sm">
-          {t("home.filters.jobType")}
-          <select
-            value={jobType}
-            onChange={(e) => setJobType(e.target.value)}
-            className="min-h-[44px] rounded-lg border border-[var(--color-border)] px-3"
-          >
-            <option value={ALL}>{t("common.all")}</option>
-            {jobTypes.map((jt) => (
-              <option key={jt.id} value={jt.id}>
-                {jt.icon} {locale === "es" ? jt.name_es : jt.name_zh}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex min-h-[44px] items-center justify-between text-sm">
-          {t("home.filters.mealsIncluded")}
-          <input
-            type="checkbox"
-            checked={mealsIncluded}
-            onChange={(e) => setMealsIncluded(e.target.checked)}
-            className="h-5 w-5"
-          />
-        </label>
-
-        <label className="flex min-h-[44px] items-center justify-between text-sm">
-          {t("home.filters.residenceOk")}
-          <input
-            type="checkbox"
-            checked={residenceOk}
-            onChange={(e) => setResidenceOk(e.target.checked)}
-            className="h-5 w-5"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm">
-          {t("home.filters.salaryMin")}
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={salaryMin}
-            onChange={(e) => setSalaryMin(e.target.value)}
-            placeholder="0"
-            className="min-h-[44px] rounded-lg border border-[var(--color-border)] px-3"
-          />
-        </label>
       </div>
-
-      <p className="text-sm text-[var(--color-text-muted)]">
-        {t("home.resultsCount", { count: jobs.length })}
-      </p>
-
-      {jobs.length === 0 ? (
-        <p className="py-8 text-center text-sm text-[var(--color-text-muted)]">
-          {t("home.empty")}
-        </p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {jobs.map((job) => {
-            const store = storesById.get(job.store_id);
-            const type = jobTypesById.get(job.job_type);
-            const cityInfo = citiesById.get(job.city);
-            if (!store || !type || !cityInfo) return null;
-            return (
-              <JobCard
-                key={job.id}
-                job={job}
-                store={store}
-                jobType={type}
-                city={cityInfo}
-              />
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

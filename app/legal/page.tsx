@@ -9,6 +9,11 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
+// Nonce-based CSP (proxy.ts) only injects nonces into dynamically rendered
+// pages — this page has no inline scripts itself, but still needs a fresh
+// per-request nonce for Next's own hydration scripts to run.
+export const dynamic = "force-dynamic";
+
 const SECTIONS = ["identity", "purpose", "ip", "disclaimer", "law"];
 
 export default function LegalNoticePage() {

@@ -26,6 +26,7 @@ export function LoginForm({
   nextPath,
   error,
   turnstileSiteKey,
+  nonce,
 }: {
   captcha: MathCaptcha;
   defaultRole: UserRole;
@@ -33,6 +34,8 @@ export function LoginForm({
   error: string | null;
   /** null when Turnstile isn't configured — falls back to the math captcha. */
   turnstileSiteKey: string | null;
+  /** CSP nonce stamped by proxy.ts, needed for the Turnstile <Script> to run. */
+  nonce: string | null;
 }) {
   const { t } = useLocale();
   const [email, setEmail] = useState("");
@@ -92,9 +95,17 @@ export function LoginForm({
   }
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-10">
+    // This is a short form, not a content page — on desktop it should stay
+    // a centered card instead of stretching to the page's full 3xl/6xl
+    // width like the content-heavy pages (home/job/store) do.
+    <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-10">
       {turnstileSiteKey && (
-        <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+          async
+          defer
+          nonce={nonce ?? undefined}
+        />
       )}
 
       <h1 className="text-lg font-semibold">{t("login.title")}</h1>

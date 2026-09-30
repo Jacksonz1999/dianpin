@@ -64,7 +64,7 @@ export function StoreDetailView({
             {t("store.noReviews")}
           </p>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {reviewRows.map(({ review, reviewerName }) => (
               <div
                 key={review.id}
@@ -93,7 +93,7 @@ export function StoreDetailView({
             {t("store.noOtherJobs")}
           </p>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 lg:gap-4">
             {jobs.map((job) => {
               const jobType = jobTypesById.get(job.job_type);
               if (!jobType) return null;
