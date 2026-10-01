@@ -116,17 +116,20 @@ dianpin/
 - **没有免费档**：Free 仅 $1/月额度（约 100MB RAM），等于试用
 - Next.js + Postgres 实际约 **$6–22/月**，取决于数据库内存
 
-**四个必须避开的坑**
+**五个必须避开的坑**
 1. **服务不会休眠** —— 24/7 计费，空闲也扣钱。不用时手动停掉非生产服务。
 2. **Railway Postgres 没有 HA / 自动故障转移** —— 必须自己配定时备份 `pg_dump` 到对象存储，别把唯一副本放这儿。
 3. **不要在 Railway 上直接吐图片** —— 出网按 GB 计费，门头照/头像一律走 R2 或 CDN。
 4. **不要在 Hobby 上跑常驻后台 worker** —— 0.25 vCPU 常驻约 $30/月，比 Pro 底价还贵。定时任务走 Railway Cron 或外部调度。
+5. **Hobby 档完全禁用出站 SMTP（25/465/587 全部端口）**——这是平台层面写死的限制，不是防火墙偶尔拦截，Railway 官方文档原话："SMTP is only available on the Pro plan and above. Free, Trial, and Hobby plans must use transactional email services with HTTPS APIs."（第七轮开发实测踩过这个坑：`SMTP_URL` 配置本身完全正确，连 Spaceship 官方文档给的主机/端口都对，照样 `Connection timeout`）。Hobby 档发邮件只能走 HTTPS API 的发信服务（本项目用的是 Resend，见 README「配置登录邮件」），不要再浪费时间排查 SMTP 凭据格式——除非已经升级到 Pro 档。
 
 **环境变量**（Railway 里配置，不要进仓库）
 ```
 DATABASE_URL=
 NEXT_PUBLIC_SITE_URL=
 AUTH_PROVIDER=            # whatsapp | sms | email
+RESEND_API_KEY=           # 登录邮件 + 岗位订阅通知共用，见 README「配置登录邮件」——Hobby 档不能用裸 SMTP，见上面坑 5
+EMAIL_FROM=               # info@dianpin.eu，域名须在 Resend 后台验证过
 WHATSAPP_TOKEN= / TWILIO_ACCOUNT_SID= / TWILIO_AUTH_TOKEN=
 R2_ACCOUNT_ID= / R2_ACCESS_KEY= / R2_SECRET_KEY= / R2_BUCKET=
 ```

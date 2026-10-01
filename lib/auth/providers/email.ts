@@ -7,10 +7,11 @@ import type { AuthProvider, DeliverCodeInput } from "./types";
  * channel that actually ships, since Spain's new SMS Sender ID rules make
  * plain SMS impractical and WhatsApp isn't wired up yet).
  *
- * The actual SMTP transport and its missing-SMTP_URL / production-throw
- * guard live in lib/mail.ts, shared with job-alert notifications — see
- * that file for the exact fallback behavior (throws in production, logs
- * to console otherwise).
+ * The actual send (via Resend's HTTPS API, not SMTP — see lib/mail.ts for
+ * why) and its missing-RESEND_API_KEY / production-throw guard live in
+ * lib/mail.ts, shared with job-alert notifications — see that file for
+ * the exact fallback behavior (throws in production, logs to console
+ * otherwise).
  */
 export const emailProvider: AuthProvider = {
   channel: "email",
