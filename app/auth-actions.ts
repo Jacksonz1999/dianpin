@@ -140,7 +140,16 @@ export async function requestLoginLinkAction(input: {
       verifyUrl,
     });
   } catch (err) {
-    console.error("[auth] failed to deliver login code:", err);
+    // Log only the message, never the raw error object — a malformed
+    // SMTP_URL once threw with the raw URL (password included) attached
+    // as a property, and logging the whole object here put it in
+    // Railway's plaintext logs. lib/mail.ts now also guards against this
+    // at the source, but this stays defensive in case some other
+    // deliverCode() implementation throws something equally unsafe.
+    console.error(
+      "[auth] failed to deliver login code:",
+      err instanceof Error ? err.message : "non-Error value thrown"
+    );
     return { ok: false, error: "unknown" };
   }
 
