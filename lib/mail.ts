@@ -39,15 +39,29 @@ export async function sendMail(input: SendMailInput): Promise<void> {
     return;
   }
 
-  const transporter = nodemailer.createTransport(smtpUrl);
   try {
+    // createTransport() must be inside this try too, not just sendMail():
+    // a malformed SMTP_URL (e.g. an unencoded `@` or `#` in the username/
+    // password) makes it throw synchronously with the *raw URL — password
+    // included — attached as the error's `input` property. That error
+    // previously escaped this function uncaught and got logged verbatim
+    // further up the call stack (app/auth-actions.ts), which really
+    // happened once in production and put a live SMTP password in
+    // Railway's plaintext logs. Never let that error out unmasked again.
+    const transporter = nodemailer.createTransport(smtpUrl);
     await transporter.sendMail({ from, ...input });
   } catch (err) {
     const domain = input.to.split("@")[1] ?? "unknown";
+    const safeMessage =
+      err instanceof Error
+        ? // Error.message for a bad-URL TypeError is just "Invalid URL" —
+          // the dangerous part lives on a separate `.input` property that
+          // this intentionally never touches or logs.
+          err.message
+        : "non-Error value thrown";
     console.error(
-      `[mail] sendMail failed for identifier ending in @${domain}:`,
-      err instanceof Error ? err.message : err
+      `[mail] sendMail failed for identifier ending in @${domain}: ${safeMessage}`
     );
-    throw err;
+    throw new Error(`Failed to send mail: ${safeMessage}`);
   }
 }
