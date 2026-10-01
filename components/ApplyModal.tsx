@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { applyToJob, type ApplyToJobResult } from "@/app/actions";
 import type { Job, JobType, SeekerProfileFormValues } from "@/lib/types";
@@ -26,14 +27,19 @@ export function ApplyModal({
   const { locale, t } = useLocale();
   const router = useRouter();
   const [profile, setProfile] = useState(initialProfileValues);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [error, setError] = useState<string | null>(null);
 
   const jobTitle = locale === "es" ? job.title_es : job.title_zh;
+  // hasProfile prefills from seeker_profiles so a returning seeker never
+  // has to re-type it (B2) — editingProfile lets them still change it for
+  // this one application without forcing that on every applicant.
+  const showProfileForm = !hasProfile || editingProfile;
 
   async function handleSubmit() {
-    if (!hasProfile) {
+    if (showProfileForm) {
       if (!profile.name.trim() || !profile.phone.trim()) {
         setError(`${t("profile.name")} / ${t("profile.contact")}`);
         return;
@@ -49,7 +55,7 @@ export function ApplyModal({
     const result: ApplyToJobResult = await applyToJob({
       jobId: job.id,
       message,
-      profile: hasProfile ? undefined : profile,
+      profile: showProfileForm ? profile : undefined,
     });
 
     if (result.ok) {
@@ -61,6 +67,15 @@ export function ApplyModal({
     }
   }
 
+  // Soft nudge after a successful apply if the profile submitted (or
+  // already on file) is still missing fields beyond the bare minimum —
+  // never blocks anything, just a one-line suggestion (B2).
+  const profileIncomplete =
+    !profile.experienceYears &&
+    !profile.availableFrom &&
+    !profile.residenceStatus &&
+    !profile.expectedSalaryMin;
+
   return (
     <Modal
       open={open}
@@ -70,6 +85,14 @@ export function ApplyModal({
       {status === "success" ? (
         <div className="flex flex-col gap-3">
           <p className="text-sm">{t("apply.success")}</p>
+          {profileIncomplete && (
+            <p className="rounded-lg bg-[var(--color-bg)] p-2 text-xs text-[var(--color-text-muted)]">
+              {t("apply.completeProfileNudge")}{" "}
+              <Link href="/me" className="underline">
+                {t("apply.completeProfileCta")}
+              </Link>
+            </p>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -80,7 +103,7 @@ export function ApplyModal({
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {!hasProfile && (
+          {!hasProfile ? (
             <>
               <p className="rounded-lg bg-[var(--color-bg)] p-2 text-xs text-[var(--color-text-muted)]">
                 {t("apply.firstTimeNotice")}
@@ -91,6 +114,25 @@ export function ApplyModal({
                 onChange={setProfile}
               />
             </>
+          ) : editingProfile ? (
+            <SeekerProfileForm
+              jobTypes={jobTypes}
+              value={profile}
+              onChange={setProfile}
+            />
+          ) : (
+            <div className="flex items-center justify-between gap-3 rounded-lg bg-[var(--color-bg)] p-2 text-xs text-[var(--color-text-muted)]">
+              <span>
+                {t("apply.profileSummary", { name: profile.name, phone: profile.phone })}
+              </span>
+              <button
+                type="button"
+                onClick={() => setEditingProfile(true)}
+                className="shrink-0 underline"
+              >
+                {t("apply.editProfileCta")}
+              </button>
+            </div>
           )}
 
           <label className="flex flex-col gap-1 text-sm">

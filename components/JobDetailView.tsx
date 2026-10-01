@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { Heart } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { renderJobTypeIcon } from "@/lib/job-type-icons";
+import { useSavedJobs } from "@/lib/useSavedJobs";
 import type {
   Application,
   City,
@@ -14,6 +16,7 @@ import type {
 import { useLocale } from "./LocaleProvider";
 import { ApplyModal } from "./ApplyModal";
 import { ReportModal } from "./ReportModal";
+import { StoreCoverImage } from "./StoreCoverImage";
 
 function Field({ label, value }: { label: string; value: ReactNode }) {
   return (
@@ -50,6 +53,8 @@ export function JobDetailView({
   const { locale, t } = useLocale();
   const [applyOpen, setApplyOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const { isSaved, toggleSaved } = useSavedJobs();
+  const saved = isSaved(job.id);
 
   const title = locale === "es" ? job.title_es : job.title_zh;
   const description = locale === "es" ? job.description_es : job.description_zh;
@@ -78,7 +83,22 @@ export function JobDetailView({
       <div className="lg:grid lg:grid-cols-[1fr_320px] lg:items-start lg:gap-8">
         <article className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <h1 className="text-xl font-semibold">{title}</h1>
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="text-xl font-semibold">{title}</h1>
+              <button
+                type="button"
+                onClick={() => toggleSaved(job.id)}
+                aria-label={t(saved ? "job.unsave" : "job.save")}
+                aria-pressed={saved}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)]"
+              >
+                <Heart
+                  className={"h-4 w-4 " + (saved ? "text-[var(--color-primary)]" : "")}
+                  fill={saved ? "currentColor" : "none"}
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
             <p className="text-lg font-semibold text-[var(--color-primary)]">
               {salaryText}
             </p>
@@ -123,29 +143,37 @@ export function JobDetailView({
         <aside className="mt-4 flex flex-col gap-4 lg:sticky lg:top-20 lg:mt-0">
           <Link
             href={`/store/${store.id}`}
-            className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+            className="flex flex-col gap-2 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">{t("job.storeSection")}</span>
-              <span className="text-xs text-[var(--color-primary)]">
-                {t("job.viewStore")} →
+            <StoreCoverImage
+              src={store.cover_image}
+              alt={storeName}
+              name={storeName}
+              className="h-24 w-full object-cover"
+            />
+            <div className="flex flex-col gap-2 p-4 pt-0">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">{t("job.storeSection")}</span>
+                <span className="text-xs text-[var(--color-primary)]">
+                  {t("job.viewStore")} →
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-base font-semibold">{storeName}</span>
+                {(store.verification_status === "verified" ||
+                  store.verification_status === "pending") && (
+                  <span className="rounded-full bg-[var(--color-bg)] px-2 py-1 text-xs">
+                    {t(`verificationStatus.${store.verification_status}`)}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs text-[var(--color-text-muted)]">
+                {store.rating_count > 0 && (
+                  <>★ {store.rating_avg.toFixed(1)} ({store.rating_count}) · </>
+                )}
+                {cityName} {store.district}
               </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-base font-semibold">{storeName}</span>
-              {(store.verification_status === "verified" ||
-                store.verification_status === "pending") && (
-                <span className="rounded-full bg-[var(--color-bg)] px-2 py-1 text-xs">
-                  {t(`verificationStatus.${store.verification_status}`)}
-                </span>
-              )}
-            </div>
-            <span className="text-xs text-[var(--color-text-muted)]">
-              {store.rating_count > 0 && (
-                <>★ {store.rating_avg.toFixed(1)} ({store.rating_count}) · </>
-              )}
-              {cityName} {store.district}
-            </span>
           </Link>
 
           <div className="flex flex-col gap-2">

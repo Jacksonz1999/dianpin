@@ -313,6 +313,51 @@ export const reports = pgTable("reports", {
 });
 
 // ---------------------------------------------------------------------------
+// Job alerts (round 7 / WP-B1) — see AGENTS.md §5 for the full rationale.
+// Real inventory is tiny, so an empty filtered result subscribes the
+// visitor to future matches instead of being a dead end.
+// ---------------------------------------------------------------------------
+
+export const jobAlerts = pgTable(
+  "job_alerts",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull(),
+    // Nullable: subscribing doesn't require login (AGENTS.md §6 — browsing
+    // and, here, alert signup stay conversion-friendly).
+    seeker_user_id: text("seeker_user_id").references(() => users.id),
+    // Nullable city/job_type = "any" (unrestricted) for that dimension.
+    city: text("city").references(() => cities.id),
+    job_type: text("job_type").references(() => jobTypes.id),
+    salary_min: numeric("salary_min", {
+      precision: 10,
+      scale: 2,
+      mode: "number",
+    }),
+    meals_included: boolean("meals_included").notNull().default(false),
+    residence_ok: boolean("residence_ok").notNull().default(false),
+    locale: text("locale").notNull(),
+    // Plaintext, not hashed like auth_challenges.code_hash — the worst
+    // case of a leaked token is someone confirming/unsubscribing a known
+    // email's low-stakes alert preference, not an account takeover, so a
+    // 128-bit random UUID's brute-force resistance is enough on its own.
+    confirm_token: text("confirm_token").notNull().unique(),
+    confirmed_at: timestamp("confirmed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    unsubscribe_token: text("unsubscribe_token").notNull().unique(),
+    created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("job_alerts_email_key").on(table.email),
+    index("job_alerts_city_job_type_idx").on(table.city, table.job_type),
+  ]
+);
+
+// ---------------------------------------------------------------------------
 // Auth (WP4) — not part of AGENTS.md §5's 9 tables, added to implement the
 // login flow AGENTS.md §4 calls for. See lib/auth/ and the WP4 PR
 // description for the full design.

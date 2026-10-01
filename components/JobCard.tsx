@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { Heart } from "lucide-react";
 import type { City, Job, JobType, Store } from "@/lib/types";
 import { renderJobTypeIcon } from "@/lib/job-type-icons";
+import { useSavedJobs } from "@/lib/useSavedJobs";
 import { useLocale } from "./LocaleProvider";
+import { StoreCoverImage } from "./StoreCoverImage";
 
 // Every job on this platform is Spain-based and priced in euros — always
 // show €, in every locale (see the same fix and rationale already applied
@@ -29,6 +32,8 @@ export function JobCard({
   city: City;
 }) {
   const { locale, t } = useLocale();
+  const { isSaved, toggleSaved } = useSavedJobs();
+  const saved = isSaved(job.id);
 
   const title = locale === "es" ? job.title_es : job.title_zh;
   const storeName = locale === "es" ? store.name_es : store.name_zh;
@@ -37,7 +42,24 @@ export function JobCard({
   const periodLabel = t(`job.salaryPeriod.${job.salary_period}`);
 
   return (
-    <div className="flex h-full flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <div className="relative flex h-full flex-col gap-2 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+      <StoreCoverImage
+        src={store.cover_image}
+        alt={storeName}
+        name={storeName}
+        className="-mx-4 -mt-4 mb-1 h-28 w-[calc(100%+2rem)] object-cover"
+      />
+
+      <button
+        type="button"
+        onClick={() => toggleSaved(job.id)}
+        aria-label={t(saved ? "job.unsave" : "job.save")}
+        aria-pressed={saved}
+        className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm"
+      >
+        <Heart className="h-4 w-4" fill={saved ? "currentColor" : "none"} aria-hidden="true" />
+      </button>
+
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold leading-snug">{title}</h3>
         <span className="shrink-0 text-sm font-semibold text-[var(--color-primary)]">

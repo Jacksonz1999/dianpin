@@ -64,6 +64,37 @@ npm run db:studio    # Drizzle Studio，浏览本地数据库
 4. 两个变量必须同时填——代码只有在都存在时才会切换到 Turnstile（`lib/auth/turnstile.ts` 的 `isTurnstileConfigured()`），只填一个等同于都没填
 5. 保存后 Railway 会自动重新部署，之后 `/login` 页面会加载 Turnstile 组件（CSP 已经放行了 `challenges.cloudflare.com`，不需要再改 `next.config.ts`）
 
+### 配置登录邮件（必做——不配登录功能不可用）
+
+项目实际购买的邮箱是 **`info@dianpin.eu`**，不要再引入 Resend / SendGrid 等第三方发信服务——代码走的是通用 `nodemailer` + SMTP，直接用这个邮箱自己的 SMTP 凭据发信即可（统一走 `lib/mail.ts`，登录魔法链接 `lib/auth/providers/email.ts` 和岗位订阅通知 `lib/job-alerts.ts` 共用同一个发信封装与同一套 SMTP_URL 缺失/失败处理）。
+
+**当前真实状态（写文档时尚未完成）**：`info@dianpin.eu` 的邮件服务由 Spaceship（产品线 spacemail）提供，域名 `dianpin.eu` 在 Spaceship 控制台的验证状态是 **Pending**（DNS 记录未配齐）——也就是说现在连 Spaceship 自己都还发不出邮件。需要先按 Spaceship 后台的提示，在 `dianpin.eu` 的 DNS 上补齐它要求的 SPF / DKIM / MX 记录，等状态变成 Verified，才能拿到可用的 SMTP 凭据。可以用 `dig dianpin.eu TXT` 核对 SPF 记录是否已生效。下面这张表是**通用参考**，不代表本项目最终用哪家——具体主机/端口以 Spaceship 后台实际显示的为准，不要照抄任何一行：
+
+| 服务商 | SMTP 主机 | 端口 | 备注 |
+|---|---|---|---|
+| IONOS (1&1) | `smtp.ionos.es` / `smtp.ionos.com` | 465 (SSL) / 587 (STARTTLS) | 西班牙常见 |
+| Zoho Mail | `smtp.zoho.eu` | 465 (SSL) / 587 | |
+| Google Workspace | `smtp.gmail.com` | 465 / 587 | 需 App Password（账号须开 2FA） |
+| Microsoft 365 | `smtp.office365.com` | 587 (STARTTLS) | |
+| Namecheap Private Email | `mail.privateemail.com` | 465 / 587 | |
+| OVH | `ssl0.ovh.net` | 465 / 587 | |
+
+配置步骤：
+
+1. 在 Spaceship 后台确认 `dianpin.eu` 的验证状态是 Verified，拿到 `info@dianpin.eu` 的 SMTP 主机 / 端口 / 密码（如果提供"应用专用密码"，优先用它而不是邮箱登录密码）
+2. 在 Railway 该服务的 Variables 里加：
+   ```
+   SMTP_URL=smtp://info@dianpin.eu:<密码>@<Spaceship 给的主机>:<端口>
+   EMAIL_FROM=info@dianpin.eu
+   ```
+   用户名一律填完整邮箱地址 `info@dianpin.eu`（不是 `info`）；**不要**把 `EMAIL_FROM` 改成 `noreply@dianpin.eu`——这个邮箱账户在 Spaceship 那边并不存在，大多数 SMTP 服务商会拒绝从一个未经认证账户归属的地址发信（550/553 之类的错误）
+3. `SMTP_URL`/`EMAIL_FROM` 都不带 `NEXT_PUBLIC_` 前缀，是运行时读取，不是构建时内联——和必须重新构建才生效的 `NEXT_PUBLIC_SITE_URL`（见上面部署步骤 2）不同，这两个变量改完**重启服务**（不需要重新构建）就会生效
+4. 保存后用 `curl https://dianpin.eu/api/health` 确认返回里 `emailConfigured: true`，再实际跑一次登录流程确认真的收到邮件（检查垃圾箱——SPF/DKIM 没配全的话大概率会被打进去）
+
+**如果 Spaceship 只给 HTTP API（API key）、拿不到 SMTP 用户名密码**：现在这套 `nodemailer` + `SMTP_URL` 的方案用不了，需要换成按该 API 写一个新的 provider（类似 `lib/auth/providers/whatsapp.ts` 的占位模式）。遇到这种情况请不要自己臆造一个 SMTP 主机、也不要擅自接入 Resend 之类的第三方服务替代——先确认 Spaceship 到底给的是什么凭据，必要时另开一轮改造。
+
+**生产环境没配 `SMTP_URL` 会怎样**：`lib/mail.ts`（登录邮件和岗位订阅通知共用）在 `NODE_ENV=production` 下会直接抛错而不是静默返回——登录请求会失败，`/login` 页面显示"发送失败，请稍后重试 / No se pudo enviar, inténtalo de nuevo"（`login.error.unknown`），而不是假装发送成功却永远收不到信。本地开发 / CI 不受影响，仍然是把魔法链接打印到服务端控制台。
+
 ## 演示数据 vs 真实数据
 
 `stores`/`jobs` 表有一个 `is_seed` 字段，只有 `db/seed.ts` 插入的行会置为 `true`，通过网站正常发布的门店/岗位、CSV 导入的门店/岗位都是 `false`——这样才能把演示数据整体清空而不动真实数据。
@@ -74,7 +105,12 @@ npm run db:seed         # 灌演示数据（本地开发用）。生产环境（
 npm run db:seed:clear   # 删掉所有 is_seed=true 的门店/岗位（及其投递/评价/举报），真实数据不受影响
 ```
 
-演示门店一律是 `verification_status: "unverified"`（`db/seed.ts` 插入时强制覆盖，不管 `lib/seed.ts` 里写的是什么）——认证徽章是这个产品最核心的信任标志，演示数据不能冒充它。
+演示门店一律是 `verification_status: "unverified"`（`db/seed.ts` 插入时强制覆盖，不管 `lib/seed.ts` 里写的是什么）——认证徽章是这个产品最核心的信任标志，演示数据不能冒充它。**这个强制覆盖只对新插入的行生效**：如果线上门店页面还能看到旧种子数据带着「认证中」之类的徽章，说明那是更早一次 `db:seed` 运行写入的行，从未被这次覆盖规则触碰过（`onConflictDoNothing` 不会更新已存在的行）。处理方法是在 Railway 该服务的控制台 **Shell** 标签页里手动跑一次：
+
+```bash
+npm run db:seed:clear   # 清掉所有旧种子门店/岗位（及其投递/评价/举报），真实数据不受影响
+npm run db:seed         # 如果还想要演示数据，重新灌一次——这次插入的行会正确带 unverified
+```
 
 ### 导入真实门店/岗位（CSV）
 

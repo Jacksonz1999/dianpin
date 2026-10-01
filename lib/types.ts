@@ -203,3 +203,34 @@ export function normalizeSalaryToMonth(
   if (period === "day") return amount * 22;
   return amount;
 }
+
+/**
+ * "有新岗位通知我" subscription (round 7 / WP-B1) — see AGENTS.md §5.
+ * `city`/`jobType` null = unrestricted on that dimension. UNIQUE(email)
+ * at the DB level means one active filter set per address.
+ */
+export interface JobAlert {
+  id: string;
+  email: string;
+  seeker_user_id: string | null;
+  city: string | null;
+  job_type: string | null;
+  salary_min: number | null;
+  meals_included: boolean;
+  residence_ok: boolean;
+  locale: Locale;
+  confirm_token: string;
+  confirmed_at: string | null;
+  unsubscribe_token: string;
+  created_at: string;
+}
+
+/** Fields collected by the "有新岗位通知我" subscribe form. */
+export interface JobAlertFormValues {
+  email: string;
+  city: string | null;
+  jobType: string | null;
+  salaryMin: number | null;
+  mealsIncluded: boolean;
+  residenceOk: boolean;
+}

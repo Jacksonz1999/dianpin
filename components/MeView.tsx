@@ -6,6 +6,7 @@ import { LegalLinks } from "./LegalLinks";
 import { useLocale } from "./LocaleProvider";
 import { LogoutButton } from "./LogoutButton";
 import { ProfileEditModal } from "./ProfileEditModal";
+import { SavedJobsSection } from "./SavedJobsSection";
 
 export function MeView({
   user,
@@ -119,6 +120,8 @@ export function MeView({
           </button>
         </div>
       )}
+
+      <SavedJobsSection />
 
       <LogoutButton />
       <LegalLinks />

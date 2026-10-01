@@ -10,7 +10,7 @@
 - **雇主端**：华人店主，发布岗位、筛选候选人
 - **默认城市**：马德里、巴塞罗那（后续再扩瓦伦西亚等）
 - **语言**：界面中文为主，岗位信息中西双语；界面可一键切 Español
-- **产品名**：店聘（域名前缀 `dianpin-jobs`）
+- **产品名**：店聘（正式域名 `dianpin.eu`；`dianpin-jobs` 是早期规划域名，未实际购买，已废弃——不要在代码里再引用它）
 
 **差异化（这是产品存在的理由，任何改动都不能削弱）**
 1. 岗位信息**结构化**（工种/薪资/工时/包吃住/语言/居留都是字段，可筛选）— 对应竞品 `xbyhr.com`、`infohuaxin.com` 的纯文本帖子
@@ -85,6 +85,9 @@ dianpin/
 | `reports` | id, target_type(job/store), target_id, reporter_user_id, reason, status |
 | `cities` | id, name_zh, name_es, region |
 | `job_types` | id, name_zh, name_es, icon |
+| `job_alerts`（第七轮新增，见下方说明） | id, email, seeker_user_id(nullable), city(nullable), job_type(nullable), salary_min(nullable), meals_included, residence_ok, locale, confirm_token, confirmed_at, unsubscribe_token, created_at — **UNIQUE(email)** |
+
+`job_alerts`：真实岗位库存很小（个位数到十几条），"没有符合条件的岗位"不该是死路——求职者可以在筛选结果为空时，或在筛选栏下方常驻入口，免登录留下邮箱订阅"有新岗位通知我"，筛选条件（城市/工种/包吃住/可无居留/薪资下限）随订阅一起存下来。**双重确认（double opt-in）**：提交后发一封确认邮件，只有点击确认链接才会把 `confirmed_at` 置上，未确认的订阅不会收到任何通知邮件——这是 GDPR 合规要求，不是可选项。每封通知邮件都带一次性退订链接（`unsubscribe_token`）。`UNIQUE(email)` 意味着一个邮箱同一时间只有一份订阅条件，重复提交会更新已有条件而不是报错或建新行。触发时机：**仅在 `lib/db.ts` 的 `createJob` 内、且 `status=active` 时同步触发**（员工发布岗位的那次调用），不引入定时任务或常驻 worker（见 §7 的 Hobby 档常驻 worker 成本警告）。`db/import-csv.ts` 的批量导入直接写 `db.insert(jobs)`、不经过 `createJob`，因此批量导入不会触发通知——这是有意为之，避免一次性导入几十上百条历史数据时群发邮件轰炸订阅者。
 
 **枚举值（不要自造）**
 - `residence_status`: 有居留 / 办理中 / 学生居留 / 家庭居留 / 无居留
@@ -94,7 +97,7 @@ dianpin/
 - `jobs.residence_required`: none / prefer / required
 - `jobs.salary_period`: hour / day / month
 
-**索引**：`jobs(city, job_type, status)`、`jobs(store_id)`、`applications(job_id)`、`applications(seeker_user_id)`。
+**索引**：`jobs(city, job_type, status)`、`jobs(store_id)`、`applications(job_id)`、`applications(seeker_user_id)`、`job_alerts(city, job_type)`。
 
 **规则**：排序字段不要用中文枚举做 key；薪资筛选需把 hour/day 折算成月（hour×8×22、day×22）后再比较。
 
