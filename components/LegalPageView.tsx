@@ -2,6 +2,13 @@
 
 import { useLocale } from "./LocaleProvider";
 
+// Fixed build-time constant, not `new Date()` — that call resolves the
+// runtime's default Intl locale, which differs between the Node SSR
+// process and the browser (e.g. "en-US" vs "zh-CN"), producing two
+// different strings for the same render and triggering React hydration
+// error #418. Bump this date by hand whenever these pages' copy changes.
+const LAST_UPDATED = "2026-10-01";
+
 function SectionBody({ text }: { text: string }) {
   return (
     <>
@@ -27,13 +34,12 @@ export function LegalPageView({
   sections: string[];
 }) {
   const { t } = useLocale();
-  const updatedDate = new Date().toLocaleDateString();
 
   return (
     <div className="flex flex-col gap-4 px-4 py-6">
       <h1 className="text-lg font-semibold">{t(`legal.${page}.title`)}</h1>
       <p className="text-xs text-[var(--color-text-muted)]">
-        {t("legal.lastUpdated", { date: updatedDate })}
+        {t("legal.lastUpdated", { date: LAST_UPDATED })}
       </p>
       <p className="rounded-lg bg-[var(--color-bg)] px-3 py-2 text-xs text-[var(--color-text-muted)]">
         {t("legal.placeholderNotice")}

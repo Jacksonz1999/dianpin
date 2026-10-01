@@ -9,25 +9,38 @@ import {
   createStore,
   getApplicationById,
   getApplicationForJobAndSeeker,
+  getCities,
   getJobById,
   getJobs,
+  getJobsByIds,
+  getJobTypes,
   getSeekerProfileByUserId,
   getStoreById,
+  getStores,
   saveSeekerProfile,
   submitStoreForVerification,
   updateJobStatus,
   withdrawApplication,
   type JobFilters,
 } from "@/lib/db";
-import { requireRole, requireSession } from "@/lib/auth/session";
+import {
+  sendJobAlertConfirmationEmail,
+  subscribeJobAlert,
+} from "@/lib/job-alerts";
+import { getSession, requireRole, requireSession } from "@/lib/auth/session";
 import { PlaceholderValueError } from "@/lib/validation";
+import type { Locale } from "@/lib/i18n";
 import type {
   ApplicationStatus,
+  City,
   Job,
+  JobAlertFormValues,
   JobFormValues,
   JobStatus,
+  JobType,
   ReportTargetType,
   SeekerProfileFormValues,
+  Store,
   StoreFormValues,
 } from "@/lib/types";
 
@@ -238,4 +251,70 @@ export async function advanceApplicationStatusAction(
   await advanceApplicationStatus(applicationId, status);
   revalidatePath(`/employer/job/${application.job_id}`);
   revalidatePath("/employer");
+}
+
+export type SubscribeJobAlertResult =
+  | { ok: true }
+  | { ok: false; error: "invalid_email" | "unknown" };
+
+/**
+ * "有新岗位通知我" (WP-B1). Works signed-out — browsing/subscribing stays
+ * conversion-friendly per AGENTS.md §6 — but attaches the session's
+ * seeker id when one exists. `honeypot` mirrors the login form's
+ * anti-bot field (app/auth-actions.ts): a real visitor never fills a
+ * field hidden with CSS, so a non-empty value pretends success instead
+ * of revealing the trap.
+ */
+export async function subscribeJobAlertAction(
+  input: JobAlertFormValues & { honeypot: string; locale: Locale }
+): Promise<SubscribeJobAlertResult> {
+  if (input.honeypot.trim().length > 0) {
+    return { ok: true };
+  }
+
+  const email = input.email.trim();
+  if (!email || !email.includes("@") || email.length > 254) {
+    return { ok: false, error: "invalid_email" };
+  }
+
+  const session = await getSession();
+  const seekerUserId = session?.role === "seeker" ? session.userId : null;
+
+  try {
+    const { alert, needsConfirmation } = await subscribeJobAlert({
+      ...input,
+      email,
+      seekerUserId,
+    });
+    if (needsConfirmation) {
+      await sendJobAlertConfirmationEmail(alert);
+    }
+    return { ok: true };
+  } catch (err) {
+    console.error("[job-alerts] subscribeJobAlertAction failed:", err);
+    return { ok: false, error: "unknown" };
+  }
+}
+
+/**
+ * Backs the "我收藏的" section (WP-B3). `jobIds` comes from the browser's
+ * localStorage (lib/useSavedJobs.ts) — lib/db.ts imports the Postgres
+ * client directly, so the client component can't call it itself. Returns
+ * the full stores/jobTypes/cities lists (small, already fetched this way
+ * elsewhere — see components/JobsExplorer.tsx) so the caller can render
+ * JobCard the same way the home page does.
+ */
+export async function getSavedJobsDataAction(jobIds: string[]): Promise<{
+  jobs: Job[];
+  stores: Store[];
+  jobTypes: JobType[];
+  cities: City[];
+}> {
+  const [jobs, stores, jobTypes, cities] = await Promise.all([
+    getJobsByIds(jobIds),
+    getStores(),
+    getJobTypes(),
+    getCities(),
+  ]);
+  return { jobs, stores, jobTypes, cities };
 }

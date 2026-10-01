@@ -5,6 +5,7 @@ import { searchJobs } from "@/app/actions";
 import type { City, Job, JobType, Store } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
 import { JobCard } from "./JobCard";
+import { JobAlertSubscribeForm } from "./JobAlertSubscribeForm";
 
 const ALL = "";
 
@@ -69,12 +70,43 @@ export function JobsExplorer({
     [cities]
   );
 
+  // Computed from the real, unfiltered active-jobs set (initialJobs is
+  // always "status=active, no city filter" — see app/page.tsx) rather
+  // than hardcoded, per WP-B4: which cities actually have jobs right now.
+  const cityIdsWithJobs = useMemo(
+    () => new Set(initialJobs.map((j) => j.city)),
+    [initialJobs]
+  );
+  const otherCitiesWithJobs = useMemo(
+    () => cities.filter((c) => c.id !== city && cityIdsWithJobs.has(c.id)),
+    [cities, city, cityIdsWithJobs]
+  );
+
+  const hasActiveFilters =
+    city !== ALL ||
+    jobType !== ALL ||
+    mealsIncluded ||
+    residenceOk ||
+    salaryMin !== "" ||
+    search !== "";
+
+  // Scoped to the "筛选" sidebar box's own fields — city has its own
+  // separate pill selector above it with its own "不限" option, so this
+  // intentionally leaves city alone (unchanged from before WP-B).
   function resetFilters() {
     setJobType(ALL);
     setMealsIncluded(false);
     setResidenceOk(false);
     setSalaryMin("");
     setSearchInput("");
+  }
+
+  // The empty-state "清除筛选条件" button (WP-B4) clears everything,
+  // city included — if the selected city itself is why results are
+  // empty, resetFilters() alone wouldn't fix that.
+  function clearAllFilters() {
+    setCity(ALL);
+    resetFilters();
   }
 
   return (
@@ -182,6 +214,14 @@ export function JobsExplorer({
               className="min-h-[44px] rounded-lg border border-[var(--color-border)] px-3"
             />
           </label>
+
+          <JobAlertSubscribeForm
+            city={city}
+            jobType={jobType}
+            mealsIncluded={mealsIncluded}
+            residenceOk={residenceOk}
+            salaryMin={salaryMin}
+          />
         </aside>
 
         <div className="mt-4 flex flex-col gap-3 lg:mt-0">
@@ -190,9 +230,40 @@ export function JobsExplorer({
           </p>
 
           {jobs.length === 0 ? (
-            <p className="py-8 text-center text-sm text-[var(--color-text-muted)]">
-              {t("home.empty")}
-            </p>
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-8 text-center">
+              <p className="text-sm text-[var(--color-text-muted)]">{t("home.empty")}</p>
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="min-h-[44px] rounded-full border border-[var(--color-border)] px-4 text-sm"
+                >
+                  {t("home.empty.clearFilters")}
+                </button>
+              )}
+
+              {otherCitiesWithJobs.length > 0 && (
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  {t("home.empty.otherCitiesHint", {
+                    cities: otherCitiesWithJobs
+                      .map((c) => (locale === "es" ? c.name_es : c.name_zh))
+                      .join("、"),
+                  })}
+                </p>
+              )}
+
+              <div className="w-full max-w-sm">
+                <JobAlertSubscribeForm
+                  city={city}
+                  jobType={jobType}
+                  mealsIncluded={mealsIncluded}
+                  residenceOk={residenceOk}
+                  salaryMin={salaryMin}
+                  prominent
+                />
+              </div>
+            </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 lg:gap-4">
               {jobs.map((job) => {

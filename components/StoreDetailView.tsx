@@ -5,6 +5,7 @@ import type { City, Job, JobType, Review, Store } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
 import { JobCard } from "./JobCard";
 import { ReportModal } from "./ReportModal";
+import { StoreCoverImage } from "./StoreCoverImage";
 
 export function StoreDetailView({
   store,
@@ -32,7 +33,14 @@ export function StoreDetailView({
 
   return (
     <div className="flex flex-col gap-4 px-4 py-6">
-      <div className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+      <div className="flex flex-col gap-2 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <StoreCoverImage
+          src={store.cover_image}
+          alt={name}
+          name={name}
+          className="h-40 w-full object-cover"
+        />
+        <div className="flex flex-col gap-2 p-4">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-xl font-semibold">{name}</h1>
           {/* unverified/rejected show nothing rather than a badge that
@@ -61,6 +69,7 @@ export function StoreDetailView({
         >
           {t("store.reportButton")}
         </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">

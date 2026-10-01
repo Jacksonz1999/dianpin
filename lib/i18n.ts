@@ -103,6 +103,29 @@ const zh: Dict = {
   "employer.me.title": "我的",
 
   "home.search.placeholder": "搜索岗位或门店名称",
+  "home.empty.clearFilters": "清除筛选条件",
+  "home.empty.otherCitiesHint": "这些城市目前有岗位：{cities}",
+
+  "home.saved.title": "我收藏的",
+  "home.saved.empty": "还没有收藏的岗位，去看看有什么工作吧",
+  "job.save": "收藏",
+  "job.unsave": "取消收藏",
+
+  "jobAlert.title": "有新岗位通知我",
+  "jobAlert.description": "没找到合适的？留下邮箱，有符合当前筛选条件的新岗位会第一时间发邮件通知你。",
+  "jobAlert.noticePrefix": "提交即表示同意按此用途处理你的邮箱，详见",
+  "jobAlert.noticeSuffix": "，可随时通过通知邮件里的链接退订。",
+  "jobAlert.emailPlaceholder": "你的邮箱地址",
+  "jobAlert.subscribe": "订阅通知",
+  "jobAlert.subscribing": "提交中…",
+  "jobAlert.success": "订阅成功！请查收确认邮件并点击确认链接（未确认不会收到任何通知）",
+  "jobAlert.error.invalid_email": "请输入有效的邮箱地址",
+  "jobAlert.error.unknown": "提交失败，请稍后重试",
+  "jobAlert.confirm.success": "订阅已确认，以后有符合条件的新岗位会发邮件通知你",
+  "jobAlert.confirm.invalid": "确认链接无效或已被使用",
+  "jobAlert.backHome": "返回首页",
+  "jobAlert.unsubscribe.success": "已取消订阅，不会再收到相关通知邮件",
+  "jobAlert.unsubscribe.invalid": "退订链接无效或已被使用",
 
   "job.publishedAt": "发布于 {date}",
   "job.description": "岗位描述",
@@ -131,6 +154,10 @@ const zh: Dict = {
   "apply.error.unknown": "投递失败，请稍后重试",
   "apply.cancel": "取消",
   "apply.close": "关闭",
+  "apply.editProfileCta": "这次投递想换个资料？点击编辑",
+  "apply.profileSummary": "已用你的资料自动填充：{name} · {phone}",
+  "apply.completeProfileNudge": "你的资料还不完整，补充后投递更容易被看到",
+  "apply.completeProfileCta": "去完善资料",
 
   "profile.name": "姓名",
   "profile.namePlaceholder": "怎么称呼你",
@@ -183,7 +210,7 @@ const zh: Dict = {
   "login.roleHint": "首次登录会自动创建对应身份的账号",
   "login.emailLabel": "邮箱地址",
   "login.emailRequired": "请输入邮箱地址",
-  "login.captchaLabel": "验证：{question} = ?",
+  "login.captchaLabel": "人机验证：{question} = ?",
   "login.sendLink": "发送登录链接",
   "login.sending": "发送中…",
   "login.checkEmail": "登录链接已发送到 {email}，请查收邮箱（15 分钟内有效）",
@@ -191,7 +218,7 @@ const zh: Dict = {
   "login.resendCountdown": "{seconds} 秒后可重新发送",
   "login.changeEmail": "换一个邮箱",
   "login.error.rate_limited": "请求过于频繁，请稍后再试",
-  "login.error.captcha_failed": "验证码不正确，请重试",
+  "login.error.captcha_failed": "人机验证不正确，请重试",
   "login.error.invalid_email": "邮箱格式不正确",
   "login.error.unknown": "发送失败，请稍后重试",
   "login.error.invalid_link": "登录链接无效或已过期",
@@ -276,19 +303,19 @@ const zh: Dict = {
     "店聘 DianPin（以下简称\"本平台\"）由 [运营主体名称/负责人姓名]（税号/NIF：[NIF/CIF]，地址：[地址]）运营，是本平台用户个人数据的数据控制者。如对本政策或您的个人数据有任何疑问，请联系：[联系邮箱]。",
   "legal.privacy.section.dataCollected.heading": "我们收集哪些数据",
   "legal.privacy.section.dataCollected.body":
-    "求职者：姓名、邮箱、电话/微信（可选）、语言偏好、工种、工作经验、可到岗时间、居留状态、期望薪资等求职资料。\n\n雇主：姓名、邮箱、电话/微信（可选）、所属门店信息（门店名称、地址、类别、认证材料）。\n\n所有用户：登录记录（用于安全与限流）、投递/职位浏览记录（用于提供撮合服务）。我们不收集也不需要您的身份证件号码或银行账户信息。",
+    "求职者：姓名、邮箱、电话/微信（可选）、语言偏好、工种、工作经验、可到岗时间、居留状态、期望薪资等求职资料。\n\n雇主：姓名、邮箱、电话/微信（可选）、所属门店信息（门店名称、地址、类别、认证材料）。\n\n所有用户：登录记录（用于安全与限流）、投递/职位浏览记录（用于提供撮合服务）。\n\n「有新岗位通知我」订阅者（无需登录即可订阅）：邮箱地址、您选择的筛选条件（城市、工种、薪资下限、是否需要包吃住、是否接受无居留）、语言偏好。我们不收集也不需要您的身份证件号码或银行账户信息。",
   "legal.privacy.section.purposes.heading": "处理目的与法律依据",
   "legal.privacy.section.purposes.body":
-    "提供求职者与雇主之间的撮合服务（法律依据：履行与您的服务合同，GDPR 第 6(1)(b) 条）。\n\n通过邮箱魔法链接完成登录验证（法律依据：履行服务合同）。\n\n防止账号滥用、欺诈与骚扰（法律依据：我们的合法利益，GDPR 第 6(1)(f) 条），包括登录请求的限流与验证码校验。\n\n雇主标记\"已联系\"候选人后向其展示联系方式，用于双方后续沟通（法律依据：履行服务合同，且经求职者主动投递岗位默示同意）。",
+    "提供求职者与雇主之间的撮合服务（法律依据：履行与您的服务合同，GDPR 第 6(1)(b) 条）。\n\n通过邮箱魔法链接完成登录验证（法律依据：履行服务合同）。\n\n防止账号滥用、欺诈与骚扰（法律依据：我们的合法利益，GDPR 第 6(1)(f) 条），包括登录请求的限流与验证码校验。\n\n雇主标记\"已联系\"候选人后向其展示联系方式，用于双方后续沟通（法律依据：履行服务合同，且经求职者主动投递岗位默示同意）。\n\n向「有新岗位通知我」的订阅者发送与其所选条件匹配的新岗位通知邮件（法律依据：您的明示同意，GDPR 第 6(1)(a) 条——订阅需点击确认邮件中的链接完成双重确认，且每封通知邮件都附一次性退订链接，可随时撤回同意）。",
   "legal.privacy.section.retention.heading": "数据保留期限",
   "legal.privacy.section.retention.body":
-    "账号相关数据在账号存续期间保留。您可随时联系我们注销账号，我们将在收到请求后 30 天内删除您的个人数据，法律法规要求另行保留的除外（如反欺诈记录的必要留存）。登录验证记录（auth_challenges）在有效期（15 分钟）后自动失效，我们会定期清理过期记录。",
+    "账号相关数据在账号存续期间保留。您可随时联系我们注销账号，我们将在收到请求后 30 天内删除您的个人数据，法律法规要求另行保留的除外（如反欺诈记录的必要留存）。登录验证记录（auth_challenges）在有效期（15 分钟）后自动失效，我们会定期清理过期记录。「有新岗位通知我」订阅记录在您点击通知邮件中的退订链接后立即删除；未确认的订阅（未点击确认邮件）我们也会定期清理。",
   "legal.privacy.section.recipients.heading": "数据接收方与传输",
   "legal.privacy.section.recipients.body":
     "我们使用第三方服务商处理部分数据：数据库与应用托管（Railway，服务器位于欧盟境内）、发信服务（用于投递登录邮件）。这些服务商仅在提供上述服务所必需的范围内处理您的数据，我们已与其签署符合 GDPR 要求的数据处理协议（如适用）。我们不会将您的个人数据出售给第三方，也不会用于与撮合服务无关的广告投放。",
   "legal.privacy.section.rights.heading": "您的权利",
   "legal.privacy.section.rights.body":
-    "根据 GDPR，您有权：访问我们持有的您的个人数据；要求更正不准确的数据；要求删除数据（\"被遗忘权\"）；限制或反对某些处理；以结构化、常用格式获取您的数据（数据可携带权）。行使上述权利请发邮件至 [联系邮箱]，我们将在一个月内答复。如您认为我们的处理方式侵犯了您的权利，您也有权向西班牙数据保护局（AEPD, www.aepd.es）投诉。",
+    "根据 GDPR，您有权：访问我们持有的您的个人数据；要求更正不准确的数据；要求删除数据（\"被遗忘权\"）；限制或反对某些处理；以结构化、常用格式获取您的数据（数据可携带权）。行使上述权利请发邮件至 [联系邮箱]，我们将在一个月内答复。如您是「有新岗位通知我」的订阅者，最快的方式是直接点击任意一封通知邮件底部的退订链接，无需发邮件即可立即撤回同意并删除订阅记录。如您认为我们的处理方式侵犯了您的权利，您也有权向西班牙数据保护局（AEPD, www.aepd.es）投诉。",
   "legal.privacy.section.cookies.heading": "Cookie 与本地存储",
   "legal.privacy.section.cookies.body":
     "本平台仅使用两类浏览器本地存储，均为提供服务所必需，不涉及广告追踪：登录会话 Cookie（签名加密，用于保持登录状态）；语言偏好（存储在浏览器 localStorage，不会同步到服务器）。我们目前不使用任何第三方分析或广告 Cookie。如未来接入此类工具，我们会在此更新说明并加入 Cookie 同意横幅。",
@@ -441,6 +468,29 @@ const es: Dict = {
   "employer.me.title": "Mi cuenta",
 
   "home.search.placeholder": "Buscar empleo o tienda",
+  "home.empty.clearFilters": "Borrar filtros",
+  "home.empty.otherCitiesHint": "Estas ciudades sí tienen empleos ahora: {cities}",
+
+  "home.saved.title": "Guardados",
+  "home.saved.empty": "Aún no has guardado ningún empleo",
+  "job.save": "Guardar",
+  "job.unsave": "Quitar de guardados",
+
+  "jobAlert.title": "Avísame de nuevos empleos",
+  "jobAlert.description": "¿No encuentras lo que buscas? Déjanos tu email y te avisaremos por correo en cuanto haya un empleo nuevo que coincida con estos filtros.",
+  "jobAlert.noticePrefix": "Al enviar aceptas este uso de tu email, ver",
+  "jobAlert.noticeSuffix": ". Puedes darte de baja en cualquier momento desde el enlace del correo.",
+  "jobAlert.emailPlaceholder": "Tu email",
+  "jobAlert.subscribe": "Suscribirme",
+  "jobAlert.subscribing": "Enviando…",
+  "jobAlert.success": "¡Listo! Revisa tu correo y confirma la suscripción (si no confirmas, no recibirás avisos)",
+  "jobAlert.error.invalid_email": "Introduce un email válido",
+  "jobAlert.error.unknown": "No se pudo enviar, inténtalo de nuevo",
+  "jobAlert.confirm.success": "Suscripción confirmada: te avisaremos por correo de nuevos empleos que coincidan",
+  "jobAlert.confirm.invalid": "El enlace de confirmación no es válido o ya se usó",
+  "jobAlert.backHome": "Volver al inicio",
+  "jobAlert.unsubscribe.success": "Te has dado de baja, no recibirás más avisos",
+  "jobAlert.unsubscribe.invalid": "El enlace para darte de baja no es válido o ya se usó",
 
   "job.publishedAt": "Publicado el {date}",
   "job.description": "Descripción del puesto",
@@ -469,6 +519,10 @@ const es: Dict = {
   "apply.error.unknown": "No se pudo enviar, inténtalo de nuevo",
   "apply.cancel": "Cancelar",
   "apply.close": "Cerrar",
+  "apply.editProfileCta": "¿Quieres usar otros datos esta vez? Editar",
+  "apply.profileSummary": "Se usaron automáticamente tus datos: {name} · {phone}",
+  "apply.completeProfileNudge": "Tu perfil aún está incompleto — complétalo para que te vean más fácil",
+  "apply.completeProfileCta": "Completar perfil",
 
   "profile.name": "Nombre",
   "profile.namePlaceholder": "¿Cómo te llamas?",
@@ -521,7 +575,7 @@ const es: Dict = {
   "login.roleHint": "El primer inicio de sesión crea automáticamente tu cuenta con este rol",
   "login.emailLabel": "Correo electrónico",
   "login.emailRequired": "Introduce tu correo electrónico",
-  "login.captchaLabel": "Verificación: {question} = ?",
+  "login.captchaLabel": "Verificación humana: {question} = ?",
   "login.sendLink": "Enviar enlace de acceso",
   "login.sending": "Enviando…",
   "login.checkEmail": "Enlace enviado a {email}, revisa tu correo (válido 15 minutos)",
@@ -614,19 +668,19 @@ const es: Dict = {
     "店聘 DianPin (en adelante, \"la plataforma\") está operada por [nombre de la entidad/titular] (NIF/CIF: [NIF/CIF], domicilio: [dirección]), responsable del tratamiento de los datos personales de los usuarios de esta plataforma. Para cualquier consulta sobre esta política o sus datos personales, contacte con: [email de contacto].",
   "legal.privacy.section.dataCollected.heading": "Qué datos recopilamos",
   "legal.privacy.section.dataCollected.body":
-    "Buscadores de empleo: nombre, email, teléfono/WeChat (opcional), idioma preferido, tipo de trabajo, experiencia, disponibilidad, estatus de residencia, salario esperado y demás datos del perfil.\n\nEmpleadores: nombre, email, teléfono/WeChat (opcional), datos de la tienda (nombre, dirección, categoría, documentación de verificación).\n\nTodos los usuarios: registros de inicio de sesión (seguridad y límite de solicitudes), historial de postulaciones/visualización de empleos (para prestar el servicio de emparejamiento). No recopilamos ni necesitamos su número de documento de identidad ni datos bancarios.",
+    "Buscadores de empleo: nombre, email, teléfono/WeChat (opcional), idioma preferido, tipo de trabajo, experiencia, disponibilidad, estatus de residencia, salario esperado y demás datos del perfil.\n\nEmpleadores: nombre, email, teléfono/WeChat (opcional), datos de la tienda (nombre, dirección, categoría, documentación de verificación).\n\nTodos los usuarios: registros de inicio de sesión (seguridad y límite de solicitudes), historial de postulaciones/visualización de empleos (para prestar el servicio de emparejamiento).\n\nSuscriptores de \"Avísame de nuevos empleos\" (no requiere cuenta): dirección de email, los filtros que eligió (ciudad, tipo de trabajo, salario mínimo, si requiere comida/alojamiento, si acepta sin residencia) e idioma preferido. No recopilamos ni necesitamos su número de documento de identidad ni datos bancarios.",
   "legal.privacy.section.purposes.heading": "Finalidades y base jurídica",
   "legal.privacy.section.purposes.body":
-    "Prestar el servicio de emparejamiento entre buscadores de empleo y empleadores (base jurídica: ejecución del contrato de servicio, art. 6(1)(b) RGPD).\n\nVerificar el inicio de sesión mediante enlace mágico por email (base jurídica: ejecución del contrato de servicio).\n\nPrevenir el abuso de cuentas, fraude y acoso (base jurídica: interés legítimo, art. 6(1)(f) RGPD), incluyendo límites de solicitudes y verificación captcha.\n\nMostrar los datos de contacto del candidato al empleador tras marcarlo como \"contactado\" (base jurídica: ejecución del contrato de servicio, con consentimiento implícito del buscador al postularse).",
+    "Prestar el servicio de emparejamiento entre buscadores de empleo y empleadores (base jurídica: ejecución del contrato de servicio, art. 6(1)(b) RGPD).\n\nVerificar el inicio de sesión mediante enlace mágico por email (base jurídica: ejecución del contrato de servicio).\n\nPrevenir el abuso de cuentas, fraude y acoso (base jurídica: interés legítimo, art. 6(1)(f) RGPD), incluyendo límites de solicitudes y verificación captcha.\n\nMostrar los datos de contacto del candidato al empleador tras marcarlo como \"contactado\" (base jurídica: ejecución del contrato de servicio, con consentimiento implícito del buscador al postularse).\n\nEnviar a los suscriptores de \"Avísame de nuevos empleos\" un correo cuando se publique un empleo que coincida con sus filtros (base jurídica: su consentimiento explícito, art. 6(1)(a) RGPD — la suscripción requiere confirmar mediante un enlace en un correo de doble confirmación, y cada aviso incluye un enlace de baja de un solo uso para retirar el consentimiento en cualquier momento).",
   "legal.privacy.section.retention.heading": "Plazo de conservación",
   "legal.privacy.section.retention.body":
-    "Los datos de la cuenta se conservan mientras esta permanezca activa. Puede solicitar la baja de su cuenta en cualquier momento; eliminaremos sus datos personales en un plazo de 30 días desde la solicitud, salvo obligación legal de conservación (p. ej. registros antifraude). Los registros de verificación de inicio de sesión (auth_challenges) caducan automáticamente tras 15 minutos y se depuran periódicamente.",
+    "Los datos de la cuenta se conservan mientras esta permanezca activa. Puede solicitar la baja de su cuenta en cualquier momento; eliminaremos sus datos personales en un plazo de 30 días desde la solicitud, salvo obligación legal de conservación (p. ej. registros antifraude). Los registros de verificación de inicio de sesión (auth_challenges) caducan automáticamente tras 15 minutos y se depuran periódicamente. Las suscripciones a \"Avísame de nuevos empleos\" se eliminan de inmediato al hacer clic en el enlace de baja de cualquier correo de aviso; las suscripciones nunca confirmadas también se depuran periódicamente.",
   "legal.privacy.section.recipients.heading": "Destinatarios y transferencias de datos",
   "legal.privacy.section.recipients.body":
     "Utilizamos proveedores externos para parte del tratamiento: alojamiento de base de datos y aplicación (Railway, servidores ubicados en la UE) y servicio de envío de correo (para los enlaces de inicio de sesión). Estos proveedores solo tratan sus datos en la medida necesaria para prestar dichos servicios, con acuerdos de tratamiento de datos conformes al RGPD cuando corresponda. No vendemos sus datos personales a terceros ni los usamos para publicidad ajena al servicio.",
   "legal.privacy.section.rights.heading": "Sus derechos",
   "legal.privacy.section.rights.body":
-    "Conforme al RGPD, usted tiene derecho a: acceder a los datos personales que tratamos sobre usted; solicitar la rectificación de datos inexactos; solicitar la supresión (\"derecho al olvido\"); limitar u oponerse a determinados tratamientos; y obtener sus datos en un formato estructurado y de uso común (portabilidad). Para ejercer estos derechos, escriba a [email de contacto]; responderemos en el plazo de un mes. Si considera que el tratamiento vulnera sus derechos, también puede presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD, www.aepd.es).",
+    "Conforme al RGPD, usted tiene derecho a: acceder a los datos personales que tratamos sobre usted; solicitar la rectificación de datos inexactos; solicitar la supresión (\"derecho al olvido\"); limitar u oponerse a determinados tratamientos; y obtener sus datos en un formato estructurado y de uso común (portabilidad). Para ejercer estos derechos, escriba a [email de contacto]; responderemos en el plazo de un mes. Si es suscriptor de \"Avísame de nuevos empleos\", la forma más rápida es hacer clic en el enlace de baja al final de cualquier correo de aviso, sin necesidad de escribirnos, para retirar el consentimiento y eliminar la suscripción al instante. Si considera que el tratamiento vulnera sus derechos, también puede presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD, www.aepd.es).",
   "legal.privacy.section.cookies.heading": "Cookies y almacenamiento local",
   "legal.privacy.section.cookies.body":
     "La plataforma solo utiliza dos tipos de almacenamiento local del navegador, ambos estrictamente necesarios para el servicio y sin fines de seguimiento publicitario: la cookie de sesión de inicio de sesión (firmada y cifrada, para mantener la sesión iniciada) y la preferencia de idioma (guardada en localStorage del navegador, no se sincroniza con el servidor). Actualmente no usamos cookies de análisis ni publicidad de terceros. Si en el futuro incorporamos alguna, actualizaremos este aviso y añadiremos un banner de consentimiento de cookies.",

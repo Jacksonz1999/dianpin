@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { cache } from "react";
-import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   applications,
@@ -20,6 +20,7 @@ import {
   canTransitionJob,
 } from "./status-machine";
 import { assertNotPlaceholder } from "./validation";
+import { notifyJobAlertSubscribers } from "./job-alerts";
 import type { Locale } from "./i18n";
 import type {
   Application,
@@ -145,6 +146,12 @@ export const getJobById = cache(async (id: string): Promise<Job | null> => {
   const [row] = await db.select().from(jobs).where(eq(jobs.id, id));
   return row ?? null;
 });
+
+/** Used by the "我收藏的" section (WP-B3) — ids come from the browser's localStorage, not a query filter. */
+export async function getJobsByIds(ids: string[]): Promise<Job[]> {
+  if (ids.length === 0) return [];
+  return db.select().from(jobs).where(inArray(jobs.id, ids));
+}
 
 /**
  * Fire-and-forget from the job detail page — the displayed count is as of
@@ -470,6 +477,21 @@ export async function createJob(
       status: input.status,
     })
     .returning();
+
+  if (row.status === "active") {
+    // Synchronous, not queued — see AGENTS.md §5 and the WP-B PR
+    // description for why (real inventory + call volume here is tiny;
+    // db/import-csv.ts's bulk path bypasses createJob entirely so a CSV
+    // import never triggers this). Best-effort: a mail-side failure here
+    // (e.g. SMTP down) must never fail the job publish itself — the job
+    // row above is already committed by the time this runs.
+    try {
+      await notifyJobAlertSubscribers(row);
+    } catch (err) {
+      console.error(`[job-alerts] notifyJobAlertSubscribers failed for job ${row.id}:`, err);
+    }
+  }
+
   return row;
 }
 

@@ -1,5 +1,5 @@
-import nodemailer from "nodemailer";
 import { getSiteUrl } from "@/lib/site-url";
+import { sendMail } from "@/lib/mail";
 import type { AuthProvider, DeliverCodeInput } from "./types";
 
 /**
@@ -7,26 +7,16 @@ import type { AuthProvider, DeliverCodeInput } from "./types";
  * channel that actually ships, since Spain's new SMS Sender ID rules make
  * plain SMS impractical and WhatsApp isn't wired up yet).
  *
- * Without SMTP_URL configured, this logs the magic link to the server
- * console instead of emailing it — the login flow stays fully testable
- * in local dev / this sandbox without real mail infrastructure.
+ * The actual SMTP transport and its missing-SMTP_URL / production-throw
+ * guard live in lib/mail.ts, shared with job-alert notifications — see
+ * that file for the exact fallback behavior (throws in production, logs
+ * to console otherwise).
  */
 export const emailProvider: AuthProvider = {
   channel: "email",
 
   async deliverCode({ identifier, verifyUrl }: DeliverCodeInput): Promise<void> {
-    const smtpUrl = process.env.SMTP_URL;
-    const from = process.env.EMAIL_FROM ?? "noreply@dianpin-jobs.es";
-
-    if (!smtpUrl) {
-      console.log(`[auth/email] no SMTP_URL set — magic link for ${identifier}:`);
-      console.log(verifyUrl);
-      return;
-    }
-
-    const transporter = nodemailer.createTransport(smtpUrl);
-    await transporter.sendMail({
-      from,
+    await sendMail({
       to: identifier,
       subject: "登录店聘 DianPin / Iniciar sesión en DianPin",
       text: [
