@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 export interface SendMailInput {
   to: string;
@@ -8,60 +8,63 @@ export interface SendMailInput {
 }
 
 /**
- * Shared SMTP transport for every outbound email this app sends — login
+ * Shared email sender for every outbound email this app sends — login
  * magic links (lib/auth/providers/email.ts) and job-alert notifications
  * (lib/job-alerts.ts). Centralized so both channels share one
- * missing-SMTP_URL guard instead of two copies drifting apart.
+ * missing-config guard instead of two copies drifting apart.
  *
- * Without SMTP_URL configured:
+ * Uses the Resend HTTPS API, not raw SMTP — see README's mail setup
+ * section for why: Railway's Hobby plan disables outbound SMTP entirely
+ * (confirmed via Railway's own docs), so a generic nodemailer+SMTP_URL
+ * setup can never work there. Resend talks HTTPS (port 443), which no
+ * PaaS blocks.
+ *
+ * Without RESEND_API_KEY configured:
  *   - in production, this throws instead of pretending to send.
  *   - outside production (local dev, CI, this sandbox), it logs the
  *     message to the console instead — see README's "本地开发" section.
  */
 export async function sendMail(input: SendMailInput): Promise<void> {
-  const smtpUrl = process.env.SMTP_URL;
+  const apiKey = process.env.RESEND_API_KEY;
   // info@dianpin.eu is the only mailbox this project actually owns — see
   // README's mail-setup section. Do not default to noreply@: that account
-  // doesn't exist at the mail provider, and most SMTP providers reject
-  // sending from an address they don't recognize.
+  // doesn't exist, and sending "from" an address whose domain isn't
+  // verified in Resend gets rejected.
   const from = process.env.EMAIL_FROM ?? "info@dianpin.eu";
 
-  if (!smtpUrl) {
+  if (!apiKey) {
     if (process.env.NODE_ENV === "production") {
       throw new Error(
-        "SMTP_URL is not set — email cannot be sent. Configure it in " +
+        "RESEND_API_KEY is not set — email cannot be sent. Configure it in " +
           "Railway's service Variables (see README's mail setup section)."
       );
     }
-    console.log(`[mail] no SMTP_URL set — would send to ${input.to}:`);
+    console.log(`[mail] no RESEND_API_KEY set — would send to ${input.to}:`);
     console.log(input.subject);
     console.log(input.text);
     return;
   }
 
+  const domain = input.to.split("@")[1] ?? "unknown";
+  const resend = new Resend(apiKey);
+
+  // Resend's SDK resolves (not rejects) on an API-level error, putting it
+  // in `error` instead — but a network-level failure (fetch itself
+  // throwing) still rejects, so both paths are handled and funneled
+  // through the same masked log + sanitized throw. Never log/rethrow the
+  // raw error or response object — see lib/mail.ts's git history (a
+  // malformed SMTP_URL once leaked a password into Railway's logs this
+  // same way, via an unguarded raw-error log elsewhere in this codebase).
+  let errorMessage: string | null = null;
   try {
-    // createTransport() must be inside this try too, not just sendMail():
-    // a malformed SMTP_URL (e.g. an unencoded `@` or `#` in the username/
-    // password) makes it throw synchronously with the *raw URL — password
-    // included — attached as the error's `input` property. That error
-    // previously escaped this function uncaught and got logged verbatim
-    // further up the call stack (app/auth-actions.ts), which really
-    // happened once in production and put a live SMTP password in
-    // Railway's plaintext logs. Never let that error out unmasked again.
-    const transporter = nodemailer.createTransport(smtpUrl);
-    await transporter.sendMail({ from, ...input });
+    const { error } = await resend.emails.send({ from, ...input });
+    if (error) errorMessage = error.message;
   } catch (err) {
-    const domain = input.to.split("@")[1] ?? "unknown";
-    const safeMessage =
-      err instanceof Error
-        ? // Error.message for a bad-URL TypeError is just "Invalid URL" —
-          // the dangerous part lives on a separate `.input` property that
-          // this intentionally never touches or logs.
-          err.message
-        : "non-Error value thrown";
-    console.error(
-      `[mail] sendMail failed for identifier ending in @${domain}: ${safeMessage}`
-    );
-    throw new Error(`Failed to send mail: ${safeMessage}`);
+    errorMessage = err instanceof Error ? err.message : "non-Error value thrown";
+  }
+
+  if (errorMessage) {
+    console.error(`[mail] sendMail failed for identifier ending in @${domain}: ${errorMessage}`);
+    throw new Error(`Failed to send mail: ${errorMessage}`);
   }
 }

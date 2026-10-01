@@ -19,7 +19,7 @@ npm run db:seed      # 灌种子数据
 npm run dev          # http://localhost:3000
 ```
 
-不配置 `SMTP_URL` 时，登录邮件的魔法链接会打印在服务端控制台（终端），不会真实发送，本地登录流程仍可完整走通。
+不配置 `RESEND_API_KEY` 时，登录邮件的魔法链接会打印在服务端控制台（终端），不会真实发送，本地登录流程仍可完整走通。
 
 不配置 `NEXT_PUBLIC_TURNSTILE_SITEKEY`/`TURNSTILE_SECRET` 时，登录页验证码走内置的明文算术题（`lib/auth/captcha.ts`）；要换成 Cloudflare Turnstile，去 [Turnstile 控制台](https://dash.cloudflare.com/?to=/:account/turnstile) 建一个 widget，把 site key / secret key 填进这两个变量即可，不需要改代码。
 
@@ -66,34 +66,32 @@ npm run db:studio    # Drizzle Studio，浏览本地数据库
 
 ### 配置登录邮件（必做——不配登录功能不可用）
 
-项目实际购买的邮箱是 **`info@dianpin.eu`**，不要再引入 Resend / SendGrid 等第三方发信服务——代码走的是通用 `nodemailer` + SMTP，直接用这个邮箱自己的 SMTP 凭据发信即可（统一走 `lib/mail.ts`，登录魔法链接 `lib/auth/providers/email.ts` 和岗位订阅通知 `lib/job-alerts.ts` 共用同一个发信封装与同一套 SMTP_URL 缺失/失败处理）。
+**发信走 Resend（HTTPS API），不是 SMTP——这不是最初的设计，是被 Railway 的平台限制逼出来的决定，原因写清楚：**
 
-**当前真实状态（写文档时尚未完成）**：`info@dianpin.eu` 的邮件服务由 Spaceship（产品线 spacemail）提供，域名 `dianpin.eu` 在 Spaceship 控制台的验证状态是 **Pending**（DNS 记录未配齐）——也就是说现在连 Spaceship 自己都还发不出邮件。需要先按 Spaceship 后台的提示，在 `dianpin.eu` 的 DNS 上补齐它要求的 SPF / DKIM / MX 记录，等状态变成 Verified，才能拿到可用的 SMTP 凭据。可以用 `dig dianpin.eu TXT` 核对 SPF 记录是否已生效。下面这张表是**通用参考**，不代表本项目最终用哪家——具体主机/端口以 Spaceship 后台实际显示的为准，不要照抄任何一行：
+最早的方案是通用 `nodemailer` + 真实邮箱（`info@dianpin.eu`，Spaceship/spacemail 提供）自己的 SMTP 凭据直接发信，特意不接 Resend/SendGrid 这类第三方服务。上线后实测登录邮件一直卡在 "Connection timeout"，排查到最后在 [Railway 官方文档](https://docs.railway.com/)里找到原因：
 
-| 服务商 | SMTP 主机 | 端口 | 备注 |
-|---|---|---|---|
-| IONOS (1&1) | `smtp.ionos.es` / `smtp.ionos.com` | 465 (SSL) / 587 (STARTTLS) | 西班牙常见 |
-| Zoho Mail | `smtp.zoho.eu` | 465 (SSL) / 587 | |
-| Google Workspace | `smtp.gmail.com` | 465 / 587 | 需 App Password（账号须开 2FA） |
-| Microsoft 365 | `smtp.office365.com` | 587 (STARTTLS) | |
-| Namecheap Private Email | `mail.privateemail.com` | 465 / 587 | |
-| OVH | `ssl0.ovh.net` | 465 / 587 | |
+> SMTP is only available on the Pro plan and above. Free, Trial, and Hobby plans must use transactional email services with HTTPS APIs. SMTP is disabled on these plans to prevent spam and abuse.
+
+也就是说：**Railway 的 Hobby 档完全禁用出站 SMTP（25/465/587 全部端口），不是防火墙偶尔拦截，是平台层面写死的限制**，不管 `SMTP_URL` 填得多对都连不上。本项目用的是 Hobby 档（见 AGENTS.md §7 的成本表），要么升级 Railway 到 Pro（更贵），要么换一个走 HTTPS（443 端口，没有平台会封）发信的服务——选了后者，也就是 Resend，这正是 Railway 自己文档里推荐的做法。
+
+**现在的发信方式**：`lib/mail.ts` 统一用 `resend` 这个包的 HTTPS API 发信，登录魔法链接（`lib/auth/providers/email.ts`）和岗位订阅通知（`lib/job-alerts.ts`）共用同一个发信封装与同一套 `RESEND_API_KEY` 缺失/失败处理。
 
 配置步骤：
 
-1. 在 Spaceship 后台确认 `dianpin.eu` 的验证状态是 Verified，拿到 `info@dianpin.eu` 的 SMTP 主机 / 端口 / 密码（如果提供"应用专用密码"，优先用它而不是邮箱登录密码）
-2. 在 Railway 该服务的 Variables 里加：
+1. 去 [resend.com](https://resend.com) 注册账号（有免费额度），在 [Domains](https://resend.com/domains) 里添加 `dianpin.eu`，按提示在 DNS 上加它要求的 SPF / DKIM 记录——**这一步跟 Spaceship 那边的 DNS 验证是两回事**：Spaceship 验证的是"这个域名的邮箱收发件服务"，Resend 验证的是"Resend 的服务器有没有权限代表 `dianpin.eu` 这个域名发信"，两边都要单独配置 DNS 记录，互不替代
+2. 等 Resend 后台把 `dianpin.eu` 标记为已验证，去 [API Keys](https://resend.com/api-keys) 页面生成一个 API Key
+3. 在 Railway 该服务的 Variables 里加：
    ```
-   SMTP_URL=smtp://info@dianpin.eu:<密码>@<Spaceship 给的主机>:<端口>
+   RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxx
    EMAIL_FROM=info@dianpin.eu
    ```
-   用户名一律填完整邮箱地址 `info@dianpin.eu`（不是 `info`）；**不要**把 `EMAIL_FROM` 改成 `noreply@dianpin.eu`——这个邮箱账户在 Spaceship 那边并不存在，大多数 SMTP 服务商会拒绝从一个未经认证账户归属的地址发信（550/553 之类的错误）
-3. `SMTP_URL`/`EMAIL_FROM` 都不带 `NEXT_PUBLIC_` 前缀，是运行时读取，不是构建时内联——和必须重新构建才生效的 `NEXT_PUBLIC_SITE_URL`（见上面部署步骤 2）不同，这两个变量改完**重启服务**（不需要重新构建）就会生效
-4. 保存后用 `curl https://dianpin.eu/api/health` 确认返回里 `emailConfigured: true`，再实际跑一次登录流程确认真的收到邮件（检查垃圾箱——SPF/DKIM 没配全的话大概率会被打进去）
+   `EMAIL_FROM` 必须是**域名已经在 Resend 验证过**的地址（第 1 步做完这里才会生效），不需要是 Resend 账号本身注册时用的邮箱，也不需要这个邮箱真的有收件箱——Resend 只检查域名归属，不检查邮箱是否存在；**不要**把 `EMAIL_FROM` 改成 `noreply@dianpin.eu`——保持这个习惯是为了邮件看起来像真实发件地址而不是群发账号，即便 Resend 技术上并不要求邮箱真实存在
+4. `RESEND_API_KEY`/`EMAIL_FROM` 都不带 `NEXT_PUBLIC_` 前缀，是运行时读取，不是构建时内联——和必须重新构建才生效的 `NEXT_PUBLIC_SITE_URL`（见上面部署步骤 2）不同，这两个变量改完**重启服务**（不需要重新构建）就会生效
+5. 保存后用 `curl https://dianpin.eu/api/health` 确认返回里 `emailConfigured: true`，再实际跑一次登录流程确认真的收到邮件（检查垃圾箱）
 
-**如果 Spaceship 只给 HTTP API（API key）、拿不到 SMTP 用户名密码**：现在这套 `nodemailer` + `SMTP_URL` 的方案用不了，需要换成按该 API 写一个新的 provider（类似 `lib/auth/providers/whatsapp.ts` 的占位模式）。遇到这种情况请不要自己臆造一个 SMTP 主机、也不要擅自接入 Resend 之类的第三方服务替代——先确认 Spaceship 到底给的是什么凭据，必要时另开一轮改造。
+**`info@dianpin.eu` 这个邮箱本身**（Spaceship 提供的收发件服务）跟上面的发信配置是两套独立的东西：Resend 只负责"代表这个域名寄出邮件"，不负责"这个邮箱能不能收信"——两者都要分别配置，谁先谁后不影响登录功能本身，只要 Resend 这边配好、`info@dianpin.eu` 的域名在 Resend 验证通过，登录邮件就能发出去。
 
-**生产环境没配 `SMTP_URL` 会怎样**：`lib/mail.ts`（登录邮件和岗位订阅通知共用）在 `NODE_ENV=production` 下会直接抛错而不是静默返回——登录请求会失败，`/login` 页面显示"发送失败，请稍后重试 / No se pudo enviar, inténtalo de nuevo"（`login.error.unknown`），而不是假装发送成功却永远收不到信。本地开发 / CI 不受影响，仍然是把魔法链接打印到服务端控制台。
+**生产环境没配 `RESEND_API_KEY` 会怎样**：`lib/mail.ts`（登录邮件和岗位订阅通知共用）在 `NODE_ENV=production` 下会直接抛错而不是静默返回——登录请求会失败，`/login` 页面显示"发送失败，请稍后重试 / No se pudo enviar, inténtalo de nuevo"（`login.error.unknown`），而不是假装发送成功却永远收不到信。本地开发 / CI 不受影响，仍然是把魔法链接打印到服务端控制台。
 
 ## 演示数据 vs 真实数据
 
