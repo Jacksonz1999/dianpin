@@ -71,3 +71,14 @@ export function PlusIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function UsersIcon({ className }: IconProps) {
+  return (
+    <svg {...commonProps} className={className}>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20c0-3.5 2.9-6 6.5-6s6.5 2.5 6.5 6" />
+      <path d="M16.5 4.5c1.6.4 2.8 1.8 2.8 3.5s-1.2 3.1-2.8 3.5" />
+      <path d="M18 14.2c1.9.5 3.3 2.1 3.5 4.3" />
+    </svg>
+  );
+}

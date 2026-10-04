@@ -70,15 +70,50 @@ export function Header() {
               </Link>
             );
           })}
+          {/* Desktop-only — not in lib/nav-tabs.ts's shared array, which
+              also drives BottomNav (mobile keeps 3 tabs; see
+              components/EmployerDashboardView.tsx for the mobile entry). */}
+          {isEmployer && (
+            <Link
+              href="/employer/seekers"
+              aria-current={pathname.startsWith("/employer/seekers") ? "page" : undefined}
+              className={
+                "rounded-full px-3 py-2 text-sm " +
+                (pathname.startsWith("/employer/seekers")
+                  ? "font-medium text-[var(--color-primary)]"
+                  : "text-[var(--color-text-muted)]")
+              }
+            >
+              {t("nav.employer.seekers")}
+            </Link>
+          )}
         </nav>
 
-        <button
-          type="button"
-          onClick={() => setLocale(locale === "zh" ? "es" : "zh")}
-          className="min-h-[44px] rounded-full border border-[var(--color-border)] px-3 text-sm text-[var(--color-text-muted)]"
-        >
-          {t("common.languageSwitch")}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* The one standing bug this round fixes: before this, there was
+              no link to /employer anywhere a seeker-side visitor would
+              ever see — only someone already on an /employer page saw the
+              employer nav (lib/nav-tabs.ts picks tabs from the current
+              pathname). This plain Link works for both auth states: an
+              unauthenticated click hits /employer's own requireRole
+              guard, which now redirects to /login?role=employer&next=
+              /employer (see lib/auth/session.ts) and lands back here
+              after verifying. */}
+          <Link
+            href={isEmployer ? "/" : "/employer"}
+            className="hidden min-h-[44px] items-center rounded-full border border-[var(--color-border)] px-3 text-sm text-[var(--color-text-muted)] md:inline-flex"
+          >
+            {isEmployer ? t("nav.seekerExit") : t("nav.employerEntry")}
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => setLocale(locale === "zh" ? "es" : "zh")}
+            className="min-h-[44px] rounded-full border border-[var(--color-border)] px-3 text-sm text-[var(--color-text-muted)]"
+          >
+            {t("common.languageSwitch")}
+          </button>
+        </div>
       </div>
     </header>
   );

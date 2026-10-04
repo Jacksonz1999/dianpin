@@ -12,6 +12,7 @@ import {
   nextJobStatuses,
 } from "@/lib/status-machine";
 import type { City, Job, JobStatus, Store } from "@/lib/types";
+import { UsersIcon } from "./icons";
 import { useLocale } from "./LocaleProvider";
 import { StoreCreateModal } from "./StoreCreateModal";
 
@@ -148,6 +149,23 @@ export function EmployerDashboardView({
           {t("employer.dashboard.newStoreCta")}
         </button>
       </div>
+
+      {/* Desktop also gets this via Header's "找人" tab (md:flex, not in
+          lib/nav-tabs.ts's shared array — see that file's comment on why).
+          This card is what makes /employer/seekers reachable at all on
+          mobile, where BottomNav stays at 3 tabs. */}
+      <Link
+        href="/employer/seekers"
+        className="flex min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm"
+      >
+        <span className="flex items-center gap-2 font-medium">
+          <UsersIcon className="h-4 w-4 shrink-0 text-[var(--color-primary)]" />
+          {t("employer.dashboard.seekersEntryTitle")}
+        </span>
+        <span className="shrink-0 text-[var(--color-primary)]">
+          {t("nav.employer.seekers")} →
+        </span>
+      </Link>
 
       {groups.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center">

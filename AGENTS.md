@@ -45,8 +45,12 @@ dianpin/
 │  ├─ store/[id]/page.tsx
 │  ├─ me/page.tsx
 │  ├─ me/applications/page.tsx
+│  ├─ me/posts/page.tsx          # 第八轮新增：我发布的求职信息列表（管理/编辑/关闭）
+│  ├─ me/posts/new/page.tsx      # 第八轮新增：发布求职信息表单
 │  ├─ employer/page.tsx
 │  ├─ employer/job/[id]/page.tsx
+│  ├─ employer/seekers/page.tsx       # 第八轮新增：雇主浏览求职信息列表（城市/工种筛选）
+│  ├─ employer/seekers/[id]/page.tsx  # 第八轮新增：求职信息详情（联系方式见 §6 展示规则）
 │  └─ api/…
 ├─ components/          # 轻组件，禁止引入重型 UI 库
 ├─ lib/                 # db / auth / i18n / 状态机
@@ -86,6 +90,9 @@ dianpin/
 | `cities` | id, name_zh, name_es, region |
 | `job_types` | id, name_zh, name_es, icon |
 | `job_alerts`（第七轮新增，见下方说明） | id, email, seeker_user_id(nullable), city(nullable), job_type(nullable), salary_min(nullable), meals_included, residence_ok, locale, confirm_token, confirmed_at, unsubscribe_token, created_at — **UNIQUE(email)** |
+| `seeker_posts`（第八轮新增，见下方说明） | id, user_id(→users), title, job_type(→job_types), city(→cities), district, experience_years, available_from, residence_status, expected_salary_min/max, salary_period, languages[], live_in_ok, bio, contact_phone, contact_wechat, status(draft/active/closed), views, published_at, expires_at, is_seed, created_at, updated_at |
+
+`seeker_posts`：第八轮新增的"反向发帖"——此前只有店主能发布岗位（`jobs`），求职者只能被动投递；这张表让求职者主动发一条结构化的"我要找 XX 工作"帖子，雇主可浏览并联系。字段刻意复用已有枚举（`residence_status` 用 §5 现有五值，`salary_period` 用 `jobs.salary_period` 的 hour/day/month），不新造枚举。`status` 状态机（draft/active/closed）定义在 `lib/status-machine.ts`，与 `jobs.status` 同构但不共用同一张表——求职帖和岗位帖是两种实体，不应该合并成一张多态表，否则筛选/索引都会变复杂。联系方式字段（`contact_phone`/`contact_wechat`）沿用 §4 的自由填写字符串约定，不依赖 OAuth。`is_seed` 对齐 `jobs`/`stores` 已有的演示数据标记约定，但本表**不预置任何种子数据**——真实求职者发的帖子如果和演示数据混在一起，雇主无法分辨哪些是真实可联系的人。展示规则见 §6。
 
 `job_alerts`：真实岗位库存很小（个位数到十几条），"没有符合条件的岗位"不该是死路——求职者可以在筛选结果为空时，或在筛选栏下方常驻入口，免登录留下邮箱订阅"有新岗位通知我"，筛选条件（城市/工种/包吃住/可无居留/薪资下限）随订阅一起存下来。**双重确认（double opt-in）**：提交后发一封确认邮件，只有点击确认链接才会把 `confirmed_at` 置上，未确认的订阅不会收到任何通知邮件——这是 GDPR 合规要求，不是可选项。每封通知邮件都带一次性退订链接（`unsubscribe_token`）。`UNIQUE(email)` 意味着一个邮箱同一时间只有一份订阅条件，重复提交会更新已有条件而不是报错或建新行。触发时机：**仅在 `lib/db.ts` 的 `createJob` 内、且 `status=active` 时同步触发**（员工发布岗位的那次调用），不引入定时任务或常驻 worker（见 §7 的 Hobby 档常驻 worker 成本警告）。`db/import-csv.ts` 的批量导入直接写 `db.insert(jobs)`、不经过 `createJob`，因此批量导入不会触发通知——这是有意为之，避免一次性导入几十上百条历史数据时群发邮件轰炸订阅者。
 
@@ -96,18 +103,20 @@ dianpin/
 - `stores.verification_status`: unverified / pending / verified / rejected
 - `jobs.residence_required`: none / prefer / required
 - `jobs.salary_period`: hour / day / month
+- `seeker_posts.status`: draft / active / closed
 
-**索引**：`jobs(city, job_type, status)`、`jobs(store_id)`、`applications(job_id)`、`applications(seeker_user_id)`、`job_alerts(city, job_type)`。
+**索引**：`jobs(city, job_type, status)`、`jobs(store_id)`、`applications(job_id)`、`applications(seeker_user_id)`、`job_alerts(city, job_type)`、`seeker_posts(city, job_type, status)`、`seeker_posts(user_id)`。
 
 **规则**：排序字段不要用中文枚举做 key；薪资筛选需把 hour/day 折算成月（hour×8×22、day×22）后再比较。
 
 ## 6. 路由与交互约定
 
-- 移动端底部三 Tab：**求职者** = 找工 / 投递 / 我的；**雇主** = 工作台 / 发布 / 我的
-- **免登录可浏览**岗位列表与详情；只有投递、发布、查看联系方式时才要求登录（转化率优先）
-- 雇主**标记「已联系」后**才展示候选人完整联系方式 —— 防骚扰，不要提前暴露
-- 岗位发布走模板化表单，禁止自由文本一大段
-- 排序默认按 `views` 或 `published_at` 倒序，v1 不做推荐算法
+- 移动端底部三 Tab：**求职者** = 找工 / 投递 / 我的；**雇主** = 工作台 / 发布 / 我的（移动端底部导航空间有限，`lib/nav-tabs.ts` 的 `getNavTabs()` 共享数组不新增第四个 Tab，因为它同时驱动 `BottomNav` 和桌面 `Header`，改数组会让手机也多出一个 Tab）。第八轮新增的"找人"入口（`/employer/seekers`）**只加在桌面 `Header` 的顶部导航**（与共享 tabs 数组并列渲染，不进数组本身），移动端改为在雇主工作台（`/employer`，本来就是三 Tab 之一）首屏放一张入口卡片——两端各自解决"进 Tab 的空间有限"这个问题，不是同一套实现
+- **免登录可浏览**岗位列表与详情；只有投递、发布、查看联系方式时才要求登录（转化率优先）。第八轮新增的求职信息（`seeker_posts`）同样免登录可浏览列表与详情，仅联系方式字段登录门槛，见下一条
+- 雇主**标记「已联系」后**才展示候选人完整联系方式 —— 防骚扰，不要提前暴露。`seeker_posts` 的联系方式门槛与此不同：求职帖没有"投递"动作可供状态流转，改为"以雇主身份登录后才在详情页展示联系方式"——列表页在任何登录状态下都**不渲染**手机号/微信号，这是底线，不能退让
+- 岗位发布走模板化表单，禁止自由文本一大段；`seeker_posts` 发布表单同样模板化，标题/简介复用 `lib/validation.ts` 的 `assertNotPlaceholder()` 占位内容校验
+- 排序默认按 `views` 或 `published_at` 倒序，v1 不做推荐算法（`seeker_posts` 列表同样不做推荐排序）
+- 入口可见性（第八轮修复）：此前 `/employer` 虽然存在但没有任何面向求职者视角访客的入口——`lib/nav-tabs.ts` 的 `getNavTabs()` 只根据当前路径判断显示哪一侧导航，从未暴露跳转点。现在 `Header`（桌面）与 `/me`（移动端）各自提供一个"我是店主 · 招人"入口；对称地，雇主侧的 `Header`/`/employer/me` 也提供"切换到求职者视角"出口。首页顶部另有"我要找工作 / 我要招人"双入口（不阻挡岗位列表的轻量条）。未登录点击走各页自身的 `requireRole` 守卫，重定向到 `/login?role=...&next=...`，登录后回落到目标页，不单独维护一套跳转逻辑
 
 ## 7. 部署（Railway）
 

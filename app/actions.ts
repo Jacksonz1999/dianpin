@@ -6,6 +6,7 @@ import {
   createApplication,
   createJob,
   createReport,
+  createSeekerPost,
   createStore,
   getApplicationById,
   getApplicationForJobAndSeeker,
@@ -14,14 +15,18 @@ import {
   getJobs,
   getJobsByIds,
   getJobTypes,
+  getOwnSeekerPostById,
+  getSeekerPosts,
   getSeekerProfileByUserId,
   getStoreById,
   getStores,
   saveSeekerProfile,
   submitStoreForVerification,
   updateJobStatus,
+  updateSeekerPostStatus,
   withdrawApplication,
   type JobFilters,
+  type SeekerPostFilters,
 } from "@/lib/db";
 import {
   sendJobAlertConfirmationEmail,
@@ -39,6 +44,9 @@ import type {
   JobStatus,
   JobType,
   ReportTargetType,
+  SeekerPostFormValues,
+  SeekerPostStatus,
+  SeekerPostSummary,
   SeekerProfileFormValues,
   Store,
   StoreFormValues,
@@ -317,4 +325,48 @@ export async function getSavedJobsDataAction(jobIds: string[]): Promise<{
     getCities(),
   ]);
   return { jobs, stores, jobTypes, cities };
+}
+
+// ---------------------------------------------------------------------------
+// Seeker posts (round 8 / WP-E)
+// ---------------------------------------------------------------------------
+
+export async function searchSeekerPosts(
+  filters: SeekerPostFilters
+): Promise<SeekerPostSummary[]> {
+  return getSeekerPosts(filters);
+}
+
+export type CreateSeekerPostResult =
+  | { ok: true; postId: string }
+  | { ok: false; error: string };
+
+export async function createSeekerPostAction(
+  input: SeekerPostFormValues & { status: "draft" | "active" }
+): Promise<CreateSeekerPostResult> {
+  const session = await requireRole("seeker", "/me/posts/new");
+
+  try {
+    const post = await createSeekerPost({ ...input, userId: session.userId });
+    revalidatePath("/me/posts");
+    return { ok: true, postId: post.id };
+  } catch (err) {
+    if (err instanceof PlaceholderValueError) {
+      return { ok: false, error: "placeholder_content" };
+    }
+    throw err;
+  }
+}
+
+export async function updateSeekerPostStatusAction(
+  postId: string,
+  status: SeekerPostStatus
+): Promise<void> {
+  const session = await requireRole("seeker", "/me/posts");
+  const own = await getOwnSeekerPostById(postId, session.userId);
+  if (!own) {
+    throw new Error(`Seeker post ${postId} not found`);
+  }
+  await updateSeekerPostStatus(postId, status);
+  revalidatePath("/me/posts");
 }

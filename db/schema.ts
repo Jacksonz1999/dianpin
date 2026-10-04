@@ -75,6 +75,12 @@ export const reportTargetTypeEnum = pgEnum("report_target_type", [
   "store",
 ]);
 
+export const seekerPostStatusEnum = pgEnum("seeker_post_status", [
+  "draft",
+  "active",
+  "closed",
+]);
+
 // ---------------------------------------------------------------------------
 // Reference tables
 // ---------------------------------------------------------------------------
@@ -354,6 +360,80 @@ export const jobAlerts = pgTable(
   (table) => [
     unique("job_alerts_email_key").on(table.email),
     index("job_alerts_city_job_type_idx").on(table.city, table.job_type),
+  ]
+);
+
+// ---------------------------------------------------------------------------
+// Seeker posts (round 8 / WP-E) — the reverse of jobs: a seeker posts "I'm
+// looking for a sushi-shop job" instead of waiting for stores to post
+// openings. See AGENTS.md §5 for the full rationale on why this is a
+// separate table rather than folding into jobs as a polymorphic row.
+// Deliberately no is_seed=true rows are ever inserted for this table (see
+// AGENTS.md §5) — real seeker contact info must never be faked.
+// ---------------------------------------------------------------------------
+
+export const seekerPosts = pgTable(
+  "seeker_posts",
+  {
+    id: text("id").primaryKey(),
+    user_id: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    title: text("title").notNull(),
+    job_type: text("job_type")
+      .notNull()
+      .references(() => jobTypes.id),
+    city: text("city")
+      .notNull()
+      .references(() => cities.id),
+    district: text("district").notNull().default(""),
+    experience_years: integer("experience_years"),
+    available_from: timestamp("available_from", { mode: "string" }),
+    residence_status: residenceStatusEnum("residence_status"),
+    expected_salary_min: numeric("expected_salary_min", {
+      precision: 10,
+      scale: 2,
+      mode: "number",
+    }),
+    expected_salary_max: numeric("expected_salary_max", {
+      precision: 10,
+      scale: 2,
+      mode: "number",
+    }),
+    salary_period: jobSalaryPeriodEnum("salary_period"),
+    languages: text("languages").array().notNull().default([]),
+    live_in_ok: boolean("live_in_ok").notNull().default(false),
+    bio: text("bio").notNull().default(""),
+    // Free-text strings, same convention as users.phone/wechat (AGENTS.md
+    // §4) — not shown on the list page under any circumstance, only on
+    // the detail page and only to a logged-in employer. See
+    // lib/db.ts's getSeekerPostById / AGENTS.md §6.
+    contact_phone: text("contact_phone").notNull().default(""),
+    contact_wechat: text("contact_wechat").notNull().default(""),
+    status: seekerPostStatusEnum("status").notNull().default("draft"),
+    views: integer("views").notNull().default(0),
+    published_at: timestamp("published_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    expires_at: timestamp("expires_at", { withTimezone: true, mode: "string" }),
+    // See stores.is_seed — same demo/real split, but this table never
+    // actually has is_seed=true rows (AGENTS.md §5).
+    is_seed: boolean("is_seed").notNull().default(false),
+    created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("seeker_posts_city_job_type_status_idx").on(
+      table.city,
+      table.job_type,
+      table.status
+    ),
+    index("seeker_posts_user_id_idx").on(table.user_id),
   ]
 );
 

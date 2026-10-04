@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { JobType, SeekerProfile, User } from "@/lib/types";
 import { LegalLinks } from "./LegalLinks";
@@ -122,6 +123,34 @@ export function MeView({
       )}
 
       <SavedJobsSection />
+
+      {/* E4 (round 8): symmetric to the applications/saved-jobs sections
+          above — lets a seeker post "我要找 XX 工作" instead of only
+          waiting to be found via applications. See app/me/posts/. */}
+      <Link
+        href="/me/posts"
+        className="flex min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm"
+      >
+        <span className="font-medium">{t("me.postsEntry.title")}</span>
+        <span className="shrink-0 text-[var(--color-primary)]">
+          {t("me.postsEntry.cta")} →
+        </span>
+      </Link>
+
+      {/* Before this round, /employer existed but had no link to it
+          anywhere a seeker-side visitor would ever see — see
+          components/Header.tsx's matching desktop entry and
+          lib/auth/session.ts's requireRole for the unauthenticated-click
+          handling. */}
+      <Link
+        href="/employer"
+        className="flex min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm"
+      >
+        <span className="font-medium">{t("me.employerEntry.title")}</span>
+        <span className="shrink-0 text-[var(--color-primary)]">
+          {t("me.employerEntry.cta")} →
+        </span>
+      </Link>
 
       <LogoutButton />
       <LegalLinks />
