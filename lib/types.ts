@@ -105,6 +105,7 @@ export interface Store {
   rating_avg: number;
   rating_count: number;
   is_seed: boolean;
+  created_at: string;
 }
 
 export interface Job {

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  adminSetStoreVerification,
   advanceApplicationStatus,
   createApplication,
   createJob,
@@ -33,6 +34,7 @@ import {
   subscribeJobAlert,
 } from "@/lib/job-alerts";
 import { getSession, requireRole, requireSession } from "@/lib/auth/session";
+import { requireAdmin } from "@/lib/admin";
 import { PlaceholderValueError } from "@/lib/validation";
 import type { Locale } from "@/lib/i18n";
 import type {
@@ -369,4 +371,23 @@ export async function updateSeekerPostStatusAction(
   }
   await updateSeekerPostStatus(postId, status);
   revalidatePath("/me/posts");
+}
+
+// ---------------------------------------------------------------------------
+// Admin (round 10 / WP-L) — requireAdmin() re-checks the ADMIN_EMAILS
+// allowlist server-side on every call. The page only hides the 通过/拒绝
+// buttons for non-pending rows; this is the real gate — a forged request
+// straight to this action still has to pass it.
+// ---------------------------------------------------------------------------
+
+export async function adminReviewStoreAction(
+  storeId: string,
+  nextStatus: "verified" | "rejected"
+): Promise<void> {
+  await requireAdmin();
+  await adminSetStoreVerification(storeId, nextStatus);
+  revalidatePath("/admin/stores");
+  // The store's own public pages show its verification badge — keep them
+  // from serving a stale "认证中" after an admin just resolved it.
+  revalidatePath(`/store/${storeId}`);
 }

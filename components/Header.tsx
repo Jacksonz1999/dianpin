@@ -4,11 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getNavTabs } from "@/lib/nav-tabs";
 import { useLocale } from "./LocaleProvider";
+import { useSessionRole } from "./SessionProvider";
 
 export function Header() {
   const { locale, setLocale, t } = useLocale();
   const pathname = usePathname();
-  const isEmployer = pathname.startsWith("/employer");
+  // WP-K (round 10): same fix as BottomNav.tsx — the Tab set (and every
+  // employer-only extra below) must follow the account's actual role, not
+  // whichever path happens to be current. pathname is still used for
+  // active-highlight only, never for which tabs exist.
+  const role = useSessionRole();
+  const isEmployer = role === "employer";
   const tabs = getNavTabs(isEmployer, t);
 
   return (

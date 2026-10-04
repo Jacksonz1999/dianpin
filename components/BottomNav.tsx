@@ -4,12 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getNavTabs } from "@/lib/nav-tabs";
 import { useLocale } from "./LocaleProvider";
+import { useSessionRole } from "./SessionProvider";
 
 export function BottomNav() {
   const pathname = usePathname();
   const { t } = useLocale();
-
-  const isEmployer = pathname.startsWith("/employer");
+  // WP-K (round 10): which Tab set to show is the account's role, not the
+  // current path — pathname-based used to show an employer account
+  // seeker tabs (and vice versa) whenever they weren't already under
+  // /employer, and every one of those tabs bounced via requireRole. null
+  // (not logged in) renders seeker tabs, same as before.
+  const role = useSessionRole();
+  const isEmployer = role === "employer";
   const tabs = getNavTabs(isEmployer, t);
 
   return (

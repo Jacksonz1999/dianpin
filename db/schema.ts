@@ -178,6 +178,15 @@ export const stores = pgTable("stores", {
   // hide/exclude demo content and `npm run db:seed:clear` wipe it without
   // touching real store/job rows, which never set this.
   is_seed: boolean("is_seed").notNull().default(false),
+  // Added round 10 / WP-L: the admin verification queue (app/admin/stores)
+  // needs to show when a store was created; nothing else in this table
+  // ever needed a timestamp before. defaultNow() backfills existing rows
+  // to "now" on migration — their real creation time was never recorded,
+  // so this is the closest honest value (not fabricated earlier, just
+  // unknown-and-treated-as-now).
+  created_at: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
 });
 
 // ---------------------------------------------------------------------------

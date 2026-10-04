@@ -16,6 +16,7 @@ import {
 } from "@/db/schema";
 import {
   applicationRevealsContact,
+  canAdminReviewStore,
   canSubmitStoreForVerification,
   canTransitionApplication,
   canTransitionJob,
@@ -43,6 +44,7 @@ import type {
   SeekerProfileFormValues,
   Store,
   StoreFormValues,
+  StoreVerificationStatus,
   User,
 } from "./types";
 
@@ -441,6 +443,60 @@ export async function submitStoreForVerification(
   const [row] = await db
     .update(stores)
     .set({ verification_status: "pending" })
+    .where(eq(stores.id, storeId))
+    .returning();
+  return row;
+}
+
+// ---------------------------------------------------------------------------
+// Admin (round 10 / WP-L) — store verification review only, see lib/admin.ts
+// for the access-control side (email allowlist, no "admin" role).
+// ---------------------------------------------------------------------------
+
+/** status omitted = every store, newest first — used by the "全量列表" filter view. */
+export async function getStoresForAdmin(
+  status?: StoreVerificationStatus
+): Promise<Store[]> {
+  const query = db.select().from(stores).orderBy(desc(stores.created_at));
+  if (!status) return query;
+  return db
+    .select()
+    .from(stores)
+    .where(eq(stores.verification_status, status))
+    .orderBy(desc(stores.created_at));
+}
+
+/**
+ * pending -> verified/rejected only (see canAdminReviewStore) — this is
+ * deliberately the only state transition this function allows. There is
+ * no "undo" here by design: if a verified/rejected store needs
+ * re-review, the employer re-submits it (submitStoreForVerification),
+ * which puts it back in the pending queue.
+ */
+export async function adminSetStoreVerification(
+  storeId: string,
+  nextStatus: "verified" | "rejected"
+): Promise<Store> {
+  const [existing] = await db
+    .select()
+    .from(stores)
+    .where(eq(stores.id, storeId));
+
+  if (!existing) {
+    throw new Error(`Store ${storeId} not found`);
+  }
+  if (!canAdminReviewStore(existing.verification_status)) {
+    throw new Error(
+      `Cannot admin-review store ${storeId} from status "${existing.verification_status}"`
+    );
+  }
+
+  const [row] = await db
+    .update(stores)
+    .set({
+      verification_status: nextStatus,
+      verified_at: nextStatus === "verified" ? new Date().toISOString() : null,
+    })
     .where(eq(stores.id, storeId))
     .returning();
   return row;

@@ -92,6 +92,18 @@ export function canSubmitStoreForVerification(
 }
 
 /**
+ * pending -> verified/rejected (round 10 / WP-L) — the admin-only half of
+ * the transition canSubmitStoreForVerification's own comment flagged as
+ * "no UI yet" since WP3. Only acts on `pending`: a store that's already
+ * verified/rejected/unverified isn't awaiting admin review, so there's
+ * nothing for this action to do to it (the employer re-submits via
+ * canSubmitStoreForVerification's transition to get back to pending).
+ */
+export function canAdminReviewStore(status: StoreVerificationStatus): boolean {
+  return status === "pending";
+}
+
+/**
  * seeker_posts.status (round 8 / WP-E) — mirrors jobs' draft/active/closed
  * shape but intentionally has no paused/filled: a seeker post has no
  * headcount to fill, just "visible" or "not".
