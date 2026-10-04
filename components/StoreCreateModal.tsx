@@ -7,8 +7,6 @@ import type { City, StoreFormValues } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
 import { Modal } from "./Modal";
 
-const DEFAULT_COVER_IMAGE = "/seed/store-placeholder.jpg";
-
 export function StoreCreateModal({
   open,
   onClose,
@@ -47,9 +45,15 @@ export function StoreCreateModal({
     }
     setError(null);
     setSaving(true);
+    // Empty is the honest state when no real photo exists yet (no upload
+    // pipeline — WP5b) — StoreCoverImage.tsx renders a branded icon
+    // fallback for "", never a broken-image icon. Do not default this to
+    // a placeholder path; one that pointed at a file nobody ever added
+    // was exactly how every seed store's cover image 404'd (see
+    // lib/seed.ts's matching fix in this same round).
     const result = await createStoreAction({
       ...value,
-      coverImage: value.coverImage.trim() || DEFAULT_COVER_IMAGE,
+      coverImage: value.coverImage.trim(),
     });
     setSaving(false);
     if (result.ok) {

@@ -14,7 +14,8 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx db/seed.ts",
     "db:seed:clear": "tsx db/seed-clear.ts",
-    "db:import": "tsx db/import-csv.ts"
+    "db:import": "tsx db/import-csv.ts",
+    "db:clean-images": "tsx db/clean-broken-images.ts"
   },
   "engines": {
     "node": ">=20.9.0"

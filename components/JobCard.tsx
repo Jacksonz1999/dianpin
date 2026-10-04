@@ -55,7 +55,7 @@ export function JobCard({
         onClick={() => toggleSaved(job.id)}
         aria-label={t(saved ? "job.unsave" : "job.save")}
         aria-pressed={saved}
-        className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm"
+        className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full bg-black/60 text-white ring-1 ring-white/20 backdrop-blur-sm"
       >
         <Heart className="h-4 w-4" fill={saved ? "currentColor" : "none"} aria-hidden="true" />
       </button>
