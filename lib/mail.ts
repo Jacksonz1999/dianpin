@@ -56,15 +56,56 @@ export async function sendMail(input: SendMailInput): Promise<void> {
   // malformed SMTP_URL once leaked a password into Railway's logs this
   // same way, via an unguarded raw-error log elsewhere in this codebase).
   let errorMessage: string | null = null;
+  // Resend's ErrorResponse.name is a closed union (RESEND_ERROR_CODE_KEY,
+  // see node_modules/resend/dist/index.d.mts) — classifying on it is what
+  // lets the Railway logs actually say "key 无效" vs "域名未验证" instead
+  // of collapsing everything into one "Invalid URL"-style message (round
+  // 8: that single generic string was all production logs showed, with
+  // no way to tell which of several unrelated causes it was).
+  let errorCode: string | null = null;
   try {
     const { error } = await resend.emails.send({ from, ...input });
-    if (error) errorMessage = error.message;
+    if (error) {
+      errorMessage = error.message;
+      errorCode = error.name;
+    }
   } catch (err) {
     errorMessage = err instanceof Error ? err.message : "non-Error value thrown";
+    errorCode = "network_error";
   }
 
   if (errorMessage) {
-    console.error(`[mail] sendMail failed for identifier ending in @${domain}: ${errorMessage}`);
-    throw new Error(`Failed to send mail: ${errorMessage}`);
+    const category = classifyMailErrorCode(errorCode);
+    console.error(
+      `[mail] sendMail failed for identifier ending in @${domain} ` +
+        `(category=${category}, resendCode=${errorCode ?? "unknown"}): ${errorMessage}`
+    );
+    throw new Error(`Failed to send mail (${category}): ${errorMessage}`);
+  }
+}
+
+/**
+ * Maps Resend's error `name` to one of a handful of actionable buckets, so
+ * whoever reads the Railway logs can tell "key 配错" apart from "域名没在
+ * Resend 验证" apart from "纯网络问题" without having to go look up what
+ * each Resend error code means. Exported for lib/mail.ts's own tests/PR
+ * verification only — not used elsewhere.
+ */
+export function classifyMailErrorCode(code: string | null): string {
+  if (code === "network_error") return "network_error";
+  switch (code) {
+    case "missing_api_key":
+    case "invalid_api_key":
+    case "restricted_api_key":
+      return "invalid_key";
+    case "invalid_from_address":
+    case "invalid_access":
+      return "domain_not_verified";
+    case "rate_limit_exceeded":
+    case "monthly_quota_exceeded":
+    case "daily_quota_exceeded":
+      return "quota_or_rate_limit";
+    default:
+      return "api_error";
   }
 }

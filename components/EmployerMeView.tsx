@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { User } from "@/lib/types";
 import { LegalLinks } from "./LegalLinks";
 import { useLocale } from "./LocaleProvider";
@@ -20,6 +21,20 @@ export function EmployerMeView({ user }: { user: User | null }) {
           </p>
         )}
       </div>
+
+      {/* Symmetric to MeView.tsx's "我是店主" entry — an employer account
+          can't actually apply as a seeker (single role per account, see
+          AGENTS.md §6's note on this), but can still browse /job listings
+          signed out of the employer section. */}
+      <Link
+        href="/"
+        className="flex min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm"
+      >
+        <span className="font-medium">{t("employer.me.seekerExitTitle")}</span>
+        <span className="shrink-0 text-[var(--color-primary)]">
+          {t("nav.seekerExit")} →
+        </span>
+      </Link>
 
       <LogoutButton />
       <LegalLinks />

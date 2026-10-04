@@ -105,14 +105,35 @@ export async function requireSession(
   return session;
 }
 
-/** Like requireSession, but also enforces the session's role. */
+/**
+ * Like requireSession, but also enforces the session's role.
+ *
+ * Not-logged-in case: redirects to /login with both `next` (so the
+ * post-login redirect in app/auth/callback/route.ts lands back here) and
+ * `role` (so the login form's 求职者/雇主 toggle starts on the right
+ * side — see components/LoginForm.tsx's defaultRole prop) — a visitor
+ * who clicked "我是店主" shouldn't have to notice and flip a toggle too.
+ *
+ * Wrong-role case (e.g. a seeker-role account hitting /employer):
+ * redirects home with ?error=role_mismatch instead of silently landing
+ * on / with no explanation — see app/page.tsx's banner. This does NOT
+ * change anyone's role; see AGENTS.md §6's account-role note for why a
+ * real "add employer role to my account" flow is a separate, not-yet-
+ * built decision (WP-D's D4).
+ */
 export async function requireRole(
   role: UserRole,
   nextPath?: string
 ): Promise<SessionPayload> {
-  const session = await requireSession(nextPath);
+  const session = await getSession();
+  if (!session) {
+    const params = new URLSearchParams();
+    params.set("role", role);
+    if (nextPath) params.set("next", nextPath);
+    redirect(`/login?${params.toString()}`);
+  }
   if (session.role !== role) {
-    redirect("/");
+    redirect("/?error=role_mismatch");
   }
   return session;
 }

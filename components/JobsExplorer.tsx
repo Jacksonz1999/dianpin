@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { searchJobs } from "@/app/actions";
 import type { City, Job, JobType, Store } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
@@ -14,11 +15,13 @@ export function JobsExplorer({
   cities,
   jobTypes,
   stores,
+  roleMismatchError = false,
 }: {
   initialJobs: Job[];
   cities: City[];
   jobTypes: JobType[];
   stores: Store[];
+  roleMismatchError?: boolean;
 }) {
   const { locale, t } = useLocale();
 
@@ -111,6 +114,29 @@ export function JobsExplorer({
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4">
+      {roleMismatchError && (
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text-muted)]">
+          {t("home.error.role_mismatch")}
+        </div>
+      )}
+
+      {/* D2: lightweight dual-entry so a first-time visitor who is
+          actually a store owner doesn't have to discover /employer by
+          scrolling to /me — "我要找工作" is the current page (no-op,
+          shown as the active state), "我要招人" hands off to the
+          employer section via its own requireRole guard. */}
+      <div className="flex gap-2">
+        <span className="flex min-h-[44px] flex-1 items-center justify-center rounded-full bg-[var(--color-primary)] px-3 text-sm font-medium text-[var(--color-primary-text)]">
+          {t("home.dualEntry.seeker")}
+        </span>
+        <Link
+          href="/employer"
+          className="flex min-h-[44px] flex-1 items-center justify-center rounded-full border border-[var(--color-border)] px-3 text-sm text-[var(--color-text-muted)]"
+        >
+          {t("home.dualEntry.employer")}
+        </Link>
+      </div>
+
       <h1 className="text-lg font-semibold">{t("home.title")}</h1>
 
       <input

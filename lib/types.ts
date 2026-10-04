@@ -26,6 +26,8 @@ export type SalaryPeriod = "hour" | "day" | "month";
 
 export type ReportTargetType = "job" | "store";
 
+export type SeekerPostStatus = "draft" | "active" | "closed";
+
 /** Auth provider channels (WP4) — "email" ships in v1, "whatsapp" is a reserved slot. */
 export type AuthChannel = "email" | "whatsapp";
 
@@ -233,4 +235,64 @@ export interface JobAlertFormValues {
   salaryMin: number | null;
   mealsIncluded: boolean;
   residenceOk: boolean;
+}
+
+/**
+ * The reverse of Job (round 8 / WP-E) — a seeker's own "我要找 XX 工作"
+ * post, browsable by employers. See AGENTS.md §5 for why this is its own
+ * table rather than a polymorphic row shared with jobs. contact_phone/
+ * contact_wechat are only ever sent to the client on the detail page and
+ * only for an employer-role session — see lib/db.ts's getSeekerPostById
+ * and AGENTS.md §6's contact-reveal rule for seeker_posts.
+ */
+export interface SeekerPost {
+  id: string;
+  user_id: string;
+  title: string;
+  job_type: string;
+  city: string;
+  district: string;
+  experience_years: number | null;
+  available_from: string | null;
+  residence_status: ResidenceStatus | null;
+  expected_salary_min: number | null;
+  expected_salary_max: number | null;
+  salary_period: SalaryPeriod | null;
+  languages: string[];
+  live_in_ok: boolean;
+  bio: string;
+  contact_phone: string;
+  contact_wechat: string;
+  status: SeekerPostStatus;
+  views: number;
+  published_at: string | null;
+  expires_at: string | null;
+  is_seed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** List/card-safe projection of SeekerPost — never carries contact_phone/contact_wechat (AGENTS.md §6: never render contact info on the list page). */
+export type SeekerPostSummary = Omit<
+  SeekerPost,
+  "contact_phone" | "contact_wechat"
+>;
+
+/** Fields collected by the templated "发布求职信息" form. user_id/status are supplied separately by the caller. */
+export interface SeekerPostFormValues {
+  title: string;
+  jobType: string;
+  city: string;
+  district: string;
+  experienceYears: number | null;
+  availableFrom: string | null;
+  residenceStatus: ResidenceStatus | null;
+  expectedSalaryMin: number | null;
+  expectedSalaryMax: number | null;
+  salaryPeriod: SalaryPeriod | null;
+  languages: string[];
+  liveInOk: boolean;
+  bio: string;
+  contactPhone: string;
+  contactWechat: string;
 }

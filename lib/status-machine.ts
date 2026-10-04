@@ -1,6 +1,7 @@
 import type {
   ApplicationStatus,
   JobStatus,
+  SeekerPostStatus,
   StoreVerificationStatus,
 } from "./types";
 
@@ -88,4 +89,37 @@ export function canSubmitStoreForVerification(
   status: StoreVerificationStatus
 ): boolean {
   return status === "unverified" || status === "rejected";
+}
+
+/**
+ * seeker_posts.status (round 8 / WP-E) — mirrors jobs' draft/active/closed
+ * shape but intentionally has no paused/filled: a seeker post has no
+ * headcount to fill, just "visible" or "not".
+ */
+const SEEKER_POST_TRANSITIONS: Record<SeekerPostStatus, SeekerPostStatus[]> = {
+  draft: ["active"],
+  active: ["closed"],
+  closed: [],
+};
+
+export function nextSeekerPostStatuses(
+  from: SeekerPostStatus
+): SeekerPostStatus[] {
+  return SEEKER_POST_TRANSITIONS[from];
+}
+
+export function canTransitionSeekerPost(
+  from: SeekerPostStatus,
+  to: SeekerPostStatus
+): boolean {
+  return SEEKER_POST_TRANSITIONS[from].includes(to);
+}
+
+export function isTerminalSeekerPostStatus(status: SeekerPostStatus): boolean {
+  return SEEKER_POST_TRANSITIONS[status].length === 0;
+}
+
+/** Only posts in this status should appear in the employer-facing browse list. */
+export function isSeekerPostPubliclyVisible(status: SeekerPostStatus): boolean {
+  return status === "active";
 }
