@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { searchJobs } from "@/app/actions";
 import type { City, Job, JobType, Store } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
@@ -24,15 +25,29 @@ export function JobsExplorer({
   roleMismatchError?: boolean;
 }) {
   const { locale, t } = useLocale();
+  const router = useRouter();
+  // Read once on mount for the initial state values below — deliberately
+  // not re-read in an effect (that would fight the write-effect further
+  // down and risk a loop/hydration mismatch). The URL only drives state
+  // on first load / a real navigation (back button, shared link); after
+  // that, state drives the URL, one-way.
+  const searchParams = useSearchParams();
 
-  const [city, setCity] = useState<string>(ALL);
-  const [jobType, setJobType] = useState<string>(ALL);
-  const [mealsIncluded, setMealsIncluded] = useState(false);
-  const [residenceOk, setResidenceOk] = useState(false);
-  const [salaryMin, setSalaryMin] = useState<string>("");
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const [city, setCity] = useState<string>(searchParams.get("city") ?? ALL);
+  const [jobType, setJobType] = useState<string>(searchParams.get("jobType") ?? ALL);
+  const [mealsIncluded, setMealsIncluded] = useState(searchParams.get("meals") === "1");
+  const [residenceOk, setResidenceOk] = useState(searchParams.get("residenceOk") === "1");
+  const [salaryMin, setSalaryMin] = useState<string>(searchParams.get("salaryMin") ?? "");
+  const initialQuery = searchParams.get("q") ?? "";
+  const [searchInput, setSearchInput] = useState(initialQuery);
+  const [search, setSearch] = useState(initialQuery);
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
+  // Mobile-only (WP-H, round 9): below lg the filter card used to always
+  // render expanded, pushing the first job card to ~1258px — below the
+  // fold on a 390x844 viewport. Collapsed by default there; lg+ ignores
+  // this entirely (sticky sidebar, always expanded, see the aside's
+  // className below).
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     const handle = setTimeout(() => setSearch(searchInput), 300);
@@ -60,6 +75,25 @@ export function JobsExplorer({
     };
   }, [city, jobType, mealsIncluded, residenceOk, salaryMin, search]);
 
+  // J4 (round 9): filters are shareable/bookmarkable — "巴塞罗那的服务员
+  // 岗" should be a link, not just an in-session state. Fires on `search`
+  // (the debounced value), not `searchInput`, so typing doesn't spam
+  // history/URL updates beyond the same 300ms cadence the data fetch
+  // above already uses. router.replace (not push) + scroll:false keeps
+  // this from growing browser history or jumping the viewport on every
+  // filter tweak.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (city) params.set("city", city);
+    if (jobType) params.set("jobType", jobType);
+    if (mealsIncluded) params.set("meals", "1");
+    if (residenceOk) params.set("residenceOk", "1");
+    if (salaryMin) params.set("salaryMin", salaryMin);
+    if (search) params.set("q", search);
+    const qs = params.toString();
+    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
+  }, [city, jobType, mealsIncluded, residenceOk, salaryMin, search, router]);
+
   const storesById = useMemo(
     () => new Map(stores.map((s) => [s.id, s])),
     [stores]
@@ -85,13 +119,14 @@ export function JobsExplorer({
     [cities, city, cityIdsWithJobs]
   );
 
-  const hasActiveFilters =
-    city !== ALL ||
-    jobType !== ALL ||
-    mealsIncluded ||
-    residenceOk ||
-    salaryMin !== "" ||
-    search !== "";
+  const activeFilterCount =
+    (city !== ALL ? 1 : 0) +
+    (jobType !== ALL ? 1 : 0) +
+    (mealsIncluded ? 1 : 0) +
+    (residenceOk ? 1 : 0) +
+    (salaryMin !== "" ? 1 : 0) +
+    (search !== "" ? 1 : 0);
+  const hasActiveFilters = activeFilterCount > 0;
 
   // Scoped to the "筛选" sidebar box's own fields — city has its own
   // separate pill selector above it with its own "不限" option, so this
@@ -113,7 +148,7 @@ export function JobsExplorer({
   }
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-4">
+    <div className="flex flex-col gap-3 px-4 py-3">
       {roleMismatchError && (
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text-muted)]">
           {t("home.error.role_mismatch")}
@@ -124,8 +159,12 @@ export function JobsExplorer({
           actually a store owner doesn't have to discover /employer by
           scrolling to /me — "我要找工作" is the current page (no-op,
           shown as the active state), "我要招人" hands off to the
-          employer section via its own requireRole guard. */}
-      <div className="flex gap-2">
+          employer section via its own requireRole guard. lg:hidden
+          (WP-J1, round 9): Header.tsx already has a standing "我是店主"
+          entry at that breakpoint, so this would be the same CTA twice
+          on desktop — mobile keeps it since the header entry isn't
+          always visible there. */}
+      <div className="flex gap-2 lg:hidden">
         <span className="flex min-h-[44px] flex-1 items-center justify-center rounded-full bg-[var(--color-primary)] px-3 text-sm font-medium text-[var(--color-primary-text)]">
           {t("home.dualEntry.seeker")}
         </span>
@@ -137,7 +176,7 @@ export function JobsExplorer({
         </Link>
       </div>
 
-      <h1 className="text-lg font-semibold">{t("home.title")}</h1>
+      <h1 className="text-base font-semibold lg:text-lg">{t("home.title")}</h1>
 
       <input
         type="search"
@@ -177,8 +216,31 @@ export function JobsExplorer({
         ))}
       </div>
 
+      {/* Mobile-only toggle (WP-H, round 9): the <aside> below defaults to
+          collapsed here (see filtersOpen) so the first job card lands
+          inside the viewport instead of ~1258px down. lg+ never shows
+          this button — the sidebar there is always expanded, sticky, and
+          unaffected by filtersOpen (see the aside's className). */}
+      <button
+        type="button"
+        onClick={() => setFiltersOpen((v) => !v)}
+        aria-expanded={filtersOpen}
+        className="flex min-h-[44px] items-center justify-between rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-sm lg:hidden"
+      >
+        <span>
+          {t("home.filters.title")}
+          {activeFilterCount > 0 ? ` · ${activeFilterCount}` : ""}
+        </span>
+        <span className="text-[var(--color-text-muted)]">{filtersOpen ? "▲" : "▼"}</span>
+      </button>
+
       <div className="lg:grid lg:grid-cols-[256px_1fr] lg:items-start lg:gap-6">
-        <aside className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 lg:sticky lg:top-20 lg:self-start">
+        <aside
+          className={
+            (filtersOpen ? "flex" : "hidden") +
+            " flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 lg:flex lg:sticky lg:top-20 lg:self-start"
+          }
+        >
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">{t("home.filters.title")}</span>
             <button
@@ -241,13 +303,21 @@ export function JobsExplorer({
             />
           </label>
 
-          <JobAlertSubscribeForm
-            city={city}
-            jobType={jobType}
-            mealsIncluded={mealsIncluded}
-            residenceOk={residenceOk}
-            salaryMin={salaryMin}
-          />
+          {/* Desktop-only (WP-H2, round 9): on mobile this duplicated the
+              prominent empty-state version below and was part of what
+              pushed the first job card off the first screen. The sidebar
+              itself is already lg-only in practice (filtersOpen defaults
+              closed below lg), but this stays explicit in case that ever
+              changes. */}
+          <div className="hidden lg:block">
+            <JobAlertSubscribeForm
+              city={city}
+              jobType={jobType}
+              mealsIncluded={mealsIncluded}
+              residenceOk={residenceOk}
+              salaryMin={salaryMin}
+            />
+          </div>
         </aside>
 
         <div className="mt-4 flex flex-col gap-3 lg:mt-0">

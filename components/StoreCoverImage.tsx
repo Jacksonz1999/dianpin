@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Store as StoreIcon } from "lucide-react";
 
 /**
@@ -24,6 +24,20 @@ export function StoreCoverImage({
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // onError alone misses a request that already 404'd before React
+  // hydrated — the browser fires that event against the server-rendered
+  // <img> tag, before any listener is attached, so it's lost. This catches
+  // that case on mount: a real photo is still loading or already decoded
+  // (img.complete && naturalWidth > 0) by the time this runs, so it never
+  // false-positives on a slow-but-working image.
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth === 0) {
+      setFailed(true);
+    }
+  }, []);
 
   if (!src || failed) {
     const initial = name.trim().charAt(0) || "?";
@@ -44,6 +58,14 @@ export function StoreCoverImage({
   // cover_image can be any URL (no upload pipeline yet, see WP5b);
   // next/image needs a fixed remotePatterns allowlist this project can't
   // predict yet.
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={alt} className={className} onError={() => setFailed(true)} />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      ref={imgRef}
+      src={src}
+      alt={alt}
+      className={className}
+      onError={() => setFailed(true)}
+    />
+  );
 }

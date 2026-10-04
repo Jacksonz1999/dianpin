@@ -33,3 +33,45 @@ button {
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* WP-J2 (round 9): base interaction states this file never had — a
+   keyboard user had no visible focus anywhere on the site. */
+
+/* 焦点可见 —— 键盘用户目前完全看不到焦点位置 */
+:where(a, button, [role="button"], input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* 消除移动端 300ms 点击延迟与双击缩放误触 */
+:where(button, a, [role="button"], summary) {
+  touch-action: manipulation;
+}
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 尊重系统的减少动效设置 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* WP-J3 (round 9): visually hidden until focused, then floats into view
+   — the companion components/SkipLink.tsx sets this class. */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -3rem;
+  z-index: 50;
+  transition: top 0.15s ease-in-out;
+}
+.skip-link:focus {
+  top: 1rem;
+}

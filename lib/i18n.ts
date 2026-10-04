@@ -343,6 +343,12 @@ const zh: Dict = {
   "legal.footer.terms": "服务条款",
   "legal.footer.legal": "法律声明",
 
+  "notFound.title": "页面不存在",
+  "notFound.description": "你访问的链接可能已失效，或者这个页面从未存在过。",
+  "notFound.backHome": "回到岗位列表",
+
+  "common.skipToContent": "跳到主要内容",
+
   "legal.privacy.title": "隐私政策",
   "legal.privacy.section.controller.heading": "数据控制者",
   "legal.privacy.section.controller.body":
@@ -753,6 +759,12 @@ const es: Dict = {
   "legal.footer.privacy": "Política de privacidad",
   "legal.footer.terms": "Términos de servicio",
   "legal.footer.legal": "Aviso legal",
+
+  "notFound.title": "Página no encontrada",
+  "notFound.description": "El enlace al que accediste puede haber caducado, o esta página nunca existió.",
+  "notFound.backHome": "Volver a la lista de empleos",
+
+  "common.skipToContent": "Saltar al contenido principal",
 
   "legal.privacy.title": "Política de privacidad",
   "legal.privacy.section.controller.heading": "Responsable del tratamiento",
