@@ -51,6 +51,9 @@ dianpin/
 │  ├─ employer/job/[id]/page.tsx
 │  ├─ employer/seekers/page.tsx       # 第八轮新增：雇主浏览求职信息列表（城市/工种筛选）
 │  ├─ employer/seekers/[id]/page.tsx  # 第八轮新增：求职信息详情（联系方式见 §6 展示规则）
+│  ├─ role-mismatch/page.tsx     # 第十轮新增：账号角色不符的说明页，见 §6
+│  ├─ admin/page.tsx             # 第十轮新增：重定向到 /admin/stores
+│  ├─ admin/stores/page.tsx      # 第十轮新增：门店认证审批（唯一的管理员后台页面，见 §6）
 │  └─ api/…
 ├─ components/          # 轻组件，禁止引入重型 UI 库
 ├─ lib/                 # db / auth / i18n / 状态机
@@ -82,7 +85,7 @@ dianpin/
 |---|---|
 | `users` | id, role(seeker/employer), phone, wechat, name, locale, created_at |
 | `seeker_profiles` | user_id, job_types[], experience_years, available_from, residence_status, expected_salary_min/max, preferred_cities[], live_in_ok, languages[], bio, avatar |
-| `stores` | id, owner_user_id, name_zh/es, city, district, address, category, cover_image, photos[], verification_status, verified_at, rating_avg, rating_count |
+| `stores` | id, owner_user_id, name_zh/es, city, district, address, category, cover_image, photos[], verification_status, verified_at, rating_avg, rating_count, created_at（第十轮新增，管理员后台排序/展示用，之前这张表没有创建时间字段） |
 | `jobs` | id, store_id, title_zh/es, job_type, city, district, salary_min/max, salary_period, headcount, schedule, live_in, meals_included, language_required, residence_required, description_zh/es, status, published_at, expires_at, views |
 | `applications` | id, job_id, seeker_user_id, status, message, contact_revealed, created_at, updated_at — **UNIQUE(job_id, seeker_user_id)** |
 | `reviews` | id, store_id, seeker_user_id, rating(1-5), comment, created_at |
@@ -116,7 +119,9 @@ dianpin/
 - 雇主**标记「已联系」后**才展示候选人完整联系方式 —— 防骚扰，不要提前暴露。`seeker_posts` 的联系方式门槛与此不同：求职帖没有"投递"动作可供状态流转，改为"以雇主身份登录后才在详情页展示联系方式"——列表页在任何登录状态下都**不渲染**手机号/微信号，这是底线，不能退让
 - 岗位发布走模板化表单，禁止自由文本一大段；`seeker_posts` 发布表单同样模板化，标题/简介复用 `lib/validation.ts` 的 `assertNotPlaceholder()` 占位内容校验
 - 排序默认按 `views` 或 `published_at` 倒序，v1 不做推荐算法（`seeker_posts` 列表同样不做推荐排序）
-- 入口可见性（第八轮修复）：此前 `/employer` 虽然存在但没有任何面向求职者视角访客的入口——`lib/nav-tabs.ts` 的 `getNavTabs()` 只根据当前路径判断显示哪一侧导航，从未暴露跳转点。现在 `Header`（桌面）与 `/me`（移动端）各自提供一个"我是店主 · 招人"入口；对称地，雇主侧的 `Header`/`/employer/me` 也提供"切换到求职者视角"出口。首页顶部另有"我要找工作 / 我要招人"双入口（不阻挡岗位列表的轻量条）。未登录点击走各页自身的 `requireRole` 守卫，重定向到 `/login?role=...&next=...`，登录后回落到目标页，不单独维护一套跳转逻辑
+- 入口可见性（第八轮修复）：此前 `/employer` 虽然存在但没有任何面向求职者视角访客的入口——`lib/nav-tabs.ts` 的 `getNavTabs()` 只根据当前路径判断显示哪一侧导航，从未暴露跳转点。现在 `Header`（桌面）与 `/me`（移动端）各自提供一个"我是店主 · 招人"入口；对称地，雇主侧的 `Header`/`/employer/me` 也提供一个"浏览求职页面"的出口（**不是**身份切换——下一条）。首页顶部另有"我要找工作 / 我要招人"双入口（不阻挡岗位列表的轻量条）。未登录点击走各页自身的 `requireRole` 守卫，重定向到 `/login?role=...&next=...`，登录后回落到目标页，不单独维护一套跳转逻辑
+- **账号角色一旦创建就固定，不支持切换**（第十轮重申并落地）：`app/auth/callback/route.ts` 里"已存在的 identifier 用它原本的角色登录，`intended_role` 只在创建新账号时生效"这条逻辑是唯一事实——没有、也不会有"同一账号在求职者/雇主间切换"的功能。由此推出的 UX 原则：**不要给用户看他用不了的入口**，与其把按钮置灰，不如不显示；与其假装能切换，不如说清楚边界。实现上：导航 Tab 集合（`BottomNav`/`Header` 消费 `getNavTabs()`）按账号的**实际角色**渲染，不是按当前 URL 路径——否则会出现"雇主账号停在 `/` 时看到求职者 Tab，点哪个都被 `requireRole` 弹回"的死循环（第十轮修复的那个 bug）。角色从 `app/layout.tsx`（server component）读一次 `getSession()`，经 `components/SessionProvider.tsx`（`useSessionRole()`）下发给 client 组件——会话 Cookie 是 `httpOnly`，client 侧没有别的办法拿到角色。`requireRole` 角色不符时跳转到 `/role-mismatch?needed=...&have=...`，明确告知"当前账号是什么身份、这个功能需要什么身份、无法切换、请用另一个邮箱单独注册"，不是含糊的首页 banner
+- **管理员后台**（第十轮新增，`/admin/stores`）：唯一职责是门店认证审批（`pending` → `verified`/`rejected`），不做用户管理、不做仪表盘、不做审计日志。没有 `admin` 角色这个概念——访问控制是服务端比对当前登录用户的邮箱是否在 `ADMIN_EMAILS`（逗号分隔，见 §7）里，不在名单（含未配置该变量的情况）一律 `notFound()`，不是 403、不是重定向——不暴露这条路径的存在。所有写操作（通过/拒绝）走 Server Action 并在服务端重新校验管理员身份，不能只靠前端藏按钮。`app/robots.ts` 对 `/admin` 下 `Disallow`，且不进 `app/sitemap.ts`。
 
 ## 7. 部署（Railway）
 
@@ -141,6 +146,7 @@ RESEND_API_KEY=           # 登录邮件 + 岗位订阅通知共用，见 README
 EMAIL_FROM=               # info@dianpin.eu，域名须在 Resend 后台验证过
 WHATSAPP_TOKEN= / TWILIO_ACCOUNT_SID= / TWILIO_AUTH_TOKEN=
 R2_ACCOUNT_ID= / R2_ACCESS_KEY= / R2_SECRET_KEY= / R2_BUCKET=
+ADMIN_EMAILS=             # 逗号分隔，不配则 /admin 对所有人 404，见 §6 管理员后台
 ```
 
 **域名**：`.es` 对西班牙本地搜索与信任度最好，约 $15–22/年（续费约 $22/年）；你在西班牙有居留，注册无障碍。备选 `.eu`（需欧盟居留，你符合）或 `.com`。DNS 建议托管到 Cloudflare（免费 CDN + 免费 SSL + 缓存图片省出网流量）。

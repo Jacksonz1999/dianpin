@@ -43,6 +43,13 @@
       "when": 1791117586361,
       "tag": "0005_classy_wolfpack",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791122388291,
+      "tag": "0006_fearless_pestilence",
+      "breakpoints": true
     }
   ]
 }

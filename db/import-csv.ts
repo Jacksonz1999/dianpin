@@ -185,12 +185,26 @@ async function main() {
       warnings.push(`第 ${rowNum} 行：居留要求「${residenceRaw}」无法识别，按「居留不限」处理`);
     }
 
+    // null = "CSV didn't say" (blank cell) or "said something this script
+    // doesn't recognize" — both cases leave an existing store's status
+    // alone and a new store still defaults to unverified below. Collapsing
+    // "not specified" into a concrete value here (the old behavior) is
+    // exactly what made a reused store's CSV-specified status silently
+    // vanish — see WP-M's bug report.
     const verificationRaw = row["认证状态"]?.trim();
-    const verificationStatus = verificationRaw
-      ? VERIFICATION_MAP[verificationRaw] ?? "unverified"
-      : "unverified";
-    if (verificationRaw && !VERIFICATION_MAP[verificationRaw]) {
-      warnings.push(`第 ${rowNum} 行：认证状态「${verificationRaw}」无法识别，按「未认证」处理`);
+    let verificationStatus:
+      | "unverified"
+      | "pending"
+      | "verified"
+      | "rejected"
+      | null = null;
+    if (verificationRaw) {
+      verificationStatus = VERIFICATION_MAP[verificationRaw] ?? null;
+      if (!verificationStatus) {
+        warnings.push(
+          `第 ${rowNum} 行：认证状态「${verificationRaw}」无法识别，忽略该列（不会覆盖门店已有认证状态）`
+        );
+      }
     }
 
     const headcount = headcountRaw ? Number(headcountRaw) : 1;
@@ -207,16 +221,11 @@ async function main() {
       }
     }
 
-    if (dryRun) {
-      console.log(
-        `[dry-run] 第 ${rowNum} 行：将写入门店「${storeName}」(${cityName}) + 岗位「${jobTypeName}」`
-      );
-      continue;
-    }
-
-    // Owner: find-or-create by phone.
+    // Reads happen regardless of --dry-run (harmless, needed to report
+    // what a real run would do); every write below is individually
+    // guarded by `!dryRun`.
     let [owner] = await db.select().from(users).where(eq(users.phone, ownerPhone));
-    if (!owner) {
+    if (!owner && !dryRun) {
       [owner] = await db
         .insert(users)
         .values({
@@ -234,7 +243,15 @@ async function main() {
       .select()
       .from(stores)
       .where(and(eq(stores.name_zh, storeName), eq(stores.city, cityId)));
+
     if (!store) {
+      const effectiveStatus = verificationStatus ?? "unverified";
+      if (dryRun) {
+        console.log(
+          `[dry-run] 第 ${rowNum} 行：将新建门店「${storeName}」(${cityName})，认证状态=${effectiveStatus}；新建岗位「${jobTypeName}」`
+        );
+        continue;
+      }
       warnings.push(`第 ${rowNum} 行：CSV 没有西语门店名列，name_es 暂时沿用中文名`);
       [store] = await db
         .insert(stores)
@@ -248,12 +265,41 @@ async function main() {
           address,
           category,
           cover_image: "",
-          verification_status: verificationStatus,
+          verification_status: effectiveStatus,
         })
         .returning();
       storesCreated++;
     } else {
       storesReused++;
+
+      // The one behavior WP-M (round 10) exists to fix: a reused store's
+      // CSV-specified verification status used to be silently discarded.
+      // Only acts when the CSV named a *recognized* status that actually
+      // differs from what's already there — a blank cell or unrecognized
+      // value leaves the existing status untouched, logged or not.
+      if (verificationStatus && verificationStatus !== store.verification_status) {
+        console.log(
+          `第 ${rowNum} 行：门店「${storeName}」认证状态 ${store.verification_status} → ${verificationStatus}` +
+            (dryRun ? "（--dry-run，不会写入）" : "")
+        );
+        if (!dryRun) {
+          [store] = await db
+            .update(stores)
+            .set({
+              verification_status: verificationStatus,
+              verified_at: verificationStatus === "verified" ? new Date().toISOString() : store.verified_at,
+            })
+            .where(eq(stores.id, store.id))
+            .returning();
+        }
+      }
+
+      if (dryRun) {
+        console.log(
+          `[dry-run] 第 ${rowNum} 行：复用已有门店「${storeName}」；将新建岗位「${jobTypeName}」`
+        );
+        continue;
+      }
     }
 
     warnings.push(`第 ${rowNum} 行：CSV 没有西语岗位描述列，description_es 暂时沿用中文描述`);

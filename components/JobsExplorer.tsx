@@ -16,13 +16,11 @@ export function JobsExplorer({
   cities,
   jobTypes,
   stores,
-  roleMismatchError = false,
 }: {
   initialJobs: Job[];
   cities: City[];
   jobTypes: JobType[];
   stores: Store[];
-  roleMismatchError?: boolean;
 }) {
   const { locale, t } = useLocale();
   const router = useRouter();
@@ -149,12 +147,6 @@ export function JobsExplorer({
 
   return (
     <div className="flex flex-col gap-3 px-4 py-3">
-      {roleMismatchError && (
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm text-[var(--color-text-muted)]">
-          {t("home.error.role_mismatch")}
-        </div>
-      )}
-
       {/* D2: lightweight dual-entry so a first-time visitor who is
           actually a store owner doesn't have to discover /employer by
           scrolling to /me — "我要找工作" is the current page (no-op,

@@ -115,11 +115,14 @@ export async function requireSession(
  * who clicked "我是店主" shouldn't have to notice and flip a toggle too.
  *
  * Wrong-role case (e.g. a seeker-role account hitting /employer):
- * redirects home with ?error=role_mismatch instead of silently landing
- * on / with no explanation — see app/page.tsx's banner. This does NOT
- * change anyone's role; see AGENTS.md §6's account-role note for why a
- * real "add employer role to my account" flow is a separate, not-yet-
- * built decision (WP-D's D4).
+ * redirects to /role-mismatch (not back to / with a banner — WP-K, round
+ * 10) with `needed`/`have` so that page can say plainly which account
+ * this is and that the other role needs a separate account. This does
+ * NOT change anyone's role and never will — one account, one role, is a
+ * settled product decision (see AGENTS.md §6 and components/
+ * EmployerMeView.tsx's note on it); there is no "add employer role to my
+ * account" flow to build here, only an honest explanation of the
+ * boundary.
  */
 export async function requireRole(
   role: UserRole,
@@ -133,7 +136,7 @@ export async function requireRole(
     redirect(`/login?${params.toString()}`);
   }
   if (session.role !== role) {
-    redirect("/?error=role_mismatch");
+    redirect(`/role-mismatch?needed=${role}&have=${session.role}`);
   }
   return session;
 }

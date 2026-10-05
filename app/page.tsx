@@ -6,12 +6,7 @@ import { JobsExplorer } from "@/components/JobsExplorer";
 // every request instead of freezing a build-time snapshot.
 export const dynamic = "force-dynamic";
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const params = await searchParams;
+export default async function HomePage() {
   const [cities, jobTypes, jobs, stores] = await Promise.all([
     getCities(),
     getJobTypes(),
@@ -31,11 +26,6 @@ export default async function HomePage({
         cities={cities}
         jobTypes={jobTypes}
         stores={stores}
-        // Set by lib/auth/session.ts's requireRole when a logged-in
-        // seeker-role account hits an employer-only page — explains the
-        // bounce instead of silently landing here (see Header.tsx's new
-        // employer entry, which is what makes this reachable at all now).
-        roleMismatchError={params.error === "role_mismatch"}
       />
     </Suspense>
   );
