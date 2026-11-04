@@ -4,6 +4,12 @@ buildCommand = "npm run build"
 
 [deploy]
 startCommand = "npm start"
+# NOTE: drizzle-kit and dotenv MUST stay in `dependencies` (not
+# devDependencies): Railway prunes dev deps in the runtime image
+# (`npm warn config production` / --omit=dev), and a missing drizzle-kit
+# makes this step fail silently → migrations never land → 42703 at runtime.
+# scripts/ensure-schema.mjs (invoked by npm start) is the additive-DDL
+# safety net for when preDeploy is skipped anyway.
 preDeployCommand = "npm run db:migrate"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 100

@@ -149,7 +149,27 @@ npm run db:audit-cleanup                # 实际修复
 
 脚本是幂等的，做四件事：清空 `/seed/*.jpg` 死链引用、删除 `Testing test 1` / `百元店1` 一类测试门店（连带其岗位/投递/评价/举报）、`trim` 门店与岗位的 `district`、把 `expires_at < now()` 的 `active` 岗位置为 `closed`。
 
-另外本轮新增了 `drizzle/0007_job_updated_at.sql`（`jobs.updated_at`），Railway 的 `preDeployCommand` 会自动执行 `npm run db:migrate`，本地开发需手动跑一次。
+另外本轮新增了 `drizzle/0007_job_updated_at.sql`（`jobs.updated_at`，sitemap 的 `<lastmod>`）。**部署注意**：`drizzle-kit`、`dotenv`、`tsx` 必须留在 `dependencies`，因为 Railway 运行时以 `--omit=dev` 安装；把它们放回 `devDependencies` 会让 `preDeployCommand` 静默失败、迁移不落地。容器启动时 `npm start` 还会跑一次 `scripts/ensure-schema.mjs`（幂等、只做 `ADD COLUMN IF NOT EXISTS`、失败不阻塞启动）作为兜底；应用层查询也不依赖该列，缺列时 sitemap 回退到 `published_at`。详见下方「线上事故记录」。
+
+## 线上事故记录 · 2026-11-04（迁移未落地导致全站 500）
+
+**现象**：部署后首页/所有岗位页报 `42703 column "updated_at" does not exist`，站点不可用。
+
+**根因**：`railway.toml` 的 `preDeployCommand = "npm run db:migrate"` 依赖 `drizzle-kit` 与 `dotenv`，而这两个包当时在 `devDependencies`。Railway 运行时日志里的 `npm warn config production` 说明生产镜像按 `--omit=dev` 裁剪了 dev 依赖，迁移步骤没跑成功，`0007` 未执行；代码里的 drizzle schema 却已经声明了 `updated_at`，于是**每一条** `select ... from jobs` 都引用了不存在的列。
+
+**立即止血**（不用等重新部署，Railway → Postgres → Query 执行）：
+
+```sql
+ALTER TABLE "jobs" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now();
+```
+
+**已做的三重修复**：
+
+1. `drizzle-kit` / `dotenv` / `tsx` 移入 `dependencies`（`tsx` 同时是 Railway Shell 里 `npm run db:audit-cleanup` 的前提）。
+2. `0007` 改成 `ADD COLUMN IF NOT EXISTS`，手工补列后再跑迁移不会撞 `42701 duplicate_column`。
+3. `jobs.updated_at` 从 drizzle schema 中移除，改由 `lib/db.ts` 的 `getJobUpdatedAtMap()` / `touchJobUpdatedAt()` 用带 42703 保护的原生 SQL 读写；**应用层完全不依赖该列**。启动脚本 `scripts/ensure-schema.mjs` 会按需补列，让真实 `<lastmod>` 生效。
+
+> 维护提示：`0007_snapshot.json` 中 `public.jobs` 也不含 `updated_at`，与 `db/schema.ts` 保持一致，后续 `npm run db:generate` 不会生成误删该列的迁移。若以后要把它纳入 drizzle 模型，需要同时改 schema、snapshot 和 `ensure-schema.mjs`。
 
 ## 演示数据 vs 真实数据
 

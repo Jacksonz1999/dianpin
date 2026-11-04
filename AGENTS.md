@@ -86,7 +86,7 @@ dianpin/
 | `users` | id, role(seeker/employer), phone, wechat, name, locale, created_at |
 | `seeker_profiles` | user_id, job_types[], experience_years, available_from, residence_status, expected_salary_min/max, preferred_cities[], live_in_ok, languages[], bio, avatar |
 | `stores` | id, owner_user_id, name_zh/es, city, district, address, category, cover_image, photos[], verification_status, verified_at, rating_avg, rating_count, created_at（第十轮新增，管理员后台排序/展示用，之前这张表没有创建时间字段） |
-| `jobs` | id, store_id, title_zh/es, job_type, city, district, salary_min/max, salary_period, headcount, schedule, live_in, meals_included, language_required, residence_required, description_zh/es, status, published_at, expires_at, views, **updated_at**（第十一轮新增：sitemap 的 `<lastmod>` 真实来源）, is_seed |
+| `jobs` | id, store_id, title_zh/es, job_type, city, district, salary_min/max, salary_period, headcount, schedule, live_in, meals_included, language_required, residence_required, description_zh/es, status, published_at, expires_at, views, is_seed；另有 `updated_at`（0007，仅 sitemap `<lastmod>` 用，**故意不写进 drizzle schema**，见 2026-11-04 事故记录） |
 | `applications` | id, job_id, seeker_user_id, status, message, contact_revealed, created_at, updated_at — **UNIQUE(job_id, seeker_user_id)** |
 | `reviews` | id, store_id, seeker_user_id, rating(1-5), comment, created_at |
 | `reports` | id, target_type(job/store), target_id, reporter_user_id, reason, status |
@@ -159,6 +159,8 @@ LEGAL_ADDRESS=            # 注册地址
 LEGAL_CONTACT_EMAIL=      # 数据权利行使邮箱；不配时回退到 EMAIL_FROM
 LEGAL_JURISDICTION=       # 管辖法院所在地
 ```
+
+**迁移与依赖（2026-11-04 事故）**：`drizzle-kit` / `dotenv` / `tsx` 必须留在 `dependencies`——Railway 运行时按 `--omit=dev` 裁剪 dev 依赖，`preDeployCommand = "npm run db:migrate"` 曾因此在生产静默失败，导致 `0007` 未落地、所有 `select ... from jobs` 报 `42703`、全站 500。**新增必须建表/加列的迁移时，应用层查询不得硬依赖该列**（用带 42703 保护的原生 SQL 或让 `scripts/ensure-schema.mjs` 幂等补列），否则漏跑一次迁移就等于全站宕机。
 
 **合规主体信息只能由运营方/律师提供，AI 不得代填**（审计 P0-2）。技术侧把 `/privacy` `/terms` `/legal` 的占位符做成 `LEGAL_*` 环境变量注入（`lib/legal.ts`），并已删掉页面顶部「⚠️ 合规草稿」警告条；未配置时正文保留明确的 `[方括号]` 占位符。
 

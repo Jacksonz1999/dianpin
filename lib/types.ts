@@ -154,12 +154,9 @@ export interface Job {
   published_at: string;
   expires_at: string | null;
   views: number;
-  /**
-   * Set on every job update; drives a truthful sitemap <lastmod> (audit
-   * P1-6). Optional on the type only so the seed fixtures (lib/seed.ts)
-   * don't have to repeat the column — Postgres always supplies it.
-   */
-  updated_at?: string;
+  // `jobs.updated_at` (migration 0007) is NOT part of the public Job shape:
+  // sitemap reads it through getJobUpdatedAtMap() instead of every SELECT.
+  // See db/schema.ts for why a missing preDeploy migration must not 500.
   is_seed: boolean;
 }
 

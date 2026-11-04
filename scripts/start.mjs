@@ -8,4 +8,16 @@
 // "Application failed to respond" (confirmed in production: server.js
 // logged `http://<container-id>:8080` instead of `http://0.0.0.0:8080`).
 process.env.HOSTNAME = "0.0.0.0";
+
+// Belt-and-suspenders for additive migrations when preDeploy was skipped.
+// Never blocks startup: ensure-schema.mjs handles its own errors.
+try {
+  await import("./ensure-schema.mjs");
+} catch (err) {
+  console.warn(
+    "[ensure-schema] could not load (server will still start):",
+    err?.message ?? err
+  );
+}
+
 await import("../.next/standalone/server.js");

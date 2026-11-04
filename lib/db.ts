@@ -125,6 +125,47 @@ const monthlySalaryMax = sql<number>`
   end
 `;
 
+/** Postgres 42703 = undefined_column. Drizzle may wrap it under `cause`. */
+function isUndefinedColumn(err: unknown): boolean {
+  const code =
+    (err as { code?: string } | null)?.code ??
+    (err as { cause?: { code?: string } } | null)?.cause?.code;
+  return code === "42703";
+}
+
+/**
+ * Truthful sitemap <lastmod> (audit P1-6) from migration 0007's
+ * `jobs.updated_at`. The column is intentionally absent from the drizzle
+ * schema (see db/schema.ts): reading it through a guarded optional query
+ * means a database where preDeploy migrations were skipped still serves
+ * every page, just with published_at as the fallback lastmod.
+ */
+export async function getJobUpdatedAtMap(): Promise<Record<string, string>> {
+  try {
+    const result = await db.execute<{ id: string; updated_at: string }>(
+      sql`SELECT id, updated_at FROM jobs`
+    );
+    return Object.fromEntries(
+      result.rows
+        .filter((row) => !!row.updated_at)
+        .map((row) => [row.id, row.updated_at])
+    );
+  } catch (err) {
+    if (isUndefinedColumn(err)) return {};
+    throw err;
+  }
+}
+
+/** Best-effort: keep updated_at fresh on status changes when 0007 is present. */
+async function touchJobUpdatedAt(jobId: string): Promise<void> {
+  try {
+    await db.execute(sql`UPDATE jobs SET updated_at = now() WHERE id = ${jobId}`);
+  } catch (err) {
+    if (isUndefinedColumn(err)) return;
+    throw err;
+  }
+}
+
 export async function getJobs(filters: JobFilters = {}): Promise<Job[]> {
   const status = filters.status ?? "active";
 
@@ -603,9 +644,10 @@ export async function updateJobStatus(
 
   const [row] = await db
     .update(jobs)
-    .set({ status: nextStatus, updated_at: new Date().toISOString() })
+    .set({ status: nextStatus })
     .where(eq(jobs.id, jobId))
     .returning();
+  await touchJobUpdatedAt(jobId);
   return row;
 }
 

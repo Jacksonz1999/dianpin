@@ -239,12 +239,13 @@ export const jobs = pgTable(
       .defaultNow(),
     expires_at: timestamp("expires_at", { withTimezone: true, mode: "string" }),
     views: integer("views").notNull().default(0),
-    // Truthful sitemap <lastmod> (audit P1-6): every status/edit writes this.
-    // defaultNow() also backfills existing rows on migration instead of
-    // leaving them NULL, so the column can stay NOT NULL.
-    updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" })
-      .notNull()
-      .defaultNow(),
+    // NOTE: `jobs.updated_at` (migration 0007, sitemap <lastmod>) is
+    // deliberately NOT declared here. Declaring a column in the drizzle
+    // schema makes EVERY `select().from(jobs)` reference it, so a skipped
+    // preDeploy migration takes the whole site down with 42703 (this
+    // actually happened on 2026-11-04). It is instead read/written through
+    // guarded optional raw SQL in lib/db.ts — the app works with or without
+    // the column, and gains truthful lastmod once 0007 has run.
     // See stores.is_seed — same demo/real split, set by db/seed.ts only.
     is_seed: boolean("is_seed").notNull().default(false),
   },

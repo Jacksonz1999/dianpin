@@ -650,13 +650,6 @@
           "notNull": true,
           "default": 0
         },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
         "is_seed": {
           "name": "is_seed",
           "type": "boolean",

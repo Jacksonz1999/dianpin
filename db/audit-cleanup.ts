@@ -103,9 +103,12 @@ async function main() {
     await tx.execute(
       sql`UPDATE jobs SET district = btrim(district) WHERE district <> btrim(district)`
     );
+    // Closed jobs leave the sitemap entirely, so lastmod doesn't matter here.
+    // Don't reference updated_at: this script must also work on a database
+    // where migration 0007 hasn't been applied yet.
     await tx.execute(sql`
       UPDATE jobs
-      SET status = 'closed', updated_at = now()
+      SET status = 'closed'
       WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= now()
     `);
   });

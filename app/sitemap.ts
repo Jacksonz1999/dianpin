@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getCities, getJobs, getStores } from "@/lib/db";
+import { getCities, getJobUpdatedAtMap, getJobs, getStores } from "@/lib/db";
 import { absUrl, getSiteUrl } from "@/lib/site-url";
 import { localePath } from "@/lib/locale-routing";
 import { locales, type Locale } from "@/lib/i18n";
@@ -38,11 +38,14 @@ function languageAlternates(path: string) {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
-  const [activeJobs, allStores, cities] = await Promise.all([
+  const [activeJobs, allStores, cities, updatedAtById] = await Promise.all([
     // getJobs({status:"active"}) already excludes expired rows (audit P0-3).
     getJobs({ status: "active" }),
     getStores(),
     getCities(),
+    // Guarded: returns {} when migration 0007 hasn't been applied yet, so a
+    // skipped preDeploy can never 500 the sitemap (or the pages behind it).
+    getJobUpdatedAtMap(),
   ]);
   const stores = allStores.filter((store) => !looksLikeTestStore(store));
   const cityIdsWithJobs = new Set(activeJobs.map((job) => job.city));
@@ -89,7 +92,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const job of activeJobs) {
     const path = `/job/${job.id}`;
     // Audit P1-6: lastmod used to be the hardcoded seed published_at.
-    const lastModified = job.updated_at ?? job.published_at;
+    // Falls back to published_at only on databases still missing 0007.
+    const lastModified = updatedAtById[job.id] ?? job.published_at;
     for (const locale of locales as Locale[]) {
       entries.push({
         url: absUrl(localePath(path, locale)),
