@@ -1,14 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getNavTabs } from "@/lib/nav-tabs";
+import { stripLocalePrefix } from "@/lib/locale-routing";
 import { useLocale } from "./LocaleProvider";
+import { LocaleLink } from "./LocaleLink";
 import { useSessionRole } from "./SessionProvider";
 
 export function Header() {
   const { locale, setLocale, t } = useLocale();
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  // proxy.ts rewrites /es/… to the same pages; strip the prefix so active
+  // highlighting keeps working regardless of which path the router reports.
+  const pathname = stripLocalePrefix(rawPathname ?? "/");
   // WP-K (round 10): same fix as BottomNav.tsx — the Tab set (and every
   // employer-only extra below) must follow the account's actual role, not
   // whichever path happens to be current. pathname is still used for
@@ -22,7 +26,7 @@ export function Header() {
       {/* Matches the outer wrapper's breakpoints in app/layout.tsx so this
           bar's content lines up with the page content below it. */}
       <div className="mx-auto flex max-w-[560px] items-center justify-between px-4 py-3 md:max-w-3xl lg:max-w-6xl lg:px-6">
-        <Link
+        <LocaleLink
           href={isEmployer ? "/employer" : "/"}
           className="flex items-center gap-2.5"
         >
@@ -53,7 +57,7 @@ export function Header() {
           >
             DIANPIN
           </span>
-        </Link>
+        </LocaleLink>
 
         {/* Below md, BottomNav (components/BottomNav.tsx) is the nav surface. */}
         <nav className="hidden items-center gap-1 md:flex">
@@ -61,7 +65,7 @@ export function Header() {
             const active =
               tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
             return (
-              <Link
+              <LocaleLink
                 key={tab.href}
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
@@ -73,14 +77,14 @@ export function Header() {
                 }
               >
                 {tab.label}
-              </Link>
+              </LocaleLink>
             );
           })}
           {/* Desktop-only — not in lib/nav-tabs.ts's shared array, which
               also drives BottomNav (mobile keeps 3 tabs; see
               components/EmployerDashboardView.tsx for the mobile entry). */}
           {isEmployer && (
-            <Link
+            <LocaleLink
               href="/employer/seekers"
               aria-current={pathname.startsWith("/employer/seekers") ? "page" : undefined}
               className={
@@ -91,7 +95,7 @@ export function Header() {
               }
             >
               {t("nav.employer.seekers")}
-            </Link>
+            </LocaleLink>
           )}
         </nav>
 
@@ -105,12 +109,12 @@ export function Header() {
               guard, which now redirects to /login?role=employer&next=
               /employer (see lib/auth/session.ts) and lands back here
               after verifying. */}
-          <Link
+          <LocaleLink
             href={isEmployer ? "/" : "/employer"}
             className="hidden min-h-[44px] items-center rounded-full border border-[var(--color-border)] px-3 text-sm text-[var(--color-text-muted)] md:inline-flex"
           >
             {isEmployer ? t("nav.seekerExit") : t("nav.employerEntry")}
-          </Link>
+          </LocaleLink>
 
           <button
             type="button"

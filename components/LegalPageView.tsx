@@ -1,5 +1,6 @@
 "use client";
 
+import type { LegalIdentityVars } from "@/lib/legal";
 import { useLocale } from "./LocaleProvider";
 
 // Fixed build-time constant, not `new Date()` — that call resolves the
@@ -7,7 +8,7 @@ import { useLocale } from "./LocaleProvider";
 // process and the browser (e.g. "en-US" vs "zh-CN"), producing two
 // different strings for the same render and triggering React hydration
 // error #418. Bump this date by hand whenever these pages' copy changes.
-const LAST_UPDATED = "2026-10-01";
+const LAST_UPDATED = "2026-11-04";
 
 function SectionBody({ text }: { text: string }) {
   return (
@@ -25,13 +26,21 @@ function SectionBody({ text }: { text: string }) {
  * Shared renderer for /privacy, /terms and /legal. `page` picks the
  * `legal.<page>.*` keys in lib/i18n.ts; `sections` lists which
  * `legal.<page>.section.<id>.{heading,body}` pairs to render, in order.
+ *
+ * Audit P0-2: the "⚠️ 本页为合规草稿" banner has been removed. Telling every
+ * visitor the privacy policy is a draft is worse than an unfilled field.
+ * Real entity data is supplied by the operator via LEGAL_* env vars
+ * (lib/legal.ts); nothing here is invented on their behalf.
  */
 export function LegalPageView({
   page,
   sections,
+  identity,
 }: {
   page: "privacy" | "terms" | "legal";
   sections: string[];
+  /** Resolved server-side — non-NEXT_PUBLIC env vars are unavailable in the client bundle. */
+  identity: LegalIdentityVars;
 }) {
   const { t } = useLocale();
 
@@ -41,16 +50,15 @@ export function LegalPageView({
       <p className="text-xs text-[var(--color-text-muted)]">
         {t("legal.lastUpdated", { date: LAST_UPDATED })}
       </p>
-      <p className="rounded-lg bg-[var(--color-bg)] px-3 py-2 text-xs text-[var(--color-text-muted)]">
-        {t("legal.placeholderNotice")}
-      </p>
 
       {sections.map((id) => (
         <section key={id} className="flex flex-col gap-1.5">
           <h2 className="text-base font-medium">
             {t(`legal.${page}.section.${id}.heading`)}
           </h2>
-          <SectionBody text={t(`legal.${page}.section.${id}.body`)} />
+          <SectionBody
+            text={t(`legal.${page}.section.${id}.body`, identity)}
+          />
         </section>
       ))}
     </div>

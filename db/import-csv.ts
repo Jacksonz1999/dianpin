@@ -5,6 +5,10 @@ import { parse } from "csv-parse/sync";
 import { and, eq } from "drizzle-orm";
 import { db } from "./client";
 import { cities, jobTypes, jobs, stores, users } from "./schema";
+import {
+  assertNotPlaceholder,
+  PlaceholderValueError,
+} from "../lib/validation";
 
 /**
  * Imports real store/job listings from the CSV format described in the
@@ -118,6 +122,18 @@ async function main() {
     const address = row["门店地址"]?.trim();
     const category = row["门店类型"]?.trim();
     const ownerName = row["老板称呼"]?.trim();
+    // Audit P0-5: the CSV path bypasses lib/db.ts's createStore(), so its
+    // placeholder guard never ran. Skip obvious test rows at the source
+    // instead of aborting the whole import for one bad line.
+    try {
+      if (storeName) assertNotPlaceholder("门店名称", storeName);
+      if (address) assertNotPlaceholder("门店地址", address);
+      if (district) assertNotPlaceholder("区域", district);
+    } catch (err) {
+      if (!(err instanceof PlaceholderValueError)) throw err;
+      skipped.push({ row: rowNum, reason: `疑似测试数据：${err.message}` });
+      continue;
+    }
     const ownerPhone = row["联系电话"]?.trim();
     const jobTypeName = row["工种"]?.trim();
     const salaryPeriodRaw = row["薪资类型"]?.trim();

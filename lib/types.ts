@@ -89,6 +89,29 @@ export interface SeekerProfileFormValues {
   expectedSalaryMax: number | null;
 }
 
+/**
+ * The store fields that may be serialized into a public page's RSC payload.
+ * Internal columns (`owner_user_id`, `verified_at`, `is_seed`,
+ * `created_at`) are deliberately absent — see lib/public-store.ts and
+ * audit P1-1. Employer/admin pages still use the full `Store`.
+ */
+export interface PublicStore {
+  id: string;
+  name_zh: string;
+  name_es: string;
+  city: string;
+  district: string;
+  address: string;
+  category: string;
+  cover_image: string;
+  photos: string[];
+  verification_status: StoreVerificationStatus;
+  rating_avg: number;
+  rating_count: number;
+}
+
+export type JobSort = "recent" | "salary";
+
 export interface Store {
   id: string;
   owner_user_id: string;
@@ -131,6 +154,12 @@ export interface Job {
   published_at: string;
   expires_at: string | null;
   views: number;
+  /**
+   * Set on every job update; drives a truthful sitemap <lastmod> (audit
+   * P1-6). Optional on the type only so the seed fixtures (lib/seed.ts)
+   * don't have to repeat the column — Postgres always supplies it.
+   */
+  updated_at?: string;
   is_seed: boolean;
 }
 

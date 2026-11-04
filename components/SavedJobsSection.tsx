@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { getSavedJobsDataAction } from "@/app/actions";
 import { useSavedJobs } from "@/lib/useSavedJobs";
-import type { City, Job, JobType, Store } from "@/lib/types";
+import type { City, Job, JobType, PublicStore } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
 import { JobCard } from "./JobCard";
 
 interface SavedJobsData {
   jobs: Job[];
-  stores: Store[];
+  stores: PublicStore[];
   jobTypes: JobType[];
   cities: City[];
 }

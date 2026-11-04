@@ -6,13 +6,20 @@ import { BottomNav } from "@/components/BottomNav";
 import { SkipLink } from "@/components/SkipLink";
 import { SessionProvider } from "@/components/SessionProvider";
 import { getSession } from "@/lib/auth/session";
+import { getRequestLocale } from "@/lib/locale-server";
 import { getSiteUrl } from "@/lib/site-url";
 import { homeMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(getSiteUrl()),
-  ...homeMetadata(),
-};
+// Audit P0-7: metadata is locale-driven now (title/description/canonical/
+// og:locale/hreflang), so it must be generated per request rather than
+// exported as a static object.
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  return {
+    metadataBase: new URL(getSiteUrl()),
+    ...homeMetadata(locale),
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -26,24 +33,18 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   // WP-K (round 10): nav tabs must reflect the account's actual role, not
-  // the current URL (see BottomNav.tsx/Header.tsx) — a dead-end loop
-  // otherwise (an employer account parked on "/" saw seeker tabs that all
-  // bounced). The session cookie is httpOnly, so this read can only
+  // the current URL. The session cookie is httpOnly, so this read can only
   // happen server-side; SessionProvider carries the result down to the
-  // client nav components. This call to getSession() (cookies()) makes
-  // every route under this layout dynamic — already true of every actual
-  // page in this app (each sets `export const dynamic = "force-dynamic"`
-  // itself; confirmed via grep before this change), so there's no
-  // additional static->dynamic regression. The file-convention routes
-  // that do stay static (robots.txt, sitemap's own icons, manifest,
-  // apple-icon, opengraph-image) don't render through this layout at all,
-  // so they're unaffected either way.
-  const session = await getSession();
+  // client nav components.
+  const [session, locale] = await Promise.all([
+    getSession(),
+    getRequestLocale(),
+  ]);
 
   return (
-    <html lang="zh">
+    <html lang={locale}>
       <body>
-        <LocaleProvider>
+        <LocaleProvider initialLocale={locale}>
           <SessionProvider role={session?.role ?? null}>
             <SkipLink />
             <div className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col md:max-w-3xl lg:max-w-6xl">

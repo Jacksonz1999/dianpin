@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import {
+  LOCALE_HEADER,
+  localeFromPathname,
+  stripLocalePrefix,
+} from "@/lib/locale-routing";
 
 // Nonce-based CSP: Next.js's own framework/hydration scripts are inline and
 // need a per-request nonce to run under an enforced (non-report-only) CSP —
@@ -9,6 +14,24 @@ import type { NextRequest } from "next/server";
 // not a JS MIME type) and the Turnstile widget loads via next/script, which
 // picks up the nonce explicitly passed as a prop (see app/login/page.tsx).
 export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // `/zh/...` is a legacy/aliased spelling of the Chinese URLs — collapse it
+  // onto the root URLs so there is exactly one canonical Chinese page.
+  if (pathname === "/zh" || pathname.startsWith("/zh/")) {
+    const target = request.nextUrl.clone();
+    target.pathname = stripLocalePrefix(pathname.replace(/^\/zh/, "")) || "/";
+    return NextResponse.redirect(target, 308);
+  }
+
+  // Audit P0-7: `/es/...` is a real, indexable URL. It is rewritten to the
+  // same App Router pages, with the locale carried in a request header that
+  // server components/metadata read (lib/locale-server.ts). The value is
+  // always derived from the URL here and overwritten, never trusted from
+  // the incoming request.
+  const locale = localeFromPathname(pathname);
+  const isSpanish = locale === "es";
+
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isDev = process.env.NODE_ENV === "development";
 
@@ -31,12 +54,25 @@ export function proxy(request: NextRequest) {
     frame-ancestors 'none';
     base-uri 'self';
     form-action 'self';
+    object-src 'none';
+    ${isDev ? "" : "upgrade-insecure-requests;"}
   `;
   const contentSecurityPolicyHeaderValue = cspHeader.replace(/\s{2,}/g, " ").trim();
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set(LOCALE_HEADER, locale);
   requestHeaders.set("Content-Security-Policy", contentSecurityPolicyHeaderValue);
+
+  if (isSpanish) {
+    const rewritten = request.nextUrl.clone();
+    rewritten.pathname = stripLocalePrefix(pathname);
+    const response = NextResponse.rewrite(rewritten, {
+      request: { headers: requestHeaders },
+    });
+    response.headers.set("Content-Security-Policy", contentSecurityPolicyHeaderValue);
+    return response;
+  }
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },

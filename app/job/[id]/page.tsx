@@ -6,13 +6,22 @@ import {
   getJobById,
   getJobTypeById,
   getJobTypes,
+  getJobs,
+  getJobsByStore,
   getSeekerProfileByUserId,
   getStoreById,
+  getStores,
   getUserById,
-  incrementJobViews,
 } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
-import { jobMetadata, jobPostingJsonLd, jsonLdScriptContent } from "@/lib/seo";
+import { isJobExpired, isJobLive } from "@/lib/job-utils";
+import { getRequestLocale } from "@/lib/locale-server";
+import { sanitizePublicStore } from "@/lib/public-store";
+import {
+  jobMetadata,
+  jobPostingJsonLd,
+  jsonLdScriptContent,
+} from "@/lib/seo";
 import { JobDetailView } from "@/components/JobDetailView";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +32,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const job = await getJobById(id);
+  const [locale, job] = await Promise.all([getRequestLocale(), getJobById(id)]);
   if (!job) return {};
 
   const [store, city] = await Promise.all([
@@ -32,7 +41,9 @@ export async function generateMetadata({
   ]);
   if (!store || !city) return {};
 
-  return jobMetadata(job, store, city);
+  return jobMetadata(job, sanitizePublicStore(store), city, locale, {
+    expired: isJobExpired(job),
+  });
 }
 
 export default async function JobDetailPage({
@@ -41,24 +52,38 @@ export default async function JobDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const job = await getJobById(id);
+  const [locale, job] = await Promise.all([getRequestLocale(), getJobById(id)]);
   if (!job) notFound();
 
-  // Fire-and-forget: registers this view for the *next* page load, doesn't
-  // block or affect what's rendered now (see incrementJobViews in lib/db.ts).
-  void incrementJobViews(job.id).catch((err) => {
-    console.error(`[job/${job.id}] failed to increment views:`, err);
-  });
-
-  const [store, city, jobType, allJobTypes, session] = await Promise.all([
+  const [
+    storeRow,
+    city,
+    jobType,
+    allJobTypes,
+    session,
+    allStores,
+    storeJobs,
+    sameTypeJobs,
+    sameCityJobs,
+  ] = await Promise.all([
     getStoreById(job.store_id),
     getCityById(job.city),
     getJobTypeById(job.job_type),
     getJobTypes(),
     getSession(),
+    getStores(),
+    getJobsByStore(job.store_id),
+    // getJobs() already excludes expired/closed rows (audit P0-3), so
+    // recommendations can never send a seeker to a dead posting.
+    getJobs({ status: "active", jobType: job.job_type }),
+    getJobs({ status: "active", city: job.city }),
   ]);
 
-  if (!store || !city || !jobType) notFound();
+  if (!storeRow || !city || !jobType) notFound();
+
+  const store = sanitizePublicStore(storeRow);
+  const stores = allStores.map(sanitizePublicStore);
+  const expired = isJobExpired(job);
 
   // Browsing stays anonymous per AGENTS.md §6; only applying requires a
   // seeker session, so everything below is optional/null when logged out
@@ -74,23 +99,46 @@ export default async function JobDetailPage({
       ])
     : [null, null, null];
 
+  const otherJobs = storeJobs
+    .filter((candidate) => candidate.id !== job.id && isJobLive(candidate))
+    .slice(0, 3);
+
+  const seen = new Set<string>([job.id, ...otherJobs.map((j) => j.id)]);
+  const similarJobs = [...sameTypeJobs, ...sameCityJobs]
+    .filter((candidate) => {
+      if (seen.has(candidate.id)) return false;
+      seen.add(candidate.id);
+      return true;
+    })
+    .slice(0, 3);
+
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: jsonLdScriptContent(jobPostingJsonLd(job, store, city)),
-        }}
-      />
+      {/* An expired JobPosting must NOT keep serving structured data —
+          Google treats stale JobPosting markup as index spam (P0-3). */}
+      {!expired && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScriptContent(
+              jobPostingJsonLd(job, store, city, locale)
+            ),
+          }}
+        />
+      )}
       <JobDetailView
         job={job}
         store={store}
         city={city}
         jobType={jobType}
         jobTypes={allJobTypes}
+        stores={stores}
+        otherJobs={otherJobs}
+        similarJobs={similarJobs}
+        expired={expired}
         isLoggedIn={!!session}
         isLoggedInSeeker={isSeeker}
-        existingApplication={existingApplication}
+        existingApplicationStatus={existingApplication?.status ?? null}
         hasProfile={!!seekerProfile}
         initialProfileValues={{
           name: seekerUser?.name ?? "",

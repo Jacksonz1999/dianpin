@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useLocale } from "./LocaleProvider";
+import { LocaleLink } from "./LocaleLink";
 
 /**
  * Compact legal-page link row. This app has no traditional page footer
@@ -14,15 +14,18 @@ export function LegalLinks() {
 
   return (
     <nav className="flex flex-wrap justify-center gap-x-3 gap-y-1 pt-2 text-center text-xs text-[var(--color-text-muted)]">
-      <Link href="/privacy" className="underline underline-offset-2">
+      <LocaleLink href="/about" className="underline underline-offset-2">
+        {t("legal.footer.about")}
+      </LocaleLink>
+      <LocaleLink href="/privacy" className="underline underline-offset-2">
         {t("legal.footer.privacy")}
-      </Link>
-      <Link href="/terms" className="underline underline-offset-2">
+      </LocaleLink>
+      <LocaleLink href="/terms" className="underline underline-offset-2">
         {t("legal.footer.terms")}
-      </Link>
-      <Link href="/legal" className="underline underline-offset-2">
+      </LocaleLink>
+      <LocaleLink href="/legal" className="underline underline-offset-2">
         {t("legal.footer.legal")}
-      </Link>
+      </LocaleLink>
     </nav>
   );
 }

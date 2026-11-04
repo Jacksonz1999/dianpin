@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
 import { LegalPageView } from "@/components/LegalPageView";
-import { getSiteUrl } from "@/lib/site-url";
+import { t } from "@/lib/i18n";
+import { legalIdentityVars } from "@/lib/legal";
+import { getRequestLocale } from "@/lib/locale-server";
+import { localizedMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "服务条款 | 店聘 DianPin",
-  description: "店聘 DianPin 服务条款：使用规范、账号规则、责任限制与适用法律。",
-  alternates: { canonical: `${getSiteUrl()}/terms` },
-  robots: { index: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  return localizedMetadata({
+    title: t(locale, "seo.terms.title"),
+    description: t(locale, "seo.terms.description"),
+    path: "/terms",
+    locale,
+    robots: { index: false },
+  });
+}
 
 // Nonce-based CSP (proxy.ts) only injects nonces into dynamically rendered
 // pages — this page has no inline scripts itself, but still needs a fresh
@@ -25,6 +32,13 @@ const SECTIONS = [
   "law",
 ];
 
-export default function TermsPage() {
-  return <LegalPageView page="terms" sections={SECTIONS} />;
+export default async function TermsPage() {
+  const locale = await getRequestLocale();
+  return (
+    <LegalPageView
+      page="terms"
+      sections={SECTIONS}
+      identity={legalIdentityVars(locale)}
+    />
+  );
 }

@@ -8,6 +8,31 @@ type Dict = Record<string, string>;
 const zh: Dict = {
   "app.name": "店聘",
 
+  "seo.home.title": "店聘 DianPin — 西班牙华人门店招聘平台",
+  "seo.home.description":
+    "面向西班牙华人的门店招聘平台：百元店、酒吧、服装店、自助寿司、超市、中餐馆等岗位，结构化筛选、门店认证、投递状态清晰可追踪。",
+  "seo.job.title": "{title} - {store} · {city} | 店聘 DianPin",
+  "seo.job.descriptionFallback": "{store}招聘{title}，{city}{district}，欢迎投递",
+  "seo.store.title": "{store} · {city} | 店聘 DianPin",
+  "seo.store.description":
+    "{store}（{category}）· {city}{district} · 在店聘查看该店招聘信息与真实评价",
+  "seo.itemList.name": "西班牙华人门店在招岗位",
+  "seo.privacy.title": "隐私政策 | 店聘 DianPin",
+  "seo.privacy.description": "店聘 DianPin 隐私政策（GDPR/RGPD + LSSI-CE）：数据控制者、处理目的、保留期限与您的权利。",
+  "seo.terms.title": "服务条款 | 店聘 DianPin",
+  "seo.terms.description": "店聘 DianPin 服务条款：使用规范、账号规则、责任限制与适用法律。",
+  "seo.legal.title": "法律声明 | 店聘 DianPin",
+  "seo.legal.description": "店聘 DianPin 法律声明（依西班牙 LSSI-CE）：运营者信息、知识产权与适用法律。",
+  "seo.city.title": "{city}华人门店招聘 | 店聘 DianPin",
+  "seo.city.description": "在{city}找百元店、中餐馆、超市、酒吧等华人门店岗位：按工种、薪资、包吃住与居留要求筛选，门店认证状态透明可查。",
+  "seo.city.itemList": "{city}在招岗位",
+  "cityPage.title": "{city}找工作",
+  "cityPage.backHome": "查看全部岗位",
+  "legal.footer.about": "关于我们",
+  "about.title": "关于店聘",
+  "about.body1": "店聘 DianPin 是面向西班牙华人的门店招聘平台。我们只做实体门店业态：百元店、中餐馆、自助寿司、超市、酒吧、服装店。",
+  "about.body2": "岗位信息按工种、薪资、工时、包吃住、语言与居留要求结构化展示；门店认证与评价让求职者能判断一家店是否靠谱；投递状态全程可追踪。平台目前覆盖马德里与巴塞罗那。",
+
   "nav.seeker.jobs": "找工",
   "nav.seeker.applications": "投递",
   "nav.seeker.me": "我的",
@@ -41,7 +66,14 @@ const zh: Dict = {
   "home.filters.mealsIncluded": "包吃住",
   "home.filters.residenceOk": "可无居留",
   "home.filters.salaryMin": "薪资下限（€/月）",
+  "home.filters.salaryMin.hour": "薪资下限（€/时）",
+  "home.filters.salaryBasis": "薪资口径",
+  "home.filters.salaryBasis.month": "按月（€/月）",
+  "home.filters.salaryBasis.hour": "按时（€/时）",
   "home.filters.title": "筛选",
+  "home.sort.label": "排序",
+  "home.sort.recent": "最新",
+  "home.sort.salary": "薪资最高",
 
   "job.salaryPeriod.hour": "时",
   "job.salaryPeriod.day": "天",
@@ -53,6 +85,16 @@ const zh: Dict = {
   "job.viewDetail": "查看详情",
   "job.views": "{count} 次浏览",
   "job.viewsNew": "新发布",
+  "job.publishedDays.today": "今天发布",
+  "job.publishedDays.days": "{count} 天前发布",
+  "job.publishedOn": "发布于 {date}",
+  "job.expired.title": "该岗位已结束",
+  "job.expired.body": "这个岗位的招聘期限已过，不再接受新的投递。可以看看下面还在招的岗位。",
+  "job.expired.applyDisabled": "已结束",
+  "job.otherJobsAtStore": "该店其他岗位",
+  "job.similarJobs": "相似岗位",
+  "job.similarJobsEmpty": "暂无更多推荐岗位",
+  "store.ratingHidden": "该门店未通过认证，暂不展示评分与评价",
 
   "residenceRequired.none": "居留不限",
   "residenceRequired.prefer": "有居留优先",
@@ -208,6 +250,7 @@ const zh: Dict = {
   "apply.success": "投递成功！可以在「我的投递」里查看进度",
   "apply.error.already_applied": "你已经投递过这个岗位了",
   "apply.error.profile_required": "请先完善基本资料",
+  "apply.error.expired": "该岗位已结束，无法投递",
   "apply.error.unknown": "投递失败，请稍后重试",
   "apply.cancel": "取消",
   "apply.close": "关闭",
@@ -348,11 +391,13 @@ const zh: Dict = {
   "employer.job.backToDashboard": "返回工作台",
 
   // --- 合规页面（隐私政策 / 服务条款 / 法律声明）---
-  // ⚠️ 以下内容是按 GDPR + 西班牙 LSSI-CE 结构撰写的草稿，[方括号] 标出的
-  // 是需要产品/法务侧补充的真实信息（运营主体名称、税号、地址、联系邮箱
-  // 等）——填完之前不能当作最终合规文本使用，详见 PR 描述。
-  "legal.placeholderNotice":
-    "⚠️ 本页内容为合规草稿，标有 [方括号] 的信息尚未填写真实数据，暂不构成最终法律文本。",
+  // 真实主体信息由运营方通过 LEGAL_* 环境变量提供（lib/legal.ts），AI 不代填。
+  // 未配置时保留明确的 {占位符}，但页面不再挂"这是草稿"的警告条（审计 P0-2）。
+  "legal.placeholder.entity": "[运营主体名称/负责人姓名]",
+  "legal.placeholder.nif": "[NIF/CIF]",
+  "legal.placeholder.address": "[运营地址]",
+  "legal.placeholder.email": "[联系邮箱]",
+  "legal.placeholder.jurisdiction": "[管辖法院所在地]",
   "legal.lastUpdated": "最后更新：{date}",
 
   "legal.footer.privacy": "隐私政策",
@@ -368,10 +413,13 @@ const zh: Dict = {
   "legal.privacy.title": "隐私政策",
   "legal.privacy.section.controller.heading": "数据控制者",
   "legal.privacy.section.controller.body":
-    "店聘 DianPin（以下简称\"本平台\"）由 [运营主体名称/负责人姓名]（税号/NIF：[NIF/CIF]，地址：[地址]）运营，是本平台用户个人数据的数据控制者。如对本政策或您的个人数据有任何疑问，请联系：[联系邮箱]。",
+    "店聘 DianPin（以下简称\"本平台\"）由 {entity}（税号/NIF：{nif}，地址：{address}）运营，是本平台用户个人数据的数据控制者（Responsable del tratamiento，GDPR/RGPD 第 13(1)(a) 条）。如对本政策或您的个人数据有任何疑问，或需要行使数据权利，请联系：{email}。",
+  "legal.privacy.section.lssi.heading": "信息社会服务提供者与投诉 / 调解渠道",
+  "legal.privacy.section.lssi.body":
+    "本平台属于西班牙《信息社会服务与电子商务法》（LSSI-CE，Ley 34/2002）所称的信息社会服务，提供者身份、税号与注册地址见本页「数据控制者」及本站「法律声明」页（LSSI-CE 第 10 条）。\n\n依据 LSSI-CE 第 7 条与 GDPR/RGPD 第 12(1) 条，您可通过 {email} 免费提交咨询、投诉或数据权利请求；我们会书面确认收到并在法定时限内答复，同时保留投诉处理记录。若双方未能友好解决，您可向西班牙数据保护局（AEPD, www.aepd.es）投诉，或依消费者保护法规申请调解（mediación）或消费仲裁（arbitraje de consumo）；本平台不设强制仲裁条款，也不因本条限制您的法定诉权。",
   "legal.privacy.section.dataCollected.heading": "我们收集哪些数据",
   "legal.privacy.section.dataCollected.body":
-    "求职者：姓名、邮箱、电话/微信（可选）、语言偏好、工种、工作经验、可到岗时间、居留状态、期望薪资等求职资料。\n\n雇主：姓名、邮箱、电话/微信（可选）、所属门店信息（门店名称、地址、类别、认证材料）。\n\n所有用户：登录记录（用于安全与限流）、投递/职位浏览记录（用于提供撮合服务）。\n\n「有新岗位通知我」订阅者（无需登录即可订阅）：邮箱地址、您选择的筛选条件（城市、工种、薪资下限、是否需要包吃住、是否接受无居留）、语言偏好。我们不收集也不需要您的身份证件号码或银行账户信息。",
+    "求职者：姓名、邮箱、电话/微信（可选）、语言偏好、工种、工作经验、可到岗时间、居留状态、期望薪资等求职资料。\n\n雇主：姓名、邮箱、电话/微信（可选）、所属门店信息（门店名称、地址、类别、认证材料）。\n\n所有用户：登录记录（用于安全与限流）、投递记录（用于提供撮合服务）。\n\n「有新岗位通知我」订阅者（无需登录即可订阅）：邮箱地址、您选择的筛选条件（城市、工种、薪资下限、是否需要包吃住、是否接受无居留）、语言偏好。我们不收集也不需要您的身份证件号码或银行账户信息。",
   "legal.privacy.section.purposes.heading": "处理目的与法律依据",
   "legal.privacy.section.purposes.body":
     "提供求职者与雇主之间的撮合服务（法律依据：履行与您的服务合同，GDPR 第 6(1)(b) 条）。\n\n通过邮箱魔法链接完成登录验证（法律依据：履行服务合同）。\n\n防止账号滥用、欺诈与骚扰（法律依据：我们的合法利益，GDPR 第 6(1)(f) 条），包括登录请求的限流与验证码校验。\n\n雇主标记\"已联系\"候选人后向其展示联系方式，用于双方后续沟通（法律依据：履行服务合同，且经求职者主动投递岗位默示同意）。\n\n向「有新岗位通知我」的订阅者发送与其所选条件匹配的新岗位通知邮件（法律依据：您的明示同意，GDPR 第 6(1)(a) 条——订阅需点击确认邮件中的链接完成双重确认，且每封通知邮件都附一次性退订链接，可随时撤回同意）。",
@@ -383,7 +431,7 @@ const zh: Dict = {
     "我们使用第三方服务商处理部分数据：数据库与应用托管（Railway，服务器位于欧盟境内）、发信服务（用于投递登录邮件）。这些服务商仅在提供上述服务所必需的范围内处理您的数据，我们已与其签署符合 GDPR 要求的数据处理协议（如适用）。我们不会将您的个人数据出售给第三方，也不会用于与撮合服务无关的广告投放。",
   "legal.privacy.section.rights.heading": "您的权利",
   "legal.privacy.section.rights.body":
-    "根据 GDPR，您有权：访问我们持有的您的个人数据；要求更正不准确的数据；要求删除数据（\"被遗忘权\"）；限制或反对某些处理；以结构化、常用格式获取您的数据（数据可携带权）。行使上述权利请发邮件至 [联系邮箱]，我们将在一个月内答复。如您是「有新岗位通知我」的订阅者，最快的方式是直接点击任意一封通知邮件底部的退订链接，无需发邮件即可立即撤回同意并删除订阅记录。如您认为我们的处理方式侵犯了您的权利，您也有权向西班牙数据保护局（AEPD, www.aepd.es）投诉。",
+    "根据 GDPR/RGPD，您有权：访问我们持有的您的个人数据；要求更正不准确的数据；要求删除数据（\"被遗忘权\"）；限制或反对某些处理；以结构化、常用格式获取您的数据（数据可携带权）。行使上述权利请发邮件至 {email}，我们将在一个月内答复。如您是「有新岗位通知我」的订阅者，最快的方式是直接点击任意一封通知邮件底部的退订链接，无需发邮件即可立即撤回同意并删除订阅记录。如您认为我们的处理方式侵犯了您的权利，您也有权向西班牙数据保护局（AEPD, www.aepd.es）投诉。",
   "legal.privacy.section.cookies.heading": "Cookie 与本地存储",
   "legal.privacy.section.cookies.body":
     "本平台仅使用两类浏览器本地存储，均为提供服务所必需，不涉及广告追踪：登录会话 Cookie（签名加密，用于保持登录状态）；语言偏好（存储在浏览器 localStorage，不会同步到服务器）。我们目前不使用任何第三方分析或广告 Cookie。如未来接入此类工具，我们会在此更新说明并加入 Cookie 同意横幅。",
@@ -418,12 +466,12 @@ const zh: Dict = {
     "您可随时停止使用本平台并申请注销账号。如您严重违反本条款，本平台有权暂停或终止您的账号。",
   "legal.terms.section.law.heading": "适用法律与管辖",
   "legal.terms.section.law.body":
-    "本条款适用西班牙法律。因本条款产生的争议，由[管辖法院所在地，如马德里]有管辖权的法院管辖，消费者权益保护法律另有强制性规定的除外。",
+    "本条款适用西班牙法律。因本条款产生的争议，由{jurisdiction}有管辖权的法院管辖，消费者权益保护法律另有强制性规定的除外。",
 
   "legal.legal.title": "法律声明",
   "legal.legal.section.identity.heading": "网站运营者信息",
   "legal.legal.section.identity.body":
-    "根据西班牙《信息社会服务和电子商务法》（LSSI-CE）第 10 条，特此声明：\n\n运营主体：[公司名称/负责人姓名]\n税号（NIF/CIF）：[NIF/CIF]\n注册地址：[地址]\n联系邮箱：[联系邮箱]\n网站域名：dianpin.eu",
+    "根据西班牙《信息社会服务和电子商务法》（LSSI-CE）第 10 条，特此声明：\n\n运营主体：{entity}\n税号（NIF/CIF）：{nif}\n注册地址：{address}\n联系邮箱：{email}\n网站域名：dianpin.eu",
   "legal.legal.section.purpose.heading": "网站宗旨",
   "legal.legal.section.purpose.body":
     "本网站旨在为西班牙华人社区提供门店招聘信息撮合服务。访问和使用本网站即表示您接受本法律声明与相应的服务条款、隐私政策。",
@@ -435,11 +483,36 @@ const zh: Dict = {
     "运营方不对用户发布内容的真实性、准确性负责，但会对经核实的虚假信息或违规内容进行处理（见举报功能）。因网络中断、第三方服务故障等不可抗力导致的服务中断，运营方不承担责任。",
   "legal.legal.section.law.heading": "适用法律与管辖法院",
   "legal.legal.section.law.body":
-    "本声明适用西班牙法律，任何争议提交[管辖法院所在地]有管辖权的法院解决。",
+    "本声明适用西班牙法律，任何争议提交{jurisdiction}有管辖权的法院解决。",
 };
 
 const es: Dict = {
   "app.name": "DianPin",
+
+  "seo.home.title": "DianPin — Empleo para la comunidad china en España",
+  "seo.home.description":
+    "Plataforma de empleo para la comunidad china en España: bazares, bares, tiendas de ropa, buffets de sushi, supermercados y restaurantes chinos. Filtros estructurados, tiendas verificadas y seguimiento claro de cada candidatura.",
+  "seo.job.title": "{title} - {store} · {city} | DianPin",
+  "seo.job.descriptionFallback": "{store} busca {title} en {city}{district}. ¡Inscríbete!",
+  "seo.store.title": "{store} · {city} | DianPin",
+  "seo.store.description":
+    "{store} ({category}) · {city}{district} · Consulta sus ofertas de empleo y valoraciones reales en DianPin",
+  "seo.itemList.name": "Ofertas de empleo en comercios chinos de España",
+  "seo.privacy.title": "Política de privacidad | DianPin",
+  "seo.privacy.description": "Política de privacidad de DianPin (RGPD/GDPR + LSSI-CE): responsable, finalidades, plazos de conservación y derechos.",
+  "seo.terms.title": "Términos de servicio | DianPin",
+  "seo.terms.description": "Términos de servicio de DianPin: normas de uso, cuentas, limitación de responsabilidad y ley aplicable.",
+  "seo.legal.title": "Aviso legal | DianPin",
+  "seo.legal.description": "Aviso legal de DianPin conforme a la LSSI-CE: datos del titular, propiedad intelectual y ley aplicable.",
+  "seo.city.title": "Empleo en comercios chinos de {city} | DianPin",
+  "seo.city.description": "Encuentra empleo en bazares, restaurantes chinos, supermercados y bares de {city}. Filtra por tipo de trabajo, salario, comida/alojamiento y residencia, con el estado de verificación de cada tienda a la vista.",
+  "seo.city.itemList": "Ofertas de empleo en {city}",
+  "cityPage.title": "Empleo en {city}",
+  "cityPage.backHome": "Ver todas las ofertas",
+  "legal.footer.about": "Sobre nosotros",
+  "about.title": "Sobre DianPin",
+  "about.body1": "DianPin es una plataforma de empleo para la comunidad china en España, centrada únicamente en comercios físicos: bazares, restaurantes chinos, buffets de sushi, supermercados, bares y tiendas de ropa.",
+  "about.body2": "Las ofertas se muestran con datos estructurados (tipo de trabajo, salario, horario, comida y alojamiento, idioma y residencia). La verificación de tiendas y las valoraciones ayudan a decidir con confianza, y el estado de cada candidatura se puede seguir en todo momento. Actualmente cubrimos Madrid y Barcelona.",
 
   "nav.seeker.jobs": "Empleos",
   "nav.seeker.applications": "Postulaciones",
@@ -474,7 +547,14 @@ const es: Dict = {
   "home.filters.mealsIncluded": "Comida y alojamiento",
   "home.filters.residenceOk": "Sin residencia OK",
   "home.filters.salaryMin": "Salario mínimo (€/mes)",
+  "home.filters.salaryMin.hour": "Salario mínimo (€/hora)",
+  "home.filters.salaryBasis": "Unidad del salario",
+  "home.filters.salaryBasis.month": "Por mes (€/mes)",
+  "home.filters.salaryBasis.hour": "Por hora (€/hora)",
   "home.filters.title": "Filtros",
+  "home.sort.label": "Ordenar",
+  "home.sort.recent": "Más recientes",
+  "home.sort.salary": "Mejor pagados",
 
   "job.salaryPeriod.hour": "hora",
   "job.salaryPeriod.day": "día",
@@ -486,6 +566,16 @@ const es: Dict = {
   "job.viewDetail": "Ver detalles",
   "job.views": "{count} vistas",
   "job.viewsNew": "Recién publicado",
+  "job.publishedDays.today": "Publicado hoy",
+  "job.publishedDays.days": "Publicado hace {count} días",
+  "job.publishedOn": "Publicado el {date}",
+  "job.expired.title": "Esta oferta ha finalizado",
+  "job.expired.body": "El plazo de esta oferta ha terminado y ya no admite candidaturas. Puedes ver otras ofertas activas más abajo.",
+  "job.expired.applyDisabled": "Finalizada",
+  "job.otherJobsAtStore": "Otras ofertas de esta tienda",
+  "job.similarJobs": "Ofertas similares",
+  "job.similarJobsEmpty": "No hay más recomendaciones por ahora",
+  "store.ratingHidden": "Esta tienda no ha superado la verificación; no mostramos su puntuación ni sus valoraciones",
 
   "residenceRequired.none": "Residencia no requerida",
   "residenceRequired.prefer": "Se prefiere residencia",
@@ -641,6 +731,7 @@ const es: Dict = {
   "apply.success": "¡Postulación enviada! Puedes ver el estado en «Mis postulaciones»",
   "apply.error.already_applied": "Ya postulaste a este empleo",
   "apply.error.profile_required": "Completa tu perfil básico primero",
+  "apply.error.expired": "Esta oferta ha finalizado y no admite candidaturas",
   "apply.error.unknown": "No se pudo enviar, inténtalo de nuevo",
   "apply.cancel": "Cancelar",
   "apply.close": "Cerrar",
@@ -781,11 +872,12 @@ const es: Dict = {
   "employer.job.backToDashboard": "Volver al panel",
 
   // --- Páginas legales (Política de privacidad / Términos / Aviso legal) ---
-  // ⚠️ Borrador conforme a RGPD + LSSI-CE. Los textos entre [corchetes]
-  // son datos reales que faltan por completar (razón social, NIF,
-  // domicilio, email de contacto) — ver descripción del PR.
-  "legal.placeholderNotice":
-    "⚠️ Esta página es un borrador de cumplimiento normativo. La información entre [corchetes] aún no se ha rellenado con datos reales y de momento no constituye el texto legal definitivo.",
+  // Los datos reales del titular se configuran con LEGAL_* (lib/legal.ts).
+  "legal.placeholder.entity": "[nombre de la entidad/titular]",
+  "legal.placeholder.nif": "[NIF/CIF]",
+  "legal.placeholder.address": "[domicilio]",
+  "legal.placeholder.email": "[email de contacto]",
+  "legal.placeholder.jurisdiction": "[ciudad de la jurisdicción]",
   "legal.lastUpdated": "Última actualización: {date}",
 
   "legal.footer.privacy": "Política de privacidad",
@@ -801,10 +893,13 @@ const es: Dict = {
   "legal.privacy.title": "Política de privacidad",
   "legal.privacy.section.controller.heading": "Responsable del tratamiento",
   "legal.privacy.section.controller.body":
-    "店聘 DianPin (en adelante, \"la plataforma\") está operada por [nombre de la entidad/titular] (NIF/CIF: [NIF/CIF], domicilio: [dirección]), responsable del tratamiento de los datos personales de los usuarios de esta plataforma. Para cualquier consulta sobre esta política o sus datos personales, contacte con: [email de contacto].",
+    "店聘 DianPin (en adelante, \"la plataforma\") está operada por {entity} (NIF/CIF: {nif}, domicilio: {address}), responsable del tratamiento de los datos personales de los usuarios de esta plataforma (art. 13(1)(a) RGPD/GDPR). Para cualquier consulta sobre esta política o para ejercer sus derechos, contacte con: {email}.",
+  "legal.privacy.section.lssi.heading": "Prestador de servicios y reclamaciones / mediación",
+  "legal.privacy.section.lssi.body":
+    "Esta plataforma es un servicio de la sociedad de la información conforme a la Ley 34/2002 (LSSI-CE). La identidad del prestador, NIF y domicilio figuran en el apartado «Responsable del tratamiento» y en el Aviso legal (art. 10 LSSI-CE).\n\nConforme al art. 7 LSSI-CE y al art. 12(1) RGPD, puede presentar gratuitamente consultas, reclamaciones o solicitudes de derechos a través de {email}; confirmaremos la recepción por escrito, responderemos en el plazo legal y conservaremos el registro de la reclamación. Si no se alcanza una solución amistosa, puede reclamar ante la Agencia Española de Protección de Datos (AEPD, www.aepd.es) o acudir a los mecanismos de mediación o arbitraje de consumo previstos en la normativa de consumidores; esta plataforma no impone el arbitraje obligatorio ni limita su derecho a acudir a los tribunales.",
   "legal.privacy.section.dataCollected.heading": "Qué datos recopilamos",
   "legal.privacy.section.dataCollected.body":
-    "Buscadores de empleo: nombre, email, teléfono/WeChat (opcional), idioma preferido, tipo de trabajo, experiencia, disponibilidad, estatus de residencia, salario esperado y demás datos del perfil.\n\nEmpleadores: nombre, email, teléfono/WeChat (opcional), datos de la tienda (nombre, dirección, categoría, documentación de verificación).\n\nTodos los usuarios: registros de inicio de sesión (seguridad y límite de solicitudes), historial de postulaciones/visualización de empleos (para prestar el servicio de emparejamiento).\n\nSuscriptores de \"Avísame de nuevos empleos\" (no requiere cuenta): dirección de email, los filtros que eligió (ciudad, tipo de trabajo, salario mínimo, si requiere comida/alojamiento, si acepta sin residencia) e idioma preferido. No recopilamos ni necesitamos su número de documento de identidad ni datos bancarios.",
+    "Buscadores de empleo: nombre, email, teléfono/WeChat (opcional), idioma preferido, tipo de trabajo, experiencia, disponibilidad, estatus de residencia, salario esperado y demás datos del perfil.\n\nEmpleadores: nombre, email, teléfono/WeChat (opcional), datos de la tienda (nombre, dirección, categoría, documentación de verificación).\n\nTodos los usuarios: registros de inicio de sesión (seguridad y límite de solicitudes) e historial de postulaciones (para prestar el servicio de emparejamiento).\n\nSuscriptores de \"Avísame de nuevos empleos\" (no requiere cuenta): dirección de email, los filtros que eligió (ciudad, tipo de trabajo, salario mínimo, si requiere comida/alojamiento, si acepta sin residencia) e idioma preferido. No recopilamos ni necesitamos su número de documento de identidad ni datos bancarios.",
   "legal.privacy.section.purposes.heading": "Finalidades y base jurídica",
   "legal.privacy.section.purposes.body":
     "Prestar el servicio de emparejamiento entre buscadores de empleo y empleadores (base jurídica: ejecución del contrato de servicio, art. 6(1)(b) RGPD).\n\nVerificar el inicio de sesión mediante enlace mágico por email (base jurídica: ejecución del contrato de servicio).\n\nPrevenir el abuso de cuentas, fraude y acoso (base jurídica: interés legítimo, art. 6(1)(f) RGPD), incluyendo límites de solicitudes y verificación captcha.\n\nMostrar los datos de contacto del candidato al empleador tras marcarlo como \"contactado\" (base jurídica: ejecución del contrato de servicio, con consentimiento implícito del buscador al postularse).\n\nEnviar a los suscriptores de \"Avísame de nuevos empleos\" un correo cuando se publique un empleo que coincida con sus filtros (base jurídica: su consentimiento explícito, art. 6(1)(a) RGPD — la suscripción requiere confirmar mediante un enlace en un correo de doble confirmación, y cada aviso incluye un enlace de baja de un solo uso para retirar el consentimiento en cualquier momento).",
@@ -816,7 +911,7 @@ const es: Dict = {
     "Utilizamos proveedores externos para parte del tratamiento: alojamiento de base de datos y aplicación (Railway, servidores ubicados en la UE) y servicio de envío de correo (para los enlaces de inicio de sesión). Estos proveedores solo tratan sus datos en la medida necesaria para prestar dichos servicios, con acuerdos de tratamiento de datos conformes al RGPD cuando corresponda. No vendemos sus datos personales a terceros ni los usamos para publicidad ajena al servicio.",
   "legal.privacy.section.rights.heading": "Sus derechos",
   "legal.privacy.section.rights.body":
-    "Conforme al RGPD, usted tiene derecho a: acceder a los datos personales que tratamos sobre usted; solicitar la rectificación de datos inexactos; solicitar la supresión (\"derecho al olvido\"); limitar u oponerse a determinados tratamientos; y obtener sus datos en un formato estructurado y de uso común (portabilidad). Para ejercer estos derechos, escriba a [email de contacto]; responderemos en el plazo de un mes. Si es suscriptor de \"Avísame de nuevos empleos\", la forma más rápida es hacer clic en el enlace de baja al final de cualquier correo de aviso, sin necesidad de escribirnos, para retirar el consentimiento y eliminar la suscripción al instante. Si considera que el tratamiento vulnera sus derechos, también puede presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD, www.aepd.es).",
+    "Conforme al RGPD/GDPR, usted tiene derecho a: acceder a los datos personales que tratamos sobre usted; solicitar la rectificación de datos inexactos; solicitar la supresión (\"derecho al olvido\"); limitar u oponerse a determinados tratamientos; y obtener sus datos en un formato estructurado y de uso común (portabilidad). Para ejercer estos derechos, escriba a {email}; responderemos en el plazo de un mes. Si es suscriptor de \"Avísame de nuevos empleos\", la forma más rápida es hacer clic en el enlace de baja al final de cualquier correo de aviso, sin necesidad de escribirnos, para retirar el consentimiento y eliminar la suscripción al instante. Si considera que el tratamiento vulnera sus derechos, también puede presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD, www.aepd.es).",
   "legal.privacy.section.cookies.heading": "Cookies y almacenamiento local",
   "legal.privacy.section.cookies.body":
     "La plataforma solo utiliza dos tipos de almacenamiento local del navegador, ambos estrictamente necesarios para el servicio y sin fines de seguimiento publicitario: la cookie de sesión de inicio de sesión (firmada y cifrada, para mantener la sesión iniciada) y la preferencia de idioma (guardada en localStorage del navegador, no se sincroniza con el servidor). Actualmente no usamos cookies de análisis ni publicidad de terceros. Si en el futuro incorporamos alguna, actualizaremos este aviso y añadiremos un banner de consentimiento de cookies.",
@@ -851,12 +946,12 @@ const es: Dict = {
     "Puede dejar de usar la plataforma y solicitar la baja de su cuenta en cualquier momento. En caso de incumplimiento grave de estos términos, la plataforma podrá suspender o cancelar su cuenta.",
   "legal.terms.section.law.heading": "Ley aplicable y jurisdicción",
   "legal.terms.section.law.body":
-    "Estos términos se rigen por la legislación española. Cualquier controversia derivada de estos términos se someterá a los juzgados y tribunales de [ciudad de la jurisdicción, p. ej. Madrid], salvo disposición legal imperativa en materia de protección de consumidores.",
+    "Estos términos se rigen por la legislación española. Cualquier controversia derivada de estos términos se someterá a los juzgados y tribunales de {jurisdiction}, salvo disposición legal imperativa en materia de protección de consumidores.",
 
   "legal.legal.title": "Aviso legal",
   "legal.legal.section.identity.heading": "Datos identificativos del titular",
   "legal.legal.section.identity.body":
-    "En cumplimiento del artículo 10 de la Ley 34/2002, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), se informa:\n\nTitular: [nombre de la entidad/titular]\nNIF/CIF: [NIF/CIF]\nDomicilio: [dirección]\nEmail de contacto: [email de contacto]\nDominio: dianpin.eu",
+    "En cumplimiento del artículo 10 de la Ley 34/2002, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), se informa:\n\nTitular: {entity}\nNIF/CIF: {nif}\nDomicilio: {address}\nEmail de contacto: {email}\nDominio: dianpin.eu",
   "legal.legal.section.purpose.heading": "Objeto del sitio web",
   "legal.legal.section.purpose.body":
     "Este sitio web tiene como finalidad ofrecer un servicio de intermediación de ofertas de empleo en tiendas para la comunidad china en España. El acceso y uso de este sitio implica la aceptación de este aviso legal y de los correspondientes términos de servicio y política de privacidad.",
@@ -868,7 +963,7 @@ const es: Dict = {
     "El titular no se responsabiliza de la veracidad del contenido publicado por los usuarios, si bien actuará ante contenido falso o infractor verificado (ver la función de denuncia). El titular no será responsable de interrupciones del servicio derivadas de fallos de red o de terceros proveedores por causa de fuerza mayor.",
   "legal.legal.section.law.heading": "Ley aplicable y jurisdicción",
   "legal.legal.section.law.body":
-    "Este aviso se rige por la legislación española. Cualquier controversia se someterá a los juzgados y tribunales de [ciudad de la jurisdicción].",
+    "Este aviso se rige por la legislación española. Cualquier controversia se someterá a los juzgados y tribunales de {jurisdiction}.",
 };
 
 const dictionaries: Record<Locale, Dict> = { zh, es };

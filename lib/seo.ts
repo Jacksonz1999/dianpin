@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import type { City, Job, Store } from "./types";
+import { t, type Locale } from "./i18n";
+import type { City, Job, PublicStore } from "./types";
 import { absUrl, getSiteUrl } from "./site-url";
+import { localePath, normalizePath } from "./locale-routing";
 
 export const SITE_NAME = "店聘 DianPin";
 
@@ -25,75 +27,133 @@ export function jsonLdScriptContent(data: unknown): string {
     .split(PARAGRAPH_SEPARATOR).join("\\u2029");
 }
 
-/**
- * Metadata generated server-side has no access to the visitor's locale —
- * unlike the rest of the UI, it isn't stored in a cookie the server can
- * read, only in localStorage (see components/LocaleProvider). Search
- * engines and social crawlers get the primary language (AGENTS.md §1:
- * "界面中文为主"), matching <html lang="zh"> in app/layout.tsx. Proper
- * per-locale metadata needs locale-prefixed routes (AGENTS.md's own P2-6
- * territory), not a small fix here.
- */
 function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
-export function jobMetadata(job: Job, store: Store, city: City): Metadata {
-  const url = absUrl(`/job/${job.id}`);
-  const title = `${job.title_zh} - ${store.name_zh} · ${city.name_zh} | ${SITE_NAME}`;
-  const description = truncate(
-    job.description_zh.trim() ||
-      `${store.name_zh}招聘${job.title_zh}，${city.name_zh}${job.district}，欢迎投递`,
-    155
-  );
+function pick(locale: Locale, zh: string, es: string): string {
+  return locale === "es" ? es || zh : zh || es;
+}
 
+/**
+ * Audit P0-7: canonical + hreflang are URL-driven now. Chinese keeps the
+ * original root URLs (no migration of already-ranked pages); Spanish uses
+ * /es/… and points its canonical at itself, so Google no longer discards
+ * the Spanish version as duplicate content.
+ */
+export function localeAlternates(
+  path: string,
+  locale: Locale
+): Metadata["alternates"] {
+  const zhUrl = absUrl(normalizePath(path));
+  const esUrl = absUrl(localePath(path, "es"));
   return {
-    title,
-    description,
-    alternates: { canonical: url },
-    openGraph: {
-      title,
-      description,
-      url,
-      siteName: SITE_NAME,
-      type: "website",
-      locale: "zh_CN",
-    },
-    twitter: {
-      card: "summary",
-      title,
-      description,
+    canonical: locale === "es" ? esUrl : zhUrl,
+    languages: {
+      "zh-CN": zhUrl,
+      "es-ES": esUrl,
+      "x-default": zhUrl,
     },
   };
 }
 
-export function storeMetadata(store: Store, city: City): Metadata {
-  const url = absUrl(`/store/${store.id}`);
-  const title = `${store.name_zh} · ${city.name_zh} | ${SITE_NAME}`;
-  const description = truncate(
-    `${store.name_zh}（${store.category}）· ${city.name_zh}${store.district} · 在店聘查看该店招聘信息与真实评价`,
-    155
-  );
-
+export function localizedMetadata(input: {
+  title: string;
+  description: string;
+  path: string;
+  locale: Locale;
+  robots?: Metadata["robots"];
+}): Metadata {
+  const { title, description, path, locale, robots } = input;
+  const url = absUrl(localePath(path, locale));
   return {
     title,
     description,
-    alternates: { canonical: url },
+    alternates: localeAlternates(path, locale),
     openGraph: {
       title,
       description,
       url,
       siteName: SITE_NAME,
       type: "website",
-      locale: "zh_CN",
+      locale: locale === "es" ? "es_ES" : "zh_CN",
     },
-    twitter: {
-      card: "summary",
-      title,
-      description,
-    },
+    twitter: { card: "summary", title, description },
+    ...(robots ? { robots } : {}),
   };
+}
+
+export function homeMetadata(locale: Locale = "zh"): Metadata {
+  return localizedMetadata({
+    title: t(locale, "seo.home.title"),
+    description: t(locale, "seo.home.description"),
+    path: "/",
+    locale,
+  });
+}
+
+export function jobMetadata(
+  job: Job,
+  store: PublicStore,
+  city: City,
+  locale: Locale = "zh",
+  options: { expired?: boolean } = {}
+): Metadata {
+  const title = job.title_zh || job.title_es;
+  const storeName = store.name_zh || store.name_es;
+  const cityName = pick(locale, city.name_zh, city.name_es);
+  const localizedTitle = pick(locale, job.title_zh, job.title_es);
+  const localizedStore = pick(locale, store.name_zh, store.name_es);
+  const description = truncate(
+    pick(locale, job.description_zh, job.description_es).trim() ||
+      t(locale, "seo.job.descriptionFallback", {
+        store: localizedStore,
+        title: localizedTitle,
+        city: cityName,
+        district: job.district,
+      }),
+    155
+  );
+
+  return localizedMetadata({
+    title: t(locale, "seo.job.title", {
+      title: localizedTitle || title,
+      store: localizedStore || storeName,
+      city: cityName,
+    }),
+    description,
+    path: `/job/${job.id}`,
+    locale,
+    // Expired JobPosting pages must not stay in the Jobs index (P0-3).
+    robots: options.expired ? { index: false, follow: true } : undefined,
+  });
+}
+
+export function storeMetadata(
+  store: PublicStore,
+  city: City,
+  locale: Locale = "zh"
+): Metadata {
+  const storeName = pick(locale, store.name_zh, store.name_es);
+  const cityName = pick(locale, city.name_zh, city.name_es);
+  return localizedMetadata({
+    title: t(locale, "seo.store.title", {
+      store: storeName,
+      city: cityName,
+    }),
+    description: truncate(
+      t(locale, "seo.store.description", {
+        store: storeName,
+        category: store.category,
+        city: cityName,
+        district: store.district,
+      }),
+      155
+    ),
+    path: `/store/${store.id}`,
+    locale,
+  });
 }
 
 /**
@@ -106,16 +166,20 @@ export function storeMetadata(store: Store, city: City): Metadata {
  */
 export function jobPostingJsonLd(
   job: Job,
-  store: Store,
-  city: City
+  store: PublicStore,
+  city: City,
+  locale: Locale = "zh"
 ): Record<string, unknown> {
-  const url = absUrl(`/job/${job.id}`);
+  const url = absUrl(localePath(`/job/${job.id}`, locale));
+  const storeUrl = absUrl(localePath(`/store/${store.id}`, locale));
 
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org/",
     "@type": "JobPosting",
-    title: job.title_zh,
-    description: job.description_zh.trim() || job.title_zh,
+    title: pick(locale, job.title_zh, job.title_es),
+    description:
+      pick(locale, job.description_zh, job.description_es).trim() ||
+      pick(locale, job.title_zh, job.title_es),
     identifier: {
       "@type": "PropertyValue",
       name: SITE_NAME,
@@ -124,15 +188,15 @@ export function jobPostingJsonLd(
     datePosted: job.published_at,
     hiringOrganization: {
       "@type": "Organization",
-      name: store.name_zh,
-      sameAs: absUrl(`/store/${store.id}`),
+      name: pick(locale, store.name_zh, store.name_es),
+      sameAs: storeUrl,
     },
     jobLocation: {
       "@type": "Place",
       address: {
         "@type": "PostalAddress",
         streetAddress: store.address,
-        addressLocality: city.name_zh,
+        addressLocality: pick(locale, city.name_zh, city.name_es),
         addressRegion: city.region,
         addressCountry: "ES",
       },
@@ -160,28 +224,119 @@ export function jobPostingJsonLd(
   return jsonLd;
 }
 
-export function homeMetadata(): Metadata {
-  const url = getSiteUrl();
-  const title = `${SITE_NAME} — 西班牙华人门店招聘平台`;
-  const description =
-    "面向西班牙华人的门店招聘平台：百元店、酒吧、服装店、自助寿司、超市、中餐馆等岗位，结构化筛选、门店认证、投递状态清晰可追踪。";
-
+/**
+ * Audit P1-2: the home page is the most important entity page and had zero
+ * structured data. SearchAction targets the real `?q=` filter parameter
+ * that components/JobsExplorer.tsx already reads, so it isn't a fabricated
+ * endpoint. ItemList links to every live job URL currently rendered.
+ */
+export function homeStructuredData(
+  locale: Locale,
+  jobs: Job[]
+): Record<string, unknown> {
+  const homeUrl = absUrl(localePath("/", locale));
   return {
-    title,
-    description,
-    alternates: { canonical: url },
-    openGraph: {
-      title,
-      description,
-      url,
-      siteName: SITE_NAME,
-      type: "website",
-      locale: "zh_CN",
-    },
-    twitter: {
-      card: "summary",
-      title,
-      description,
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${getSiteUrl()}/#organization`,
+        name: SITE_NAME,
+        url: getSiteUrl(),
+        logo: absUrl("/icon.svg"),
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${getSiteUrl()}/#website`,
+        url: getSiteUrl(),
+        name: SITE_NAME,
+        inLanguage: locale === "es" ? "es-ES" : "zh-CN",
+        publisher: { "@id": `${getSiteUrl()}/#organization` },
+        potentialAction: {
+          "@type": "SearchAction",
+          target: `${homeUrl}?q={search_term_string}`,
+          "query-input": "required name=search_term_string",
+        },
+      },
+      {
+        "@type": "ItemList",
+        name: t(locale, "seo.itemList.name"),
+        numberOfItems: jobs.length,
+        itemListElement: jobs.map((job, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          name: pick(locale, job.title_zh, job.title_es),
+          url: absUrl(localePath(`/job/${job.id}`, locale)),
+        })),
+      },
+    ],
+  };
+}
+
+/** Audit P0-7 follow-up: /jobs/<city> landing pages for local search intent. */
+export function cityMetadata(
+  city: City,
+  locale: Locale = "zh"
+): Metadata {
+  const cityName = pick(locale, city.name_zh, city.name_es);
+  return localizedMetadata({
+    title: t(locale, "seo.city.title", { city: cityName }),
+    description: t(locale, "seo.city.description", { city: cityName }),
+    path: `/jobs/${city.id}`,
+    locale,
+  });
+}
+
+export function cityStructuredData(
+  city: City,
+  locale: Locale,
+  jobs: Job[]
+): Record<string, unknown> {
+  const cityName = pick(locale, city.name_zh, city.name_es);
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: t(locale, "seo.city.itemList", { city: cityName }),
+    numberOfItems: jobs.length,
+    itemListElement: jobs.map((job, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: pick(locale, job.title_zh, job.title_es),
+      url: absUrl(localePath(`/job/${job.id}`, locale)),
+    })),
+  };
+}
+
+/** Audit P1-2: store pages get LocalBusiness, with ratings only when visible. */
+export function storeStructuredData(
+  store: PublicStore,
+  city: City,
+  locale: Locale
+): Record<string, unknown> {
+  const data: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: pick(locale, store.name_zh, store.name_es),
+    url: absUrl(localePath(`/store/${store.id}`, locale)),
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: store.address,
+      addressLocality: pick(locale, city.name_zh, city.name_es),
+      addressRegion: city.region,
+      addressCountry: "ES",
     },
   };
+  if (store.cover_image) data.image = store.cover_image;
+  // Rejected/unverified stores no longer show ratings in the UI, so
+  // emitting aggregateRating for them would be invisible-content spam.
+  if (store.verification_status === "verified" && store.rating_count > 0) {
+    data.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: store.rating_avg,
+      reviewCount: store.rating_count,
+      bestRating: 5,
+      worstRating: 1,
+    };
+  }
+  return data;
 }

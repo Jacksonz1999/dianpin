@@ -50,6 +50,13 @@
       "when": 1791122388291,
       "tag": "0006_fearless_pestilence",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793797133710,
+      "tag": "0007_job_updated_at",
+      "breakpoints": true
     }
   ]
 }

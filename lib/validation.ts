@@ -5,7 +5,16 @@
  * Not a profanity filter, just catches the literal "Example"/"测试"/"test"
  * tokens that placeholder copy tends to leave behind.
  */
-const PLACEHOLDER_PATTERNS: RegExp[] = [/example/i, /示例/, /测试/, /\btest\b/i];
+const PLACEHOLDER_PATTERNS: RegExp[] = [
+  /example/i,
+  /示例/,
+  /测试/,
+  /\btest(?:ing)?\b/i,
+  /\bdemo\b/i,
+  /^\s*prueba\b/i,
+  // "百元店1" style throwaway names from a quick manual test.
+  /^百元店\s*\d+\s*$/,
+];
 
 export class PlaceholderValueError extends Error {
   constructor(

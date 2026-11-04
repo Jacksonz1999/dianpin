@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
-import { getJobs, getStores } from "@/lib/db";
+import { getCities, getJobs, getStores } from "@/lib/db";
 import { absUrl, getSiteUrl } from "@/lib/site-url";
+import { localePath } from "@/lib/locale-routing";
+import { locales, type Locale } from "@/lib/i18n";
 
 // Every other DB-backed route in this app is force-dynamic (see AGENTS.md
 // history / PR #9): Railway's build stage has no live DATABASE_URL, and
@@ -11,26 +13,106 @@ import { absUrl, getSiteUrl } from "@/lib/site-url";
 // volume, not user volume, so that cost is negligible.
 export const dynamic = "force-dynamic";
 
+/** Belt-and-suspenders: keep obvious test rows out of the index even before
+ *  `npm run db:audit-cleanup` has been run on the production database. */
+function looksLikeTestStore(store: {
+  name_zh: string;
+  name_es: string;
+  address: string;
+}): boolean {
+  const text = `${store.name_zh} ${store.name_es} ${store.address}`;
+  return /\btest(?:ing)?\b|示例|测试|^百元店\s*\d+\s*$/i.test(
+    `${text} ${store.name_zh.trim()}`
+  );
+}
+
+function languageAlternates(path: string) {
+  const zhUrl = path === "/" ? `${getSiteUrl()}/` : absUrl(path);
+  const esUrl = absUrl(localePath(path, "es"));
+  return {
+    "zh-CN": zhUrl,
+    "es-ES": esUrl,
+    "x-default": zhUrl,
+  };
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
-
-  const [activeJobs, stores] = await Promise.all([
+  const [activeJobs, allStores, cities] = await Promise.all([
+    // getJobs({status:"active"}) already excludes expired rows (audit P0-3).
     getJobs({ status: "active" }),
     getStores(),
+    getCities(),
   ]);
+  const stores = allStores.filter((store) => !looksLikeTestStore(store));
+  const cityIdsWithJobs = new Set(activeJobs.map((job) => job.city));
+  const today = new Date();
 
-  return [
-    { url: siteUrl, changeFrequency: "daily", priority: 1 },
-    ...activeJobs.map((job) => ({
-      url: absUrl(`/job/${job.id}`),
-      lastModified: job.published_at,
-      changeFrequency: "daily" as const,
-      priority: 0.8,
-    })),
-    ...stores.map((store) => ({
-      url: absUrl(`/store/${store.id}`),
-      changeFrequency: "weekly" as const,
-      priority: 0.6,
-    })),
-  ];
+  const entries: MetadataRoute.Sitemap = [];
+
+  for (const locale of locales as Locale[]) {
+    entries.push({
+      // Chinese keeps the bare root (no trailing slash) — the exact URL
+      // every canonical/OG tag already points at.
+      url: locale === "zh" ? siteUrl : absUrl(localePath("/", locale)),
+      lastModified: today,
+      changeFrequency: "daily",
+      priority: locale === "zh" ? 1 : 0.9,
+      alternates: { languages: languageAlternates("/") },
+    });
+  }
+
+  for (const city of cities) {
+    if (!cityIdsWithJobs.has(city.id)) continue;
+    const path = `/jobs/${city.id}`;
+    for (const locale of locales as Locale[]) {
+      entries.push({
+        url: absUrl(localePath(path, locale)),
+        lastModified: today,
+        changeFrequency: "daily",
+        priority: 0.7,
+        alternates: { languages: languageAlternates(path) },
+      });
+    }
+  }
+
+  for (const locale of locales as Locale[]) {
+    entries.push({
+      url: absUrl(localePath("/about", locale)),
+      lastModified: today,
+      changeFrequency: "monthly",
+      priority: 0.4,
+      alternates: { languages: languageAlternates("/about") },
+    });
+  }
+
+  for (const job of activeJobs) {
+    const path = `/job/${job.id}`;
+    // Audit P1-6: lastmod used to be the hardcoded seed published_at.
+    const lastModified = job.updated_at ?? job.published_at;
+    for (const locale of locales as Locale[]) {
+      entries.push({
+        url: absUrl(localePath(path, locale)),
+        lastModified,
+        changeFrequency: "daily",
+        priority: 0.8,
+        alternates: { languages: languageAlternates(path) },
+      });
+    }
+  }
+
+  for (const store of stores) {
+    const path = `/store/${store.id}`;
+    for (const locale of locales as Locale[]) {
+      entries.push({
+        url: absUrl(localePath(path, locale)),
+        lastModified: store.created_at,
+        changeFrequency: "weekly",
+        priority: 0.6,
+        alternates: { languages: languageAlternates(path) },
+      });
+    }
+  }
+
+  return entries;
 }

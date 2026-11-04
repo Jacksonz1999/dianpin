@@ -1,12 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { Heart } from "lucide-react";
-import type { City, Job, JobType, Store } from "@/lib/types";
+import type { City, Job, JobType, PublicStore } from "@/lib/types";
 import { renderJobTypeIcon } from "@/lib/job-type-icons";
 import { useSavedJobs } from "@/lib/useSavedJobs";
 import { useLocale } from "./LocaleProvider";
+import { LocaleLink } from "./LocaleLink";
 import { StoreCoverImage } from "./StoreCoverImage";
+import { StoreVerificationBadge } from "./StoreVerificationBadge";
 
 // Every job on this platform is Spain-based and priced in euros — always
 // show €, in every locale (see the same fix and rationale already applied
@@ -27,7 +28,7 @@ export function JobCard({
   city,
 }: {
   job: Job;
-  store: Store;
+  store: PublicStore;
   jobType: JobType;
   city: City;
 }) {
@@ -40,6 +41,10 @@ export function JobCard({
   const jobTypeName = locale === "es" ? jobType.name_es : jobType.name_zh;
   const cityName = locale === "es" ? city.name_es : city.name_zh;
   const periodLabel = t(`job.salaryPeriod.${job.salary_period}`);
+  // Deterministic on both server and client: an ISO slice, not
+  // toLocaleDateString (whose default locale/timezone differs between the
+  // Node SSR process and the browser and causes hydration error #418).
+  const publishedOn = job.published_at.slice(0, 10);
 
   return (
     <div className="relative flex h-full flex-col gap-2 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
@@ -71,7 +76,8 @@ export function JobCard({
         {storeName} · {cityName} {job.district}
       </p>
 
-      <div className="flex flex-wrap gap-1.5 text-xs">
+      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+        <StoreVerificationBadge status={store.verification_status} />
         <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-bg)] px-2 py-1">
           {renderJobTypeIcon(jobType.id, "h-3.5 w-3.5 shrink-0")}
           {jobTypeName}
@@ -89,17 +95,17 @@ export function JobCard({
         </span>
       </div>
 
-      <div className="mt-auto flex items-center justify-between pt-1">
+      <div className="mt-auto flex items-center justify-between gap-2 pt-1">
         <span className="text-xs text-[var(--color-text-muted)]">
           {t("job.headcount", { count: job.headcount })} ·{" "}
-          {job.views > 0 ? t("job.views", { count: job.views }) : t("job.viewsNew")}
+          {t("job.publishedOn", { date: publishedOn })}
         </span>
-        <Link
+        <LocaleLink
           href={`/job/${job.id}`}
           className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-primary)] px-4 text-xs font-medium text-[var(--color-primary-text)]"
         >
           {t("job.viewDetail")}
-        </Link>
+        </LocaleLink>
       </div>
     </div>
   );

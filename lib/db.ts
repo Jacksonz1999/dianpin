@@ -30,6 +30,7 @@ import type {
   ApplicationStatus,
   City,
   Job,
+  JobSort,
   JobFormValues,
   JobStatus,
   JobType,
@@ -65,6 +66,13 @@ export interface JobFilters {
   status?: JobStatus;
   /** Free-text match against job title (zh/es) and store name (zh/es). */
   search?: string;
+  /** "recent" (default) = published_at desc; "salary" = monthly-normalized max desc. */
+  sort?: JobSort;
+  /**
+   * Public listings never show expired jobs (audit P0-3). Internal callers
+   * (employer dashboard, admin) can opt out with `includeExpired: true`.
+   */
+  includeExpired?: boolean;
 }
 
 export async function getCities(): Promise<City[]> {
@@ -121,6 +129,14 @@ export async function getJobs(filters: JobFilters = {}): Promise<Job[]> {
   const status = filters.status ?? "active";
 
   const conditions = [eq(jobs.status, status)];
+  // Filtering only in the list query was the original bug: the detail page
+  // stayed online (and kept its JobPosting schema + apply button). This same
+  // SQL predicate is also mirrored in lib/job-utils.ts for page-level guards.
+  if (!filters.includeExpired && status === "active") {
+    conditions.push(
+      sql`(${jobs.expires_at} IS NULL OR ${jobs.expires_at} > now())`
+    );
+  }
   if (filters.city) conditions.push(eq(jobs.city, filters.city));
   if (filters.jobType) conditions.push(eq(jobs.job_type, filters.jobType));
   if (filters.mealsIncluded) conditions.push(eq(jobs.meals_included, true));
@@ -147,7 +163,11 @@ export async function getJobs(filters: JobFilters = {}): Promise<Job[]> {
     .select()
     .from(jobs)
     .where(and(...conditions))
-    .orderBy(desc(jobs.published_at));
+    .orderBy(
+      filters.sort === "salary"
+        ? desc(monthlySalaryMax)
+        : desc(jobs.published_at)
+    );
 }
 
 export const getJobById = cache(async (id: string): Promise<Job | null> => {
@@ -158,21 +178,25 @@ export const getJobById = cache(async (id: string): Promise<Job | null> => {
 /** Used by the "我收藏的" section (WP-B3) — ids come from the browser's localStorage, not a query filter. */
 export async function getJobsByIds(ids: string[]): Promise<Job[]> {
   if (ids.length === 0) return [];
-  return db.select().from(jobs).where(inArray(jobs.id, ids));
+  // Saved jobs are still a public listing surface: don't resurrect an
+  // expired post just because it sits in someone's localStorage (P0-3).
+  return db
+    .select()
+    .from(jobs)
+    .where(
+      and(
+        inArray(jobs.id, ids),
+        sql`(${jobs.expires_at} IS NULL OR ${jobs.expires_at} > now())`
+      )
+    );
 }
 
-/**
- * Fire-and-forget from the job detail page — the displayed count is as of
- * page load, this registers for the next viewer. No per-viewer dedup (no
- * session/cookie plumbing for anonymous browsing), so it's a raw hit
- * counter, not unique visitors.
- */
-export async function incrementJobViews(id: string): Promise<void> {
-  await db
-    .update(jobs)
-    .set({ views: sql`${jobs.views} + 1` })
-    .where(eq(jobs.id, id));
-}
+// Audit P0-6: the SSR-synced `views = views + 1` counter has been removed
+// entirely. It counted every anonymous refresh (including crawlers), had no
+// dedup or ceiling, and added a write to every page render. Job cards now
+// show the publication age, which is what job seekers actually use. The
+// `jobs.views` column stays in the schema for historical data but is no
+// longer written or displayed anywhere in the app.
 
 export async function getJobsByStore(storeId: string): Promise<Job[]> {
   return db.select().from(jobs).where(eq(jobs.store_id, storeId));
@@ -401,19 +425,24 @@ export async function createStore(
 ): Promise<Store> {
   assertNotPlaceholder("nameZh", input.nameZh);
   assertNotPlaceholder("nameEs", input.nameEs);
+  // The dirty row found in production ("Testing test 1") came in through
+  // the free-text address/district, which only the name fields guarded.
+  assertNotPlaceholder("address", input.address);
+  assertNotPlaceholder("district", input.district);
 
   const [row] = await db
     .insert(stores)
     .values({
       id: `store_${randomUUID()}`,
       owner_user_id: input.ownerUserId,
-      name_zh: input.nameZh,
-      name_es: input.nameEs,
+      name_zh: input.nameZh.trim(),
+      name_es: input.nameEs.trim(),
       city: input.city,
-      district: input.district,
-      address: input.address,
+      // Trailing spaces in `district` polluted filter params (audit P0-5).
+      district: input.district.trim(),
+      address: input.address.trim(),
       category: input.category,
-      cover_image: input.coverImage,
+      cover_image: input.coverImage.startsWith("/seed/") ? "" : input.coverImage,
     })
     .returning();
   return row;
@@ -524,7 +553,7 @@ export async function createJob(
       title_es: input.titleEs,
       job_type: input.jobType,
       city: input.city,
-      district: input.district,
+      district: input.district.trim(),
       salary_min: input.salaryMin,
       salary_max: input.salaryMax,
       salary_period: input.salaryPeriod,
@@ -574,7 +603,7 @@ export async function updateJobStatus(
 
   const [row] = await db
     .update(jobs)
-    .set({ status: nextStatus })
+    .set({ status: nextStatus, updated_at: new Date().toISOString() })
     .where(eq(jobs.id, jobId))
     .returning();
   return row;
@@ -724,12 +753,9 @@ export async function getOwnSeekerPostById(
   return row ?? null;
 }
 
-export async function incrementSeekerPostViews(id: string): Promise<void> {
-  await db
-    .update(seekerPosts)
-    .set({ views: sql`${seekerPosts.views} + 1` })
-    .where(eq(seekerPosts.id, id));
-}
+// Seeker-post views are no longer incremented either, for the same reason
+// as jobs.views (audit P0-6): an unauthenticated SSR hit counter with no
+// dedup is noise, not information, and costs a write on every render.
 
 /** Creates a seeker post from the templated "发布求职信息" form. */
 export async function createSeekerPost(

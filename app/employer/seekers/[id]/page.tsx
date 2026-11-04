@@ -3,7 +3,6 @@ import {
   getCityById,
   getJobTypeById,
   getSeekerPostById,
-  incrementSeekerPostViews,
 } from "@/lib/db";
 import { getSession } from "@/lib/auth/session";
 import { SeekerPostDetailView } from "@/components/SeekerPostDetailView";
@@ -21,10 +20,6 @@ export default async function SeekerPostDetailPage({
 
   const post = await getSeekerPostById(id, { revealContact: isEmployer });
   if (!post) notFound();
-
-  void incrementSeekerPostViews(post.id).catch((err) => {
-    console.error(`[employer/seekers/${post.id}] failed to increment views:`, err);
-  });
 
   const [city, jobType] = await Promise.all([
     getCityById(post.city),

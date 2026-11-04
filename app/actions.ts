@@ -36,6 +36,8 @@ import {
 import { getSession, requireRole, requireSession } from "@/lib/auth/session";
 import { requireAdmin } from "@/lib/admin";
 import { PlaceholderValueError } from "@/lib/validation";
+import { isJobExpired } from "@/lib/job-utils";
+import { sanitizePublicStore } from "@/lib/public-store";
 import type { Locale } from "@/lib/i18n";
 import type {
   ApplicationStatus,
@@ -45,12 +47,12 @@ import type {
   JobFormValues,
   JobStatus,
   JobType,
+  PublicStore,
   ReportTargetType,
   SeekerPostFormValues,
   SeekerPostStatus,
   SeekerPostSummary,
   SeekerProfileFormValues,
-  Store,
   StoreFormValues,
 } from "@/lib/types";
 
@@ -67,7 +69,7 @@ export type ApplyToJobResult =
   | { ok: true; applicationId: string }
   | {
       ok: false;
-      error: "already_applied" | "profile_required" | "unknown";
+      error: "already_applied" | "profile_required" | "expired" | "unknown";
     };
 
 /** Postgres unique_violation error code — see https://www.postgresql.org/docs/current/errcodes-appendix.html */
@@ -94,6 +96,14 @@ export async function applyToJob(input: {
 }): Promise<ApplyToJobResult> {
   const session = await requireRole("seeker", `/job/${input.jobId}`);
   const seekerId = session.userId;
+
+  // Audit P0-3: hiding the button on the detail page is not enough — a
+  // stale tab, a bookmarked link or a crafted Server Action call must not
+  // be able to apply to an expired/closed job either.
+  const job = await getJobById(input.jobId);
+  if (!job || isJobExpired(job)) {
+    return { ok: false, error: "expired" };
+  }
 
   const [existingApplication, existingProfile] = await Promise.all([
     getApplicationForJobAndSeeker(input.jobId, seekerId),
@@ -316,7 +326,7 @@ export async function subscribeJobAlertAction(
  */
 export async function getSavedJobsDataAction(jobIds: string[]): Promise<{
   jobs: Job[];
-  stores: Store[];
+  stores: PublicStore[];
   jobTypes: JobType[];
   cities: City[];
 }> {
@@ -326,7 +336,9 @@ export async function getSavedJobsDataAction(jobIds: string[]): Promise<{
     getJobTypes(),
     getCities(),
   ]);
-  return { jobs, stores, jobTypes, cities };
+  // Audit P1-1: this action is reachable by any visitor — never return
+  // owner_user_id and the other internal store columns.
+  return { jobs, stores: stores.map(sanitizePublicStore), jobTypes, cities };
 }
 
 // ---------------------------------------------------------------------------

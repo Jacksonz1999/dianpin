@@ -1,11 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { City, Job, JobType, Review, Store } from "@/lib/types";
+import type {
+  City,
+  Job,
+  JobType,
+  PublicStore,
+  Review,
+} from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
 import { JobCard } from "./JobCard";
 import { ReportModal } from "./ReportModal";
 import { StoreCoverImage } from "./StoreCoverImage";
+import { StoreVerificationBadge } from "./StoreVerificationBadge";
 
 export function StoreDetailView({
   store,
@@ -13,12 +20,14 @@ export function StoreDetailView({
   jobs,
   jobTypes,
   reviewRows,
+  showReviews,
 }: {
-  store: Store;
+  store: PublicStore;
   city: City;
   jobs: Job[];
   jobTypes: JobType[];
   reviewRows: { review: Review; reviewerName: string }[];
+  showReviews: boolean;
 }) {
   const { locale, t } = useLocale();
   const [reportOpen, setReportOpen] = useState(false);
@@ -30,6 +39,7 @@ export function StoreDetailView({
 
   const name = locale === "es" ? store.name_es : store.name_zh;
   const cityName = locale === "es" ? city.name_es : city.name_zh;
+  const showRating = showReviews && store.rating_count > 0;
 
   return (
     <div className="flex flex-col gap-4 px-4 py-6">
@@ -41,40 +51,39 @@ export function StoreDetailView({
           className="h-40 w-full object-cover"
         />
         <div className="flex flex-col gap-2 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold">{name}</h1>
-          {/* unverified/rejected show nothing rather than a badge that
-              undersells or oversells trust the store hasn't earned —
-              see AGENTS.md §1 "门店验证" as the product's core differentiator. */}
-          {(store.verification_status === "verified" ||
-            store.verification_status === "pending") && (
-            <span className="shrink-0 rounded-full bg-[var(--color-bg)] px-2 py-1 text-xs">
-              {t(`verificationStatus.${store.verification_status}`)}
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-xl font-semibold">{name}</h1>
+            {/* Audit P0-4: EVERY store gets an explicit state, not just
+                verified/pending — otherwise unverified and rejected stores
+                look identical to a verified one. */}
+            <StoreVerificationBadge status={store.verification_status} />
+          </div>
+          <p className="text-sm text-[var(--color-text-muted)]">{store.category}</p>
+          {showRating && (
+            <p className="text-sm">
+              ★ {store.rating_avg.toFixed(1)} ({store.rating_count})
+            </p>
           )}
-        </div>
-        <p className="text-sm text-[var(--color-text-muted)]">{store.category}</p>
-        {store.rating_count > 0 && (
-          <p className="text-sm">
-            ★ {store.rating_avg.toFixed(1)} ({store.rating_count})
+          <p className="text-sm text-[var(--color-text-muted)]">
+            {t("store.addressLabel")}：{cityName} {store.district}，{store.address}
           </p>
-        )}
-        <p className="text-sm text-[var(--color-text-muted)]">
-          {t("store.addressLabel")}：{cityName} {store.district}，{store.address}
-        </p>
-        <button
-          type="button"
-          onClick={() => setReportOpen(true)}
-          className="mt-1 min-h-[44px] self-start text-xs text-[var(--color-text-muted)] underline"
-        >
-          {t("store.reportButton")}
-        </button>
+          <button
+            type="button"
+            onClick={() => setReportOpen(true)}
+            className="mt-1 min-h-[44px] self-start text-xs text-[var(--color-text-muted)] underline underline-offset-2"
+          >
+            {t("store.reportButton")}
+          </button>
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
         <h2 className="text-sm font-medium">{t("store.reviewsTitle")}</h2>
-        {reviewRows.length === 0 ? (
+        {!showReviews ? (
+          <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {t("store.ratingHidden")}
+          </p>
+        ) : reviewRows.length === 0 ? (
           <p className="text-sm text-[var(--color-text-muted)]">
             {t("store.noReviews")}
           </p>

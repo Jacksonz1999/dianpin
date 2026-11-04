@@ -1,13 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getNavTabs } from "@/lib/nav-tabs";
+import { stripLocalePrefix } from "@/lib/locale-routing";
 import { useLocale } from "./LocaleProvider";
+import { LocaleLink } from "./LocaleLink";
 import { useSessionRole } from "./SessionProvider";
 
 export function BottomNav() {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = stripLocalePrefix(rawPathname ?? "/");
   const { t } = useLocale();
   // WP-K (round 10): which Tab set to show is the account's role, not the
   // current path — pathname-based used to show an employer account
@@ -28,7 +30,7 @@ export function BottomNav() {
             tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
           const Icon = tab.Icon;
           return (
-            <Link
+            <LocaleLink
               key={tab.href}
               href={tab.href}
               className="flex min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5 py-2 text-xs"
@@ -44,7 +46,7 @@ export function BottomNav() {
               >
                 {tab.label}
               </span>
-            </Link>
+            </LocaleLink>
           );
         })}
       </div>

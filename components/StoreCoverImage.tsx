@@ -39,17 +39,25 @@ export function StoreCoverImage({
     }
   }, []);
 
-  if (!src || failed) {
-    const initial = name.trim().charAt(0) || "?";
+  // Legacy seed rows still point at /seed/*.jpg files that never existed
+  // (audit P0-1). Treat them exactly like an empty cover so no 404 request
+  // is ever issued, even before `npm run db:audit-cleanup` runs on prod.
+  const usableSrc = src.startsWith("/seed/") ? "" : src;
+
+  if (!usableSrc || failed) {
     return (
       <div
         role="img"
         aria-label={alt}
-        className={`flex items-center justify-center bg-[var(--color-bg)] text-[var(--color-text-muted)] ${className ?? ""}`}
+        className={`flex items-center justify-center bg-gradient-to-br from-[var(--color-bg)] to-[var(--color-surface)] px-3 text-[var(--color-text-muted)] ${className ?? ""}`}
       >
-        <span className="flex flex-col items-center gap-1">
-          <StoreIcon className="h-6 w-6" aria-hidden="true" />
-          <span className="text-sm font-semibold">{initial}</span>
+        {/* Show the full store name, not a single grey initial — the "首字
+            灰块" look read as an unfinished prototype in the audit. */}
+        <span className="flex max-w-full flex-col items-center gap-1 text-center">
+          <StoreIcon className="h-6 w-6 shrink-0" aria-hidden="true" />
+          <span className="line-clamp-2 text-xs font-medium leading-tight">
+            {name.trim() || "DianPin"}
+          </span>
         </span>
       </div>
     );
@@ -62,7 +70,7 @@ export function StoreCoverImage({
     // eslint-disable-next-line @next/next/no-img-element
     <img
       ref={imgRef}
-      src={src}
+      src={usableSrc}
       alt={alt}
       className={className}
       onError={() => setFailed(true)}

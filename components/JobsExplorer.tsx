@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { searchJobs } from "@/app/actions";
-import type { City, Job, JobType, Store } from "@/lib/types";
+import { localePath } from "@/lib/locale-routing";
+import type { City, Job, JobSort, JobType, PublicStore } from "@/lib/types";
+import { normalizeSalaryToMonth } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
+import { LocaleLink } from "./LocaleLink";
 import { JobCard } from "./JobCard";
 import { JobAlertSubscribeForm } from "./JobAlertSubscribeForm";
+
+type SalaryBasis = "month" | "hour";
 
 const ALL = "";
 
@@ -16,11 +20,17 @@ export function JobsExplorer({
   cities,
   jobTypes,
   stores,
+  initialCity = "",
+  basePath = "/",
 }: {
   initialJobs: Job[];
   cities: City[];
   jobTypes: JobType[];
-  stores: Store[];
+  stores: PublicStore[];
+  /** City landing pages pre-select their city without a query parameter. */
+  initialCity?: string;
+  /** URL the filter state syncs back to — "/" on home, "/jobs/<city>" on a city page. */
+  basePath?: string;
 }) {
   const { locale, t } = useLocale();
   const router = useRouter();
@@ -31,11 +41,22 @@ export function JobsExplorer({
   // that, state drives the URL, one-way.
   const searchParams = useSearchParams();
 
-  const [city, setCity] = useState<string>(searchParams.get("city") ?? ALL);
+  const [city, setCity] = useState<string>(
+    searchParams.get("city") ?? initialCity ?? ALL
+  );
   const [jobType, setJobType] = useState<string>(searchParams.get("jobType") ?? ALL);
   const [mealsIncluded, setMealsIncluded] = useState(searchParams.get("meals") === "1");
   const [residenceOk, setResidenceOk] = useState(searchParams.get("residenceOk") === "1");
   const [salaryMin, setSalaryMin] = useState<string>(searchParams.get("salaryMin") ?? "");
+  // Audit P1-4: hourly and monthly jobs share one salary floor field. Store
+  // the visitor's chosen unit and normalize to a monthly figure before it
+  // reaches the DB, so an hourly wage never silently fails to match.
+  const [salaryBasis, setSalaryBasis] = useState<SalaryBasis>(
+    searchParams.get("salaryBasis") === "hour" ? "hour" : "month"
+  );
+  const [sort, setSort] = useState<JobSort>(
+    searchParams.get("sort") === "salary" ? "salary" : "recent"
+  );
   const initialQuery = searchParams.get("q") ?? "";
   const [searchInput, setSearchInput] = useState(initialQuery);
   const [search, setSearch] = useState(initialQuery);
@@ -54,7 +75,11 @@ export function JobsExplorer({
 
   useEffect(() => {
     let cancelled = false;
-    const salaryMinNum = salaryMin ? Number(salaryMin) : undefined;
+    const rawSalaryMin = salaryMin ? Number(salaryMin) : undefined;
+    const salaryMinNum =
+      rawSalaryMin !== undefined && Number.isFinite(rawSalaryMin)
+        ? normalizeSalaryToMonth(rawSalaryMin, salaryBasis)
+        : undefined;
 
     searchJobs({
       status: "active",
@@ -62,8 +87,9 @@ export function JobsExplorer({
       jobType: jobType || undefined,
       mealsIncluded: mealsIncluded || undefined,
       residenceOk: residenceOk || undefined,
-      salaryMin: Number.isFinite(salaryMinNum) ? salaryMinNum : undefined,
+      salaryMin: salaryMinNum,
       search: search || undefined,
+      sort,
     }).then((result) => {
       if (!cancelled) setJobs(result);
     });
@@ -71,7 +97,7 @@ export function JobsExplorer({
     return () => {
       cancelled = true;
     };
-  }, [city, jobType, mealsIncluded, residenceOk, salaryMin, search]);
+  }, [city, jobType, mealsIncluded, residenceOk, salaryMin, salaryBasis, sort, search]);
 
   // J4 (round 9): filters are shareable/bookmarkable — "巴塞罗那的服务员
   // 岗" should be a link, not just an in-session state. Fires on `search`
@@ -87,10 +113,25 @@ export function JobsExplorer({
     if (mealsIncluded) params.set("meals", "1");
     if (residenceOk) params.set("residenceOk", "1");
     if (salaryMin) params.set("salaryMin", salaryMin);
+    if (salaryBasis !== "month") params.set("salaryBasis", salaryBasis);
+    if (sort !== "recent") params.set("sort", sort);
     if (search) params.set("q", search);
     const qs = params.toString();
-    router.replace(qs ? `/?${qs}` : "/", { scroll: false });
-  }, [city, jobType, mealsIncluded, residenceOk, salaryMin, search, router]);
+    const base = localePath(basePath, locale);
+    router.replace(qs ? `${base}?${qs}` : base, { scroll: false });
+  }, [
+    basePath,
+    city,
+    jobType,
+    mealsIncluded,
+    residenceOk,
+    salaryMin,
+    salaryBasis,
+    sort,
+    search,
+    locale,
+    router,
+  ]);
 
   const storesById = useMemo(
     () => new Map(stores.map((s) => [s.id, s])),
@@ -142,6 +183,8 @@ export function JobsExplorer({
   // empty, resetFilters() alone wouldn't fix that.
   function clearAllFilters() {
     setCity(ALL);
+    setSort("recent");
+    setSalaryBasis("month");
     resetFilters();
   }
 
@@ -160,12 +203,12 @@ export function JobsExplorer({
         <span className="flex min-h-[44px] flex-1 items-center justify-center rounded-full bg-[var(--color-primary)] px-3 text-sm font-medium text-[var(--color-primary-text)]">
           {t("home.dualEntry.seeker")}
         </span>
-        <Link
+        <LocaleLink
           href="/employer"
           className="flex min-h-[44px] flex-1 items-center justify-center rounded-full border border-[var(--color-border)] px-3 text-sm text-[var(--color-text-muted)]"
         >
           {t("home.dualEntry.employer")}
-        </Link>
+        </LocaleLink>
       </div>
 
       <h1 className="text-base font-semibold lg:text-lg">{t("home.title")}</h1>
@@ -283,7 +326,23 @@ export function JobsExplorer({
           </label>
 
           <label className="flex flex-col gap-1 text-sm">
-            {t("home.filters.salaryMin")}
+            {t("home.filters.salaryBasis")}
+            <select
+              value={salaryBasis}
+              onChange={(e) => setSalaryBasis(e.target.value as SalaryBasis)}
+              className="min-h-[44px] rounded-lg border border-[var(--color-border)] px-3"
+            >
+              <option value="month">{t("home.filters.salaryBasis.month")}</option>
+              <option value="hour">{t("home.filters.salaryBasis.hour")}</option>
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm">
+            {t(
+              salaryBasis === "hour"
+                ? "home.filters.salaryMin.hour"
+                : "home.filters.salaryMin"
+            )}
             <input
               type="number"
               inputMode="numeric"
@@ -313,9 +372,36 @@ export function JobsExplorer({
         </aside>
 
         <div className="mt-4 flex flex-col gap-3 lg:mt-0">
-          <p className="text-sm text-[var(--color-text-muted)]">
-            {t("home.resultsCount", { count: jobs.length })}
-          </p>
+          {/* Audit P1-4: job seekers' two most common questions are "what's
+              newest" and "what pays most". Previously the list was hardcoded
+              to published_at desc with no control at all. */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-[var(--color-text-muted)]">
+              {t("home.resultsCount", { count: jobs.length })}
+            </p>
+            <div
+              role="group"
+              aria-label={t("home.sort.label")}
+              className="inline-flex rounded-full border border-[var(--color-border)] p-0.5"
+            >
+              {(["recent", "salary"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  aria-pressed={sort === option}
+                  onClick={() => setSort(option)}
+                  className={
+                    "min-h-[36px] rounded-full px-3 text-xs " +
+                    (sort === option
+                      ? "bg-[var(--color-primary)] text-[var(--color-primary-text)]"
+                      : "text-[var(--color-text-muted)]")
+                  }
+                >
+                  {t(`home.sort.${option}`)}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {jobs.length === 0 ? (
             <div className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-8 text-center">

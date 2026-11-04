@@ -239,6 +239,12 @@ export const jobs = pgTable(
       .defaultNow(),
     expires_at: timestamp("expires_at", { withTimezone: true, mode: "string" }),
     views: integer("views").notNull().default(0),
+    // Truthful sitemap <lastmod> (audit P1-6): every status/edit writes this.
+    // defaultNow() also backfills existing rows on migration instead of
+    // leaving them NULL, so the column can stay NOT NULL.
+    updated_at: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
     // See stores.is_seed — same demo/real split, set by db/seed.ts only.
     is_seed: boolean("is_seed").notNull().default(false),
   },

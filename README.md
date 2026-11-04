@@ -106,6 +106,51 @@ npm run db:studio    # Drizzle Studio，浏览本地数据库
 3. 用配置过的邮箱登录后访问 `/admin`，会自动跳到 `/admin/stores`；用其他账号访问同一个地址会看到和路径不存在时一样的 404 页面——不会提示"无权限"，这是刻意的，避免暴露这条路径存在
 4. 功能范围只有门店认证审批（待审批列表 + 通过/拒绝 + 按状态筛选查看全部门店），不做用户管理、不做仪表盘
 
+## 双语 URL 与 SEO（第十一轮 / 审计 P0-7）
+
+中文保留原有 URL，西语全部在 `/es/` 前缀下，两者都是可被 Google 独立索引的真实页面：
+
+```
+https://dianpin.eu/                    zh-CN，canonical 指向自身
+https://dianpin.eu/es/                 es-ES，canonical 指向自身
+https://dianpin.eu/job/job_1 ↔ https://dianpin.eu/es/job/job_1
+https://dianpin.eu/store/x   ↔ https://dianpin.eu/es/store/x
+https://dianpin.eu/jobs/madrid ↔ https://dianpin.eu/es/jobs/madrid   # 城市落地页
+```
+
+`proxy.ts` 负责 rewrite + 注入 `x-dianpin-locale`；服务端用 `getRequestLocale()` 渲染 `<html lang>`、title/description、canonical、hreflang 三条（zh-CN / es-ES / x-default）、og:locale 与 JSON-LD。sitemap 同时输出两种语言的 URL 并带 `xhtml:link` 语言标注，`lastmod` 取 `jobs.updated_at` / `stores.created_at` / 当天（首页）。
+
+组件里写内部链接请用 `components/LocaleLink.tsx`，不要直接用 `next/link`，否则从西语页点出去会掉回中文 URL。
+
+首页现有 `Organization + WebSite/SearchAction + ItemList`，岗位页 `JobPosting`，门店页 `LocalBusiness`，城市页 `ItemList`。过期岗位不再输出 JobPosting，页面 `noindex`。
+
+## 合规主体信息（审计 P0-2）
+
+`/privacy`、`/terms`、`/legal` 里的运营主体、税号、地址、联系邮箱、管辖地由运营方在 Railway 配置（**不要交给 AI 猜**）：
+
+```
+LEGAL_ENTITY_NAME=         # 公司全称或负责人姓名
+LEGAL_NIF=                 # 西班牙 NIF/CIF
+LEGAL_ADDRESS=             # 注册地址
+LEGAL_CONTACT_EMAIL=       # 数据权利行使邮箱；未配置时回退到 EMAIL_FROM
+LEGAL_JURISDICTION=        # 例如 Madrid
+```
+
+这几个变量不带 `NEXT_PUBLIC_` 前缀，是服务端运行时读取，**重启服务**即可生效。页面顶部的「⚠️ 合规草稿」警告条已删除；隐私政策另补了 LSSI-CE 信息社会服务提供者与投诉/调解渠道章节。填完后仍建议由律师过一遍全文。
+
+## 线上数据一次性清理（审计 P0-1 / P0-3 / P0-5）
+
+代码侧的防线已经上线，但生产库里早先写入的坏数据需要手动跑一次脚本。在 Railway 服务的 **Shell** 标签页执行：
+
+```bash
+npm run db:audit-cleanup -- --dry-run   # 先看会改哪些行
+npm run db:audit-cleanup                # 实际修复
+```
+
+脚本是幂等的，做四件事：清空 `/seed/*.jpg` 死链引用、删除 `Testing test 1` / `百元店1` 一类测试门店（连带其岗位/投递/评价/举报）、`trim` 门店与岗位的 `district`、把 `expires_at < now()` 的 `active` 岗位置为 `closed`。
+
+另外本轮新增了 `drizzle/0007_job_updated_at.sql`（`jobs.updated_at`），Railway 的 `preDeployCommand` 会自动执行 `npm run db:migrate`，本地开发需手动跑一次。
+
 ## 演示数据 vs 真实数据
 
 `stores`/`jobs` 表有一个 `is_seed` 字段，只有 `db/seed.ts` 插入的行会置为 `true`，通过网站正常发布的门店/岗位、CSV 导入的门店/岗位都是 `false`——这样才能把演示数据整体清空而不动真实数据。

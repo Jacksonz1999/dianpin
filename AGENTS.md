@@ -86,7 +86,7 @@ dianpin/
 | `users` | id, role(seeker/employer), phone, wechat, name, locale, created_at |
 | `seeker_profiles` | user_id, job_types[], experience_years, available_from, residence_status, expected_salary_min/max, preferred_cities[], live_in_ok, languages[], bio, avatar |
 | `stores` | id, owner_user_id, name_zh/es, city, district, address, category, cover_image, photos[], verification_status, verified_at, rating_avg, rating_count, created_at（第十轮新增，管理员后台排序/展示用，之前这张表没有创建时间字段） |
-| `jobs` | id, store_id, title_zh/es, job_type, city, district, salary_min/max, salary_period, headcount, schedule, live_in, meals_included, language_required, residence_required, description_zh/es, status, published_at, expires_at, views |
+| `jobs` | id, store_id, title_zh/es, job_type, city, district, salary_min/max, salary_period, headcount, schedule, live_in, meals_included, language_required, residence_required, description_zh/es, status, published_at, expires_at, views, **updated_at**（第十一轮新增：sitemap 的 `<lastmod>` 真实来源）, is_seed |
 | `applications` | id, job_id, seeker_user_id, status, message, contact_revealed, created_at, updated_at — **UNIQUE(job_id, seeker_user_id)** |
 | `reviews` | id, store_id, seeker_user_id, rating(1-5), comment, created_at |
 | `reports` | id, target_type(job/store), target_id, reporter_user_id, reason, status |
@@ -114,6 +114,12 @@ dianpin/
 
 ## 6. 路由与交互约定
 
+- **语言路由（第十一轮 / 审计 P0-7）**：中文保留原有根 URL（`/`、`/job/[id]`、`/store/[id]`），西语全部在 `/es/…`。`proxy.ts` 把 `/es/…` rewrite 到同一批页面，并注入 `x-dianpin-locale: es` 请求头；`lib/locale-server.ts` 的 `getRequestLocale()` 是服务端唯一定位语言的方式，`lib/locale-routing.ts` 提供纯路径函数。根 `<html lang>`、metadata、canonical、hreflang（zh-CN / es-ES / x-default）、title / description / og:locale、JSON-LD 都按 URL 语言服务端渲染，不依赖 localStorage。客户端组件统一用 `components/LocaleLink.tsx`（不是 `next/link`）生成内部链接，语言切换按钮走整页导航以改变 URL。`/zh/…` 308 到根 URL。**不要再新增纯客户端 state 的双语切换，也不要把 canonical 硬编码成中文版 URL。**
+- **城市落地页（第十一轮）**：`/jobs/[city]`（及 `/es/jobs/[city]`）为马德里/巴塞罗那提供独立的 title / description / ItemList，首页与 sitemap 都有入口。
+- **岗位有效期（审计 P0-3）**：`lib/job-utils.ts` 的 `isJobLive/isJobExpired` 是唯一判定；列表查询、门店页、收藏、详情页、投递 Server Action 都必须用同一判定。过期页保留 200 + 「该岗位已结束」+ 禁投递 + `noindex` + 不输出 JobPosting JSON-LD；不能靠前端藏按钮。
+- **浏览量（审计 P0-6）**：`jobs.views` / `seeker_posts.views` 列保留但不再自增、不再展示；卡片显示真实发布日期。不要恢复 SSR 同步写库计数。
+- **公开数据边界（审计 P1-1）**：公开页面的 RSC payload 只允许 `PublicStore`（`lib/public-store.ts`），`owner_user_id` / `verified_at` / `is_seed` / `created_at` 一律不进前端；雇主/管理端仍用完整 `Store`。
+- **门店认证（审计 P0-4）**：所有门店都用 `StoreVerificationBadge` 显式标注状态；`rejected` 门店隐藏评分与评价（含 LocalBusiness 的 aggregateRating），但保留真实岗位展示。
 - 移动端底部三 Tab：**求职者** = 找工 / 投递 / 我的；**雇主** = 工作台 / 发布 / 我的（移动端底部导航空间有限，`lib/nav-tabs.ts` 的 `getNavTabs()` 共享数组不新增第四个 Tab，因为它同时驱动 `BottomNav` 和桌面 `Header`，改数组会让手机也多出一个 Tab）。第八轮新增的"找人"入口（`/employer/seekers`）**只加在桌面 `Header` 的顶部导航**（与共享 tabs 数组并列渲染，不进数组本身），移动端改为在雇主工作台（`/employer`，本来就是三 Tab 之一）首屏放一张入口卡片——两端各自解决"进 Tab 的空间有限"这个问题，不是同一套实现
 - **免登录可浏览**岗位列表与详情；只有投递、发布、查看联系方式时才要求登录（转化率优先）。第八轮新增的求职信息（`seeker_posts`）同样免登录可浏览列表与详情，仅联系方式字段登录门槛，见下一条
 - 雇主**标记「已联系」后**才展示候选人完整联系方式 —— 防骚扰，不要提前暴露。`seeker_posts` 的联系方式门槛与此不同：求职帖没有"投递"动作可供状态流转，改为"以雇主身份登录后才在详情页展示联系方式"——列表页在任何登录状态下都**不渲染**手机号/微信号，这是底线，不能退让
@@ -147,7 +153,14 @@ EMAIL_FROM=               # info@dianpin.eu，域名须在 Resend 后台验证�
 WHATSAPP_TOKEN= / TWILIO_ACCOUNT_SID= / TWILIO_AUTH_TOKEN=
 R2_ACCOUNT_ID= / R2_ACCESS_KEY= / R2_SECRET_KEY= / R2_BUCKET=
 ADMIN_EMAILS=             # 逗号分隔，不配则 /admin 对所有人 404，见 §6 管理员后台
+LEGAL_ENTITY_NAME=        # 合规主体信息，见 README「合规主体信息」
+LEGAL_NIF=                # 西班牙税号 NIF/CIF
+LEGAL_ADDRESS=            # 注册地址
+LEGAL_CONTACT_EMAIL=      # 数据权利行使邮箱；不配时回退到 EMAIL_FROM
+LEGAL_JURISDICTION=       # 管辖法院所在地
 ```
+
+**合规主体信息只能由运营方/律师提供，AI 不得代填**（审计 P0-2）。技术侧把 `/privacy` `/terms` `/legal` 的占位符做成 `LEGAL_*` 环境变量注入（`lib/legal.ts`），并已删掉页面顶部「⚠️ 合规草稿」警告条；未配置时正文保留明确的 `[方括号]` 占位符。
 
 **域名**：`.es` 对西班牙本地搜索与信任度最好，约 $15–22/年（续费约 $22/年）；你在西班牙有居留，注册无障碍。备选 `.eu`（需欧盟居留，你符合）或 `.com`。DNS 建议托管到 Cloudflare（免费 CDN + 免费 SSL + 缓存图片省出网流量）。
 
