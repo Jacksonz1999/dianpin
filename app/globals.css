@@ -22,11 +22,11 @@ body {
     "Hiragino Sans GB", "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* Audit phase-1 UI7: the default stack lists CJK fonts first, so Spanish
-   text on /es/ pages rendered in a CJK glyph set on Chinese systems — looks
-   off. The Spanish locale drops the CJK fonts so Latin text uses a proper
-   Western sans. */
-.locale-es {
+/* Audit phase-1 UI7: the default stack lists CJK fonts first, so Spanish /
+   English text on the international (/es, /en) pages rendered in a CJK glyph
+   set on Chinese systems — looks off. The international locales drop the CJK
+   fonts so Latin text uses a proper Western sans. */
+.locale-intl {
   font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 

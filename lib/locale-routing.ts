@@ -16,17 +16,27 @@ import { defaultLocale, type Locale } from "./i18n";
  */
 
 export const ES_PREFIX = "/es";
+export const EN_PREFIX = "/en";
 export const LOCALE_HEADER = "x-dianpin-locale";
 
+// Non-Chinese locales live under a path prefix and are rewritten to the same
+// App Router pages by proxy.ts (which injects x-dianpin-locale). Chinese
+// stays on root URLs so nothing that already ranks changes address.
+const LOCALE_PREFIXES: Record<Exclude<Locale, "zh">, string> = {
+  es: ES_PREFIX,
+  en: EN_PREFIX,
+};
+
 export function isLocale(value: unknown): value is Locale {
-  return value === "zh" || value === "es";
+  return value === "zh" || value === "es" || value === "en";
 }
 
 /** `/` -> `/es/`, `/job/1` -> `/es/job/1`; zh paths are returned unchanged. */
 export function localePath(path: string, locale: Locale): string {
   const normalized = normalizePath(path);
-  if (locale !== "es") return normalized;
-  return normalized === "/" ? `${ES_PREFIX}/` : `${ES_PREFIX}${normalized}`;
+  const prefix = LOCALE_PREFIXES[locale as Exclude<Locale, "zh">];
+  if (!prefix) return normalized;
+  return normalized === "/" ? `${prefix}/` : `${prefix}${normalized}`;
 }
 
 export function normalizePath(path: string): string {
@@ -36,18 +46,25 @@ export function normalizePath(path: string): string {
 }
 
 export function localeFromPathname(pathname: string): Locale {
-  return pathname === ES_PREFIX ||
-    pathname.startsWith(`${ES_PREFIX}/`) ||
-    pathname.startsWith(`${ES_PREFIX}?`)
-    ? "es"
-    : defaultLocale;
+  for (const [locale, prefix] of Object.entries(LOCALE_PREFIXES)) {
+    if (
+      pathname === prefix ||
+      pathname.startsWith(`${prefix}/`) ||
+      pathname.startsWith(`${prefix}?`)
+    ) {
+      return locale as Locale;
+    }
+  }
+  return defaultLocale;
 }
 
 /** `/es/job/1` -> `/job/1`; `/job/1` -> `/job/1`. */
 export function stripLocalePrefix(pathname: string): string {
-  if (pathname === ES_PREFIX) return "/";
-  if (pathname.startsWith(`${ES_PREFIX}/`)) {
-    return normalizePath(pathname.slice(ES_PREFIX.length));
+  for (const prefix of Object.values(LOCALE_PREFIXES)) {
+    if (pathname === prefix) return "/";
+    if (pathname.startsWith(`${prefix}/`)) {
+      return normalizePath(pathname.slice(prefix.length));
+    }
   }
   return pathname || "/";
 }

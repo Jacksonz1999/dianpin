@@ -29,9 +29,11 @@ function looksLikeTestStore(store: {
 function languageAlternates(path: string) {
   const zhUrl = path === "/" ? `${getSiteUrl()}/` : absUrl(path);
   const esUrl = absUrl(localePath(path, "es"));
+  const enUrl = absUrl(localePath(path, "en"));
   return {
     "zh-CN": zhUrl,
     "es-ES": esUrl,
+    "en-US": enUrl,
     "x-default": zhUrl,
   };
 }

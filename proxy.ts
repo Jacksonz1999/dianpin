@@ -30,7 +30,7 @@ export function proxy(request: NextRequest) {
   // always derived from the URL here and overwritten, never trusted from
   // the incoming request.
   const locale = localeFromPathname(pathname);
-  const isSpanish = locale === "es";
+  const isIntl = locale !== "zh";
 
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isDev = process.env.NODE_ENV === "development";
@@ -64,7 +64,7 @@ export function proxy(request: NextRequest) {
   requestHeaders.set(LOCALE_HEADER, locale);
   requestHeaders.set("Content-Security-Policy", contentSecurityPolicyHeaderValue);
 
-  if (isSpanish) {
+  if (isIntl) {
     const rewritten = request.nextUrl.clone();
     rewritten.pathname = stripLocalePrefix(pathname);
     const response = NextResponse.rewrite(rewritten, {

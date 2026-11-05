@@ -24,6 +24,20 @@ const CHECKS = [
     create: `ALTER TABLE "jobs"
              ADD COLUMN IF NOT EXISTS "updated_at" timestamptz NOT NULL DEFAULT now()`,
   },
+  {
+    name: "jobs.source / poster_slug / contact_* / title_en / description_en (0008, PegaLocal posters)",
+    exists: `SELECT 1 FROM information_schema.columns
+             WHERE table_schema = 'public'
+               AND table_name = 'jobs'
+               AND column_name = 'poster_slug'`,
+    create: `ALTER TABLE "jobs"
+             ADD COLUMN IF NOT EXISTS "source" text NOT NULL DEFAULT 'standard',
+             ADD COLUMN IF NOT EXISTS "poster_slug" text UNIQUE,
+             ADD COLUMN IF NOT EXISTS "contact_phone" text NOT NULL DEFAULT '',
+             ADD COLUMN IF NOT EXISTS "contact_whatsapp" text NOT NULL DEFAULT '',
+             ADD COLUMN IF NOT EXISTS "title_en" text,
+             ADD COLUMN IF NOT EXISTS "description_en" text NOT NULL DEFAULT ''`,
+  },
 ];
 
 const connectionString = process.env.DATABASE_URL;
