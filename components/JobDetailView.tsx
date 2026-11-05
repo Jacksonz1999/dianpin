@@ -4,6 +4,7 @@ import { Heart } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { renderJobTypeIcon } from "@/lib/job-type-icons";
 import { useSavedJobs } from "@/lib/useSavedJobs";
+import type { JobPosterMeta } from "@/lib/db";
 import type {
   ApplicationStatus,
   City,
@@ -44,6 +45,8 @@ export function JobDetailView({
   existingApplicationStatus,
   hasProfile,
   initialProfileValues,
+  /** PegaLocal poster jobs: contact + English copy surfaced here. */
+  posterMeta,
 }: {
   job: Job;
   store: PublicStore;
@@ -59,6 +62,7 @@ export function JobDetailView({
   existingApplicationStatus: ApplicationStatus | null;
   hasProfile: boolean;
   initialProfileValues: SeekerProfileFormValues;
+  posterMeta?: JobPosterMeta | null;
 }) {
   const { locale, t, href } = useLocale();
   const [applyOpen, setApplyOpen] = useState(false);
@@ -66,8 +70,20 @@ export function JobDetailView({
   const { isSaved, toggleSaved } = useSavedJobs();
   const saved = isSaved(job.id);
 
-  const title = locale === "es" ? job.title_es : job.title_zh;
-  const description = locale === "es" ? job.description_es : job.description_zh;
+  // Poster jobs carry English copy in title_en/description_en; prefer it on
+  // the English locale and fall back to the zh/es fields otherwise.
+  const title =
+    locale === "en" && posterMeta?.titleEn
+      ? posterMeta.titleEn
+      : locale === "es"
+        ? job.title_es
+        : job.title_zh;
+  const description =
+    locale === "en" && posterMeta?.descriptionEn
+      ? posterMeta.descriptionEn
+      : locale === "es"
+        ? job.description_es
+        : job.description_zh;
   const storeName = locale === "es" ? store.name_es : store.name_zh;
   const cityName = locale === "es" ? city.name_es : city.name_zh;
   const jobTypeName = locale === "es" ? jobType.name_es : jobType.name_zh;
@@ -234,6 +250,32 @@ export function JobDetailView({
           </LocaleLink>
 
           <div className="flex flex-col gap-2">
+            {posterMeta && (posterMeta.contactPhone || posterMeta.contactWhatsapp) && (
+              <div className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                <span className="text-sm font-medium">
+                  {t("poster.contactTitle")}
+                </span>
+                {posterMeta.contactPhone && (
+                  <a
+                    href={`tel:${posterMeta.contactPhone}`}
+                    className="flex min-h-[40px] items-center justify-center rounded-full bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--color-primary-text)]"
+                  >
+                    📞 {posterMeta.contactPhone}
+                  </a>
+                )}
+                {posterMeta.contactWhatsapp && (
+                  <a
+                    href={`https://wa.me/${posterMeta.contactWhatsapp.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-[40px] items-center justify-center rounded-full border border-[var(--color-border)] px-4 text-sm font-medium"
+                  >
+                    WhatsApp
+                  </a>
+                )}
+              </div>
+            )}
+
             {expired ? (
               <div className="flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-bg)] px-4 text-sm text-[var(--color-text-muted)]">
                 {t("job.expired.applyDisabled")}

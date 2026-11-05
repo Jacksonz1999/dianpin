@@ -4,6 +4,7 @@ import {
   getApplicationForJobAndSeeker,
   getCityById,
   getJobById,
+  getJobPosterMeta,
   getJobTypeById,
   getJobTypes,
   getJobs,
@@ -65,6 +66,7 @@ export default async function JobDetailPage({
     storeJobs,
     sameTypeJobs,
     sameCityJobs,
+    posterMeta,
   ] = await Promise.all([
     getStoreById(job.store_id),
     getCityById(job.city),
@@ -77,6 +79,7 @@ export default async function JobDetailPage({
     // recommendations can never send a seeker to a dead posting.
     getJobs({ status: "active", jobType: job.job_type }),
     getJobs({ status: "active", city: job.city }),
+    getJobPosterMeta(job.id),
   ]);
 
   if (!storeRow || !city || !jobType) notFound();
@@ -150,6 +153,7 @@ export default async function JobDetailPage({
           expectedSalaryMin: seekerProfile?.expected_salary_min ?? null,
           expectedSalaryMax: seekerProfile?.expected_salary_max ?? null,
         }}
+        posterMeta={posterMeta}
       />
     </>
   );

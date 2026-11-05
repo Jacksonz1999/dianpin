@@ -410,6 +410,7 @@ const zh: Dict = {
   "notFound.backHome": "回到岗位列表",
 
   "common.skipToContent": "跳到主要内容",
+  "poster.contactTitle": "联系店主",
 
   "legal.privacy.title": "隐私政策",
   "legal.privacy.section.controller.heading": "数据控制者",
@@ -892,6 +893,7 @@ const es: Dict = {
   "notFound.backHome": "Volver a la lista de empleos",
 
   "common.skipToContent": "Saltar al contenido principal",
+  "poster.contactTitle": "Contactar con la tienda",
 
   "legal.privacy.title": "Política de privacidad",
   "legal.privacy.section.controller.heading": "Responsable del tratamiento",
@@ -1020,6 +1022,7 @@ const en: Dict = {
   "common.submit": "Submit",
   "common.fillRequiredFields": "Please fill in all required fields",
   "common.skipToContent": "Skip to main content",
+  "poster.contactTitle": "Contact the store",
 
   "home.title": "Find a job",
   "home.citySwitch": "Change city",

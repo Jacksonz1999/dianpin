@@ -637,6 +637,176 @@ export async function createJob(
   return row;
 }
 
+// ---------------------------------------------------------------------------
+// PegaLocal poster jobs (phase 2)
+//
+// The poster-specific columns (source / poster_slug / contact_phone /
+// contact_whatsapp / title_en / description_en) are intentionally kept OUT of
+// the drizzle `jobs` schema (see db/schema.ts + migration 0008): the app reads
+// and writes them only through the guarded helpers below, so a database where
+// preDeploy migrations were skipped still serves every page (ensure-schema.mjs
+// backfills the columns at startup). Compliance note: the poster form NEVER
+// collects nationality — only store name, job type, pay, meals/lodging,
+// residency *requirement* (not status), city/district and contact.
+// ---------------------------------------------------------------------------
+
+/** Creates the (unverified) store that a poster job is attached to. */
+export async function createPosterStore(input: {
+  ownerUserId: string;
+  nameZh: string;
+  city: string;
+  district: string;
+  category: string;
+}): Promise<Store> {
+  const [row] = await db
+    .insert(stores)
+    .values({
+      id: `store_${randomUUID()}`,
+      owner_user_id: input.ownerUserId,
+      // No translation service yet: Spanish store name mirrors the Chinese one
+      // for MVP. The poster's job copy (title/description) carries the real
+      // Spanish/English text, not the store name.
+      name_zh: input.nameZh.trim(),
+      name_es: input.nameZh.trim(),
+      city: input.city,
+      district: input.district.trim(),
+      address: input.district.trim(),
+      category: input.category,
+      cover_image: "",
+    })
+    .returning();
+  return row;
+}
+
+export interface CreatePosterJobInput {
+  storeId: string;
+  jobTypeId: string;
+  city: string;
+  district: string;
+  titleZh: string;
+  titleEs: string;
+  titleEn: string;
+  descriptionZh: string;
+  descriptionEs: string;
+  descriptionEn: string;
+  salaryMin: number;
+  salaryMax: number;
+  salaryPeriod: "hour" | "day" | "month";
+  headcount: number;
+  schedule?: string;
+  liveIn: boolean;
+  mealsIncluded: boolean;
+  languageRequired: string;
+  residenceRequired: "none" | "prefer" | "required";
+  posterSlug: string;
+  contactPhone: string;
+  contactWhatsapp: string;
+}
+
+/**
+ * Inserts a poster job with all columns — including the poster-only ones that
+ * aren't in the drizzle schema — via a single raw INSERT. Retries on a
+ * poster_slug unique violation with a freshly generated slug.
+ */
+export async function createPosterJob(input: CreatePosterJobInput): Promise<string> {
+  let slug = input.posterSlug;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const id = `job_${randomUUID()}`;
+    try {
+      const result = await db.execute<{ id: string }>(sql`
+        INSERT INTO jobs (
+          id, store_id, title_zh, title_es, job_type, city, district,
+          salary_min, salary_max, salary_period, headcount, schedule,
+          live_in, meals_included, language_required, residence_required,
+          description_zh, description_es, status, published_at, expires_at,
+          is_seed, slug, source, poster_slug, contact_phone, contact_whatsapp,
+          title_en, description_en
+        ) VALUES (
+          ${id}, ${input.storeId}, ${input.titleZh}, ${input.titleEs},
+          ${input.jobTypeId}, ${input.city}, ${input.district},
+          ${input.salaryMin}, ${input.salaryMax}, ${input.salaryPeriod},
+          ${input.headcount}, ${input.schedule ?? ""}, ${input.liveIn},
+          ${input.mealsIncluded}, ${input.languageRequired ?? ""},
+          ${input.residenceRequired}, ${input.descriptionZh}, ${input.descriptionEs},
+          'active', ${new Date().toISOString()},
+          ${new Date(Date.now() + 60 * 24 * 3600 * 1000).toISOString()},
+          false, '', 'poster', ${slug}, ${input.contactPhone},
+          ${input.contactWhatsapp}, ${input.titleEn}, ${input.descriptionEn}
+        ) RETURNING id
+      `);
+      return result.rows[0].id;
+    } catch (err) {
+      const code = (err as { code?: string } | null)?.code;
+      if (code === "23505") {
+        // poster_slug collision — regenerate and retry.
+        slug = randomUUID().replace(/-/g, "").slice(0, 12);
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error("Failed to allocate a unique poster slug after retries");
+}
+
+export interface JobPosterMeta {
+  source: string;
+  posterSlug: string | null;
+  contactPhone: string;
+  contactWhatsapp: string;
+  titleEn: string | null;
+  descriptionEn: string;
+}
+
+/**
+ * Reads the poster-only columns. Guarded: if 0008 hasn't been applied yet
+ * (preDeploy skipped AND ensure-schema somehow absent) this returns null
+ * instead of 500ing the page.
+ */
+export async function getJobPosterMeta(jobId: string): Promise<JobPosterMeta | null> {
+  try {
+    const result = await db.execute<{
+      source: string;
+      poster_slug: string | null;
+      contact_phone: string;
+      contact_whatsapp: string;
+      title_en: string | null;
+      description_en: string;
+    }>(sql`
+      SELECT source, poster_slug, contact_phone, contact_whatsapp,
+             title_en, description_en
+      FROM jobs WHERE id = ${jobId}
+    `);
+    const row = result.rows[0];
+    if (!row) return null;
+    return {
+      source: row.source ?? "standard",
+      posterSlug: row.poster_slug ?? null,
+      contactPhone: row.contact_phone ?? "",
+      contactWhatsapp: row.contact_whatsapp ?? "",
+      titleEn: row.title_en ?? null,
+      descriptionEn: row.description_en ?? "",
+    };
+  } catch (err) {
+    if (isUndefinedColumn(err)) return null;
+    throw err;
+  }
+}
+
+/** Resolves a poster short-link slug to its job id + status (for QR landings). */
+export async function getJobBySlug(
+  slug: string
+): Promise<{ id: string; status: string } | null> {
+  try {
+    const result = await db.execute<{ id: string; status: string }>(
+      sql`SELECT id, status FROM jobs WHERE poster_slug = ${slug}`
+    );
+    return result.rows[0] ?? null;
+  } catch (err) {
+    if (isUndefinedColumn(err)) return null;
+    throw err;
+  }
+}
+
 export async function updateJobStatus(
   jobId: string,
   nextStatus: JobStatus

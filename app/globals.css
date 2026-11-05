@@ -30,6 +30,27 @@ body {
   font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* PegaLocal poster: when printing (or saving as PDF), show only the A4
+   poster card — hide the app chrome, buttons and the phone-share card. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #poster-print,
+  #poster-print * {
+    visibility: visible;
+  }
+  #poster-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: none;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
