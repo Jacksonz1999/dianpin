@@ -289,6 +289,7 @@ const zh: Dict = {
 
   "store.reportButton": "举报门店",
   "store.ratingLabel": "评分",
+  "store.ratingSummary": "⭐ {avg} · {count} 条评价",
   "store.noRatingYet": "暂无评分",
   "store.reviewsTitle": "用户评价",
   "store.noReviews": "还没有评价",
@@ -487,7 +488,8 @@ const zh: Dict = {
 };
 
 const es: Dict = {
-  "app.name": "DianPin",
+  "app.name": "PegaLocal",
+  "app.slogan": "Tu trabajo cerca de casa",
 
   "seo.home.title": "DianPin — Empleo para la comunidad china en España",
   "seo.home.description":
@@ -770,6 +772,7 @@ const es: Dict = {
 
   "store.reportButton": "Reportar tienda",
   "store.ratingLabel": "Valoración",
+  "store.ratingSummary": "⭐ {avg} · {count} valoraciones",
   "store.noRatingYet": "Sin valoraciones aún",
   "store.reviewsTitle": "Opiniones",
   "store.noReviews": "Aún no hay opiniones",
@@ -893,7 +896,7 @@ const es: Dict = {
   "legal.privacy.title": "Política de privacidad",
   "legal.privacy.section.controller.heading": "Responsable del tratamiento",
   "legal.privacy.section.controller.body":
-    "店聘 DianPin (en adelante, \"la plataforma\") está operada por {entity} (NIF/CIF: {nif}, domicilio: {address}), responsable del tratamiento de los datos personales de los usuarios de esta plataforma (art. 13(1)(a) RGPD/GDPR). Para cualquier consulta sobre esta política o para ejercer sus derechos, contacte con: {email}.",
+    "PegaLocal (DianPin) (en adelante, \"la plataforma\") está operada por {entity} (NIF/CIF: {nif}, domicilio: {address}), responsable del tratamiento de los datos personales de los usuarios de esta plataforma (art. 13(1)(a) RGPD/GDPR). Para cualquier consulta sobre esta política o para ejercer sus derechos, contacte con: {email}.",
   "legal.privacy.section.lssi.heading": "Prestador de servicios y reclamaciones / mediación",
   "legal.privacy.section.lssi.body":
     "Esta plataforma es un servicio de la sociedad de la información conforme a la Ley 34/2002 (LSSI-CE). La identidad del prestador, NIF y domicilio figuran en el apartado «Responsable del tratamiento» y en el Aviso legal (art. 10 LSSI-CE).\n\nConforme al art. 7 LSSI-CE y al art. 12(1) RGPD, puede presentar gratuitamente consultas, reclamaciones o solicitudes de derechos a través de {email}; confirmaremos la recepción por escrito, responderemos en el plazo legal y conservaremos el registro de la reclamación. Si no se alcanza una solución amistosa, puede reclamar ante la Agencia Española de Protección de Datos (AEPD, www.aepd.es) o acudir a los mecanismos de mediación o arbitraje de consumo previstos en la normativa de consumidores; esta plataforma no impone el arbitraje obligatorio ni limita su derecho a acudir a los tribunales.",
@@ -925,7 +928,7 @@ const es: Dict = {
   "legal.terms.title": "Términos de servicio",
   "legal.terms.section.acceptance.heading": "Aceptación de los términos",
   "legal.terms.section.acceptance.body":
-    "Al usar 店聘 DianPin, usted acepta estos términos de servicio. Si no está de acuerdo, no utilice la plataforma.",
+    "Al usar PegaLocal (DianPin), usted acepta estos términos de servicio. Si no está de acuerdo, no utilice la plataforma.",
   "legal.terms.section.service.heading": "Descripción del servicio",
   "legal.terms.section.service.body":
     "Esta plataforma ofrece a buscadores de empleo y empleadores de tiendas chinas en España un servicio de publicación de ofertas, filtrado estructurado, postulación en línea y gestión de candidatos. Se puede consultar ofertas y tiendas sin registrarse; postularse, publicar ofertas o ver datos de contacto requiere iniciar sesión. La plataforma solo presta un servicio de intermediación informativa; no es parte de ninguna relación laboral y no asume responsabilidad por las condiciones laborales o el pago de salarios acordados entre empleador y candidato.",
@@ -957,7 +960,7 @@ const es: Dict = {
     "Este sitio web tiene como finalidad ofrecer un servicio de intermediación de ofertas de empleo en tiendas para la comunidad china en España. El acceso y uso de este sitio implica la aceptación de este aviso legal y de los correspondientes términos de servicio y política de privacidad.",
   "legal.legal.section.ip.heading": "Propiedad intelectual",
   "legal.legal.section.ip.body":
-    "El diseño, la interfaz, el código y la marca \"店聘 DianPin\" son propiedad del titular; queda prohibida su reproducción o uso comercial sin autorización. Los derechos sobre el contenido de tiendas y ofertas pertenecen al empleador que los publica.",
+    "El diseño, la interfaz, el código y la marca \"PegaLocal (DianPin)\" son propiedad del titular; queda prohibida su reproducción o uso comercial sin autorización. Los derechos sobre el contenido de tiendas y ofertas pertenecen al empleador que los publica.",
   "legal.legal.section.disclaimer.heading": "Exención de responsabilidad",
   "legal.legal.section.disclaimer.body":
     "El titular no se responsabiliza de la veracidad del contenido publicado por los usuarios, si bien actuará ante contenido falso o infractor verificado (ver la función de denuncia). El titular no será responsable de interrupciones del servicio derivadas de fallos de red o de terceros proveedores por causa de fuerza mayor.",

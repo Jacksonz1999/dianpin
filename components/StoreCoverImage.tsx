@@ -1,26 +1,90 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Store as StoreIcon } from "lucide-react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
+import {
+  Shirt,
+  ShoppingBag,
+  ShoppingCart,
+  Store as StoreIcon,
+  UtensilsCrossed,
+  Wine,
+} from "lucide-react";
 
 /**
  * Shared cover-image renderer for job cards, the store detail page and the
  * job detail page (C4). `stores.cover_image` is often empty — WP5b (R2
  * upload) isn't built yet, so real stores have no photo — and even a set
- * URL can 404. Either case falls back to a branded color block with a
- * store icon + name initial instead of a broken-image icon or blank gap.
- * No real storefront photo is fabricated here; the fallback is a generic
- * icon, not a sample photo.
+ * URL can 404. Either case falls back to a branded, category-tinted color
+ * block with a large category icon + the store name, instead of a
+ * broken-image icon or a blank gap. No real storefront photo is fabricated
+ * here; the fallback is a generic icon, not a sample photo.
  */
+
+type CategoryStyle = { gradient: string; Icon: ComponentType<{ className?: string }> };
+
+// Audit phase-1 UI1: the grey "first-letter block" read as an unfinished
+// prototype. The fallback is now a category-colored gradient with a big
+// category icon + the full store name. Order matters: most specific first.
+const CATEGORY_STYLES: { test: RegExp; style: CategoryStyle }[] = [
+  {
+    // 中餐 / 西餐 / 寿司 / 自助 / 咖啡 / 酒吧
+    test: /中餐|西餐|餐厅|restaurante|comida|寿司|sushi|buffet|咖啡|coffee|cafeter|bar|酒吧|餐/i,
+    style: {
+      gradient: "from-rose-400 to-red-500",
+      Icon: UtensilsCrossed,
+    },
+  },
+  {
+    // 超市 / 便利店
+    test: /超市|supermercado|super|mercado|conveniencia|便利店/i,
+    style: {
+      gradient: "from-emerald-400 to-green-500",
+      Icon: ShoppingCart,
+    },
+  },
+  {
+    // 百元店 / 杂货 / 小商品 (bazares)
+    test: /百元店|bazar|todo a cien|杂货|almacén|almacen|tienda|小商品/i,
+    style: {
+      gradient: "from-amber-400 to-orange-500",
+      Icon: ShoppingBag,
+    },
+  },
+  {
+    // 酒吧 / 酒馆（未命中餐饮的情况）
+    test: /酒吧|wine|vino|copas|pub/i,
+    style: { gradient: "from-violet-400 to-purple-500", Icon: Wine },
+  },
+  {
+    // 服装 / 鞋帽
+    test: /服装|ropa|moda|clothing|vestimenta|鞋|zapato/i,
+    style: { gradient: "from-sky-400 to-blue-500", Icon: Shirt },
+  },
+];
+
+const DEFAULT_STYLE: CategoryStyle = {
+  gradient: "from-slate-300 to-slate-400",
+  Icon: StoreIcon,
+};
+
+function categoryStyle(category: string): CategoryStyle {
+  for (const { test, style } of CATEGORY_STYLES) {
+    if (test.test(category)) return style;
+  }
+  return DEFAULT_STYLE;
+}
+
 export function StoreCoverImage({
   src,
   alt,
   name,
+  category = "",
   className,
 }: {
   src: string;
   alt: string;
   name: string;
+  category?: string;
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
@@ -45,17 +109,16 @@ export function StoreCoverImage({
   const usableSrc = src.startsWith("/seed/") ? "" : src;
 
   if (!usableSrc || failed) {
+    const { gradient, Icon } = categoryStyle(category);
     return (
       <div
         role="img"
         aria-label={alt}
-        className={`flex items-center justify-center bg-gradient-to-br from-[var(--color-bg)] to-[var(--color-surface)] px-3 text-[var(--color-text-muted)] ${className ?? ""}`}
+        className={`flex items-center justify-center bg-gradient-to-br ${gradient} px-3 text-white ${className ?? ""}`}
       >
-        {/* Show the full store name, not a single grey initial — the "首字
-            灰块" look read as an unfinished prototype in the audit. */}
         <span className="flex max-w-full flex-col items-center gap-1 text-center">
-          <StoreIcon className="h-6 w-6 shrink-0" aria-hidden="true" />
-          <span className="line-clamp-2 text-xs font-medium leading-tight">
+          <Icon className="h-9 w-9 shrink-0 drop-shadow" aria-hidden="true" />
+          <span className="line-clamp-2 text-xs font-semibold leading-tight drop-shadow">
             {name.trim() || "DianPin"}
           </span>
         </span>

@@ -178,6 +178,16 @@ export async function getJobs(filters: JobFilters = {}): Promise<Job[]> {
       sql`(${jobs.expires_at} IS NULL OR ${jobs.expires_at} > now())`
     );
   }
+  // Audit P0-4 (phase 1): never surface a rejected store's jobs in any public
+  // listing. The store page itself stays reachable (and is visually weakened,
+  // see components/StoreDetailView.tsx) per the "don't take data down, just
+  // don't promote it" rule — but its jobs must not appear in home / search /
+  // city landing / sitemap results.
+  conditions.push(
+    sql`${jobs.store_id} NOT IN (
+      SELECT id FROM ${stores} WHERE verification_status = 'rejected'
+    )`
+  );
   if (filters.city) conditions.push(eq(jobs.city, filters.city));
   if (filters.jobType) conditions.push(eq(jobs.job_type, filters.jobType));
   if (filters.mealsIncluded) conditions.push(eq(jobs.meals_included, true));

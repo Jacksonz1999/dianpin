@@ -47,7 +47,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // skipped preDeploy can never 500 the sitemap (or the pages behind it).
     getJobUpdatedAtMap(),
   ]);
-  const stores = allStores.filter((store) => !looksLikeTestStore(store));
+  const stores = allStores.filter(
+    (store) => !looksLikeTestStore(store) && store.verification_status !== "rejected"
+  );
   const cityIdsWithJobs = new Set(activeJobs.map((job) => job.city));
   const today = new Date();
 

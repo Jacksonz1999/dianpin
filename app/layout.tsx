@@ -42,7 +42,10 @@ export default async function RootLayout({
   ]);
 
   return (
-    <html lang={locale}>
+    // `locale-es` swaps the font stack to a Western sans (see globals.css) so
+    // Spanish copy doesn't fall back to a CJK font; `locale-zh` keeps the
+    // existing CJK-friendly stack.
+    <html lang={locale} className={locale === "es" ? "locale-es" : "locale-zh"}>
       <body>
         <LocaleProvider initialLocale={locale}>
           <SessionProvider role={session?.role ?? null}>

@@ -26,11 +26,14 @@ export function JobCard({
   store,
   jobType,
   city,
+  dimmed = false,
 }: {
   job: Job;
   store: PublicStore;
   jobType: JobType;
   city: City;
+  /** Rejected-store jobs are de-emphasised, per audit P0-4 phase-1. */
+  dimmed?: boolean;
 }) {
   const { locale, t } = useLocale();
   const { isSaved, toggleSaved } = useSavedJobs();
@@ -46,12 +49,24 @@ export function JobCard({
   // Node SSR process and the browser and causes hydration error #418).
   const publishedOn = job.published_at.slice(0, 10);
 
+  // Core differentiator (audit phase-1 UI2): surface the store's real rating
+  // on the card. Suppressed for rejected stores (their rating is hidden at the
+  // page level) and when there are no reviews yet.
+  const showRating =
+    !dimmed && store.rating_count > 0;
+
   return (
-    <div className="relative flex h-full flex-col gap-2 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <div
+      className={
+        "relative flex h-full flex-col gap-2 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 " +
+        (dimmed ? "opacity-60" : "")
+      }
+    >
       <StoreCoverImage
         src={store.cover_image}
         alt={storeName}
         name={storeName}
+        category={store.category}
         className="-mx-4 -mt-4 mb-1 h-28 w-[calc(100%+2rem)] object-cover"
       />
 
@@ -75,6 +90,15 @@ export function JobCard({
       <p className="text-sm text-[var(--color-text-muted)]">
         {storeName} · {cityName} {job.district}
       </p>
+
+      {showRating && (
+        <p className="text-xs font-medium text-[var(--color-text-muted)]">
+          {t("store.ratingSummary", {
+            avg: store.rating_avg.toFixed(1),
+            count: store.rating_count,
+          })}
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center gap-1.5 text-xs">
         <StoreVerificationBadge status={store.verification_status} />

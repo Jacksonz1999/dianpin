@@ -52,11 +52,17 @@ export function Header() {
             />
           </svg>
           <span className="text-base font-semibold">{t("app.name")}</span>
-          <span
-            className="hidden border-l border-[var(--color-border)] pl-2.5 text-[10px] tracking-[0.14em] text-[var(--color-text-muted)] md:inline"
-          >
-            DIANPIN
-          </span>
+          {locale === "es" ? (
+            <span className="hidden text-[10px] font-normal leading-tight tracking-wide text-[var(--color-text-muted)] md:inline">
+              {t("app.slogan")}
+            </span>
+          ) : (
+            <span
+              className="hidden border-l border-[var(--color-border)] pl-2.5 text-[10px] tracking-[0.14em] text-[var(--color-text-muted)] md:inline"
+            >
+              DIANPIN
+            </span>
+          )}
         </LocaleLink>
 
         {/* Below md, BottomNav (components/BottomNav.tsx) is the nav surface. */}
