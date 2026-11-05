@@ -719,7 +719,7 @@ export async function createPosterJob(input: CreatePosterJobInput): Promise<stri
           salary_min, salary_max, salary_period, headcount, schedule,
           live_in, meals_included, language_required, residence_required,
           description_zh, description_es, status, published_at, expires_at,
-          is_seed, slug, source, poster_slug, contact_phone, contact_whatsapp,
+          is_seed, source, poster_slug, contact_phone, contact_whatsapp,
           title_en, description_en
         ) VALUES (
           ${id}, ${input.storeId}, ${input.titleZh}, ${input.titleEs},
@@ -730,7 +730,7 @@ export async function createPosterJob(input: CreatePosterJobInput): Promise<stri
           ${input.residenceRequired}, ${input.descriptionZh}, ${input.descriptionEs},
           'active', ${new Date().toISOString()},
           ${new Date(Date.now() + 60 * 24 * 3600 * 1000).toISOString()},
-          false, '', 'poster', ${slug}, ${input.contactPhone},
+          false, 'poster', ${slug}, ${input.contactPhone},
           ${input.contactWhatsapp}, ${input.titleEn}, ${input.descriptionEn}
         ) RETURNING id
       `);
