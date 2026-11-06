@@ -40,3 +40,20 @@ export function sanitizePublicStore(store: Store): PublicStore {
     photos: publicStore.photos.filter((photo) => !photo.startsWith("/seed/")),
   };
 }
+
+/**
+ * Detect obvious seed/test rows so they never reach the public index
+ * (sitemap) or get promoted (store pages). Shared by lib/seo/sitemap.ts and the
+ * store-detail metadata so the rule lives in exactly one place. Catches
+ * `name_zh` like "百元店1", any "test/testing" substring, and 示例/测试.
+ */
+export function looksLikeTestStore(store: {
+  name_zh: string;
+  name_es: string;
+  address: string;
+}): boolean {
+  const text = `${store.name_zh} ${store.name_es} ${store.address}`;
+  return /\btest(?:ing)?\b|示例|测试|^百元店\s*\d+\s*$/i.test(
+    `${text} ${store.name_zh.trim()}`
+  );
+}

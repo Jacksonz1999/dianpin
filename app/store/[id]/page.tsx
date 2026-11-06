@@ -10,7 +10,7 @@ import {
 } from "@/lib/db";
 import { isJobLive } from "@/lib/job-utils";
 import { getRequestLocale } from "@/lib/locale-server";
-import { sanitizePublicStore } from "@/lib/public-store";
+import { sanitizePublicStore, looksLikeTestStore } from "@/lib/public-store";
 import {
   jsonLdScriptContent,
   storeMetadata,
@@ -36,7 +36,8 @@ export async function generateMetadata({
   if (!city) return {};
 
   return storeMetadata(sanitizePublicStore(store), city, locale, {
-    noindex: store.verification_status === "rejected",
+    noindex:
+      store.verification_status === "rejected" || looksLikeTestStore(store),
   });
 }
 

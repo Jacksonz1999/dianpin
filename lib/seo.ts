@@ -282,7 +282,8 @@ export function homeStructuredData(
 /** Audit P0-7 follow-up: /jobs/<city> landing pages for local search intent. */
 export function cityMetadata(
   city: City,
-  locale: Locale = "zh"
+  locale: Locale = "zh",
+  options: { noindex?: boolean } = {}
 ): Metadata {
   const cityName = pick(locale, city.name_zh, city.name_es);
   return localizedMetadata({
@@ -290,6 +291,7 @@ export function cityMetadata(
     description: t(locale, "seo.city.description", { city: cityName }),
     path: `/jobs/${city.id}`,
     locale,
+    robots: options.noindex ? { index: false, follow: false } : undefined,
   });
 }
 

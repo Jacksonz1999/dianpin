@@ -29,12 +29,15 @@ export async function generateMetadata({
   params: Promise<{ city: string }>;
 }): Promise<Metadata> {
   const { city: cityId } = await params;
-  const [locale, city] = await Promise.all([
+  const [locale, city, cityJobs] = await Promise.all([
     getRequestLocale(),
     getCityById(cityId),
+    getJobs({ status: "active", city: cityId }),
   ]);
   if (!city) return {};
-  return cityMetadata(city, locale);
+  // A city landing with no live jobs is a thin page — don't let it into the
+  // index (SEO denoise, phase-2 section 3).
+  return cityMetadata(city, locale, { noindex: cityJobs.length === 0 });
 }
 
 export default async function CityJobsPage({

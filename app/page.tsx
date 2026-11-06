@@ -26,7 +26,13 @@ export default async function HomePage() {
 
   // Audit P1-1: only public store fields reach the RSC payload. No
   // owner_user_id / verified_at / is_seed / created_at on a public page.
-  const stores = allStores.map(sanitizePublicStore);
+  // The home listings never render a store's exact street address (cards show
+  // only city + district), so drop it here too — keeps the precise address out
+  // of the client bundle (phase-2 section 2).
+  const stores = allStores.map((s) => {
+    const p = sanitizePublicStore(s);
+    return { ...p, address: "" };
+  });
 
   return (
     <>

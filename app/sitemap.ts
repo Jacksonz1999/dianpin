@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getCities, getJobUpdatedAtMap, getJobs, getStores } from "@/lib/db";
 import { absUrl, getSiteUrl } from "@/lib/site-url";
 import { localePath } from "@/lib/locale-routing";
+import { looksLikeTestStore } from "@/lib/public-store";
 import { locales, type Locale } from "@/lib/i18n";
 
 // Every other DB-backed route in this app is force-dynamic (see AGENTS.md
@@ -12,19 +13,6 @@ import { locales, type Locale } from "@/lib/i18n";
 // every request instead of cached, but /sitemap.xml traffic is crawler
 // volume, not user volume, so that cost is negligible.
 export const dynamic = "force-dynamic";
-
-/** Belt-and-suspenders: keep obvious test rows out of the index even before
- *  `npm run db:audit-cleanup` has been run on the production database. */
-function looksLikeTestStore(store: {
-  name_zh: string;
-  name_es: string;
-  address: string;
-}): boolean {
-  const text = `${store.name_zh} ${store.name_es} ${store.address}`;
-  return /\btest(?:ing)?\b|示例|测试|^百元店\s*\d+\s*$/i.test(
-    `${text} ${store.name_zh.trim()}`
-  );
-}
 
 function languageAlternates(path: string) {
   const zhUrl = path === "/" ? `${getSiteUrl()}/` : absUrl(path);
@@ -52,7 +40,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const stores = allStores.filter(
     (store) => !looksLikeTestStore(store) && store.verification_status !== "rejected"
   );
-  const cityIdsWithJobs = new Set(activeJobs.map((job) => job.city));
+  // A rejected/test store must not have its jobs indexed either — exclude any
+  // active job whose store is rejected or a test row, even though getJobs()
+  // already drops rejected stores (this catches the test-store case that
+  // relies only on name/address heuristics).
+  const excludedStoreIds = new Set(
+    allStores
+      .filter(
+        (store) =>
+          store.verification_status === "rejected" || looksLikeTestStore(store)
+      )
+      .map((store) => store.id)
+  );
+  const indexedJobs = activeJobs.filter(
+    (job) => !excludedStoreIds.has(job.store_id)
+  );
+  const cityIdsWithJobs = new Set(indexedJobs.map((job) => job.city));
   const today = new Date();
 
   const entries: MetadataRoute.Sitemap = [];
@@ -93,7 +96,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
   }
 
-  for (const job of activeJobs) {
+  for (const job of indexedJobs) {
     const path = `/job/${job.id}`;
     // Audit P1-6: lastmod used to be the hardcoded seed published_at.
     // Falls back to published_at only on databases still missing 0007.
