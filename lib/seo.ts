@@ -279,6 +279,23 @@ export function homeStructuredData(
   };
 }
 
+/** Breadcrumb trail for list / store / city pages (phase-2 section 3). */
+export function breadcrumbJsonLd(
+  items: { name: string; url: string }[]
+): Record<string, unknown> {
+  const homeUrl = absUrl("/");
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((it, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: it.name,
+      item: absUrl(it.url),
+    })),
+  };
+}
+
 /** Audit P0-7 follow-up: /jobs/<city> landing pages for local search intent. */
 export function cityMetadata(
   city: City,

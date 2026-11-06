@@ -57,6 +57,7 @@ const zh: Dict = {
   "common.perMonth": "€/月",
 
   "home.title": "找工作",
+  "breadcrumb.home": "首页",
   "home.citySwitch": "切换城市",
   "home.resultsCount": "共 {count} 个岗位",
   "home.empty": "没有符合条件的岗位，试试调整筛选条件",
@@ -542,6 +543,7 @@ const es: Dict = {
   "common.perMonth": "€/mes",
 
   "home.title": "Buscar empleo",
+  "breadcrumb.home": "Inicio",
   "home.citySwitch": "Cambiar ciudad",
   "home.resultsCount": "{count} empleos encontrados",
   "home.empty": "No hay empleos con estos filtros, intenta ajustarlos",
@@ -1027,6 +1029,7 @@ const en: Dict = {
   "poster.contactTitle": "Contact the store",
 
   "home.title": "Find a job",
+  "breadcrumb.home": "Home",
   "home.citySwitch": "Change city",
   "home.resultsCount": "{count} jobs found",
   "home.empty": "No jobs match these filters — try adjusting them",

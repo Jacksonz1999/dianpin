@@ -10,12 +10,15 @@ import {
 } from "@/lib/db";
 import { isJobLive } from "@/lib/job-utils";
 import { getRequestLocale } from "@/lib/locale-server";
+import { t } from "@/lib/i18n";
 import { sanitizePublicStore, looksLikeTestStore } from "@/lib/public-store";
 import {
+  breadcrumbJsonLd,
   jsonLdScriptContent,
   storeMetadata,
   storeStructuredData,
 } from "@/lib/seo";
+import { localePath } from "@/lib/locale-routing";
 import { StoreDetailView } from "@/components/StoreDetailView";
 
 export const dynamic = "force-dynamic";
@@ -69,6 +72,8 @@ export default async function StoreDetailPage({
   // trust signals it failed to earn — no rating, no reviews, no
   // aggregateRating in structured data.
   const showReviews = store.verification_status !== "rejected";
+  const storeName = locale === "es" ? store.name_es : store.name_zh;
+  const cityName = locale === "es" ? city.name_es : city.name_zh;
 
   const reviewRows = showReviews
     ? await Promise.all(
@@ -86,6 +91,21 @@ export default async function StoreDetailPage({
         dangerouslySetInnerHTML={{
           __html: jsonLdScriptContent(
             storeStructuredData(store, city, locale)
+          ),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScriptContent(
+            breadcrumbJsonLd([
+              { name: t(locale, "breadcrumb.home"), url: localePath("/", locale) },
+              {
+                name: t(locale, "cityPage.title", { city: cityName }) || cityName,
+                url: localePath(`/jobs/${city.id}`, locale),
+              },
+              { name: storeName, url: localePath(`/store/${store.id}`, locale) },
+            ])
           ),
         }}
       />

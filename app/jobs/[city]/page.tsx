@@ -14,6 +14,7 @@ import { getRequestLocale } from "@/lib/locale-server";
 import { localePath } from "@/lib/locale-routing";
 import { sanitizePublicStore } from "@/lib/public-store";
 import {
+  breadcrumbJsonLd,
   cityMetadata,
   cityStructuredData,
   jsonLdScriptContent,
@@ -66,6 +67,20 @@ export default async function CityJobsPage({
         dangerouslySetInnerHTML={{
           __html: jsonLdScriptContent(
             cityStructuredData(city, locale, jobs)
+          ),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScriptContent(
+            breadcrumbJsonLd([
+              { name: t(locale, "breadcrumb.home"), url: localePath("/", locale) },
+              {
+                name: t(locale, "cityPage.title", { city: cityName }),
+                url: localePath(`/jobs/${city.id}`, locale),
+              },
+            ])
           ),
         }}
       />
