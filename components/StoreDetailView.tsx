@@ -40,17 +40,26 @@ export function StoreDetailView({
   const name = locale === "es" ? store.name_es : store.name_zh;
   const cityName = locale === "es" ? city.name_es : city.name_zh;
   const showRating = showReviews && store.rating_count > 0;
-  // Audit P0-4 (phase 1): a rejected store stays reachable but visually
-  // de-emphasised — the whole card drops to 60% opacity and its job items
-  // dim too, so it reads as "not promoted" without taking the data down.
+  // Audit P0-4 / phase-2 section 1.1: a rejected store stays reachable but is
+  // visually de-emphasised across the WHOLE page (greyed + a warning banner),
+  // and its job items lose their apply/view CTAs, so it reads as "not
+  // promoted" without taking the data down.
   const dimmed = store.verification_status === "rejected";
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-6">
+    <div
+      className={
+        "flex flex-col gap-4 px-4 py-6 " + (dimmed ? "opacity-80 grayscale" : "")
+      }
+    >
+      {dimmed && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {t("store.rejectedNotice")}
+        </div>
+      )}
       <div
         className={
-          "flex flex-col gap-2 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] " +
-          (dimmed ? "opacity-60" : "")
+          "flex flex-col gap-2 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]"
         }
       >
         <StoreCoverImage

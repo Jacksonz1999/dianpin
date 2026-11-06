@@ -95,6 +95,7 @@ const zh: Dict = {
   "job.similarJobs": "相似岗位",
   "job.similarJobsEmpty": "暂无更多推荐岗位",
   "store.ratingHidden": "该门店未通过认证，暂不展示评分与评价",
+  "store.rejectedNotice": "该门店未通过认证，相关信息仅供参考，暂不推荐投递",
 
   "residenceRequired.none": "居留不限",
   "residenceRequired.prefer": "有居留优先",
@@ -579,6 +580,7 @@ const es: Dict = {
   "job.similarJobs": "Ofertas similares",
   "job.similarJobsEmpty": "No hay más recomendaciones por ahora",
   "store.ratingHidden": "Esta tienda no ha superado la verificación; no mostramos su puntuación ni sus valoraciones",
+  "store.rejectedNotice": "Esta tienda no ha superado la verificación; la información es solo de referencia y no recomendamos postular",
 
   "residenceRequired.none": "Residencia no requerida",
   "residenceRequired.prefer": "Se prefiere residencia",
@@ -1068,6 +1070,7 @@ const en: Dict = {
   "job.similarJobs": "Similar jobs",
   "job.similarJobsEmpty": "No more recommendations yet",
   "store.ratingHidden": "This store hasn't passed verification, so we don't show its rating or reviews",
+  "store.rejectedNotice": "This store hasn't passed verification; the information is for reference only and we don't recommend applying",
   "job.publishedAt": "Posted on {date}",
   "job.description": "Job description",
   "job.storeSection": "About the store",

@@ -133,7 +133,8 @@ export function jobMetadata(
 export function storeMetadata(
   store: PublicStore,
   city: City,
-  locale: Locale = "zh"
+  locale: Locale = "zh",
+  options: { noindex?: boolean } = {}
 ): Metadata {
   const storeName = pick(locale, store.name_zh, store.name_es);
   const cityName = pick(locale, city.name_zh, city.name_es);
@@ -153,6 +154,11 @@ export function storeMetadata(
     ),
     path: `/store/${store.id}`,
     locale,
+    // Audit P0-4 / phase-2 section 1.1: a store that failed verification must
+    // not be indexable — otherwise Google keeps serving its LocalBusiness card
+    // while the UI tells visitors it isn't trusted. noindex + the visual
+    // downgrade keep it reachable but un-promoted.
+    robots: options.noindex ? { index: false, follow: false } : undefined,
   });
 }
 

@@ -58,8 +58,7 @@ export function JobCard({
   return (
     <div
       className={
-        "relative flex h-full flex-col gap-2 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 " +
-        (dimmed ? "opacity-60" : "")
+        "relative flex h-full flex-col gap-2 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
       }
     >
       <StoreCoverImage
@@ -70,15 +69,17 @@ export function JobCard({
         className="-mx-4 -mt-4 mb-1 h-28 w-[calc(100%+2rem)] object-cover"
       />
 
-      <button
-        type="button"
-        onClick={() => toggleSaved(job.id)}
-        aria-label={t(saved ? "job.unsave" : "job.save")}
-        aria-pressed={saved}
-        className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full bg-black/60 text-white ring-1 ring-white/20 backdrop-blur-sm"
-      >
-        <Heart className="h-4 w-4" fill={saved ? "currentColor" : "none"} aria-hidden="true" />
-      </button>
+      {!dimmed && (
+        <button
+          type="button"
+          onClick={() => toggleSaved(job.id)}
+          aria-label={t(saved ? "job.unsave" : "job.save")}
+          aria-pressed={saved}
+          className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full bg-black/60 text-white ring-1 ring-white/20 backdrop-blur-sm"
+        >
+          <Heart className="h-4 w-4" fill={saved ? "currentColor" : "none"} aria-hidden="true" />
+        </button>
+      )}
 
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold leading-snug">{title}</h3>
@@ -124,12 +125,14 @@ export function JobCard({
           {t("job.headcount", { count: job.headcount })} ·{" "}
           {t("job.publishedOn", { date: publishedOn })}
         </span>
-        <LocaleLink
-          href={`/job/${job.id}`}
-          className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-primary)] px-4 text-xs font-medium text-[var(--color-primary-text)]"
-        >
-          {t("job.viewDetail")}
-        </LocaleLink>
+        {!dimmed && (
+          <LocaleLink
+            href={`/job/${job.id}`}
+            className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-primary)] px-4 text-xs font-medium text-[var(--color-primary-text)]"
+          >
+            {t("job.viewDetail")}
+          </LocaleLink>
+        )}
       </div>
     </div>
   );

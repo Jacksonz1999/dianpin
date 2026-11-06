@@ -35,7 +35,9 @@ export async function generateMetadata({
   const city = await getCityById(store.city);
   if (!city) return {};
 
-  return storeMetadata(sanitizePublicStore(store), city, locale);
+  return storeMetadata(sanitizePublicStore(store), city, locale, {
+    noindex: store.verification_status === "rejected",
+  });
 }
 
 export default async function StoreDetailPage({
