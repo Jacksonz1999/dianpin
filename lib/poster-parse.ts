@@ -58,8 +58,13 @@ const MONTHLY_KW =
   /(月薪|\/月|al\s*mes|per\s*month|\bmes\b|\bmonth\b|每月)/i;
 
 function normalizePhone(raw: string): string {
-  const digits = raw.replace(/[\s-]/g, "");
-  return digits.startsWith("+") ? digits : digits.replace(/^0/, "+34");
+  let digits = raw.replace(/[\s-]/g, "").replace(/^00/, "+");
+  if (digits.startsWith("+")) return digits;
+  // Spanish national number (9 digits, starts with 6/7/8/9) → +34.
+  if (/^[6789]\d{8}$/.test(digits)) return `+34${digits}`;
+  // Anything else (already 9 digits, or a local number) → assume Spain.
+  if (/^\d{7,}$/.test(digits)) return `+34${digits}`;
+  return digits;
 }
 
 export function parsePosterNote(
@@ -70,7 +75,7 @@ export function parsePosterNote(
   const text = (note || "").trim();
   if (!text) return {};
   const lower = text.toLowerCase();
-  const result: ParsedPoster = {};
+  const result: ParsedPoster = { mealsIncluded: false, liveIn: false };
 
   // --- job type -----------------------------------------------------------
   for (const jt of jobTypes) {
@@ -97,30 +102,37 @@ export function parsePosterNote(
     working = text.replace(phoneMatch[0], " ");
   }
 
-  // --- salary -------------------------------------------------------------
-  const salaryMatch = working.match(
-    /(\d{2,4})\s*(?:[-–到至]\s*(\d{2,4}))?\s*(?:欧|eur|€|euro|元|yuan)?\s*(小时|时薪|\/h|por\s*hora|per\s*hour|\bhora\b|\bhour\b|月薪|\/月|al\s*mes|per\s*month|\bmes\b|\bmonth\b|每月)?/i
-  );
+  // --- salary (detect the unit in a short window after the number; this
+  //     tolerates filler like "11–13欧一小时" where 一 sits between 欧 and 小时) -
+  const salaryMatch = working.match(/(\d{2,4})\s*(?:[-–到至]\s*(\d{2,4}))?/);
   if (salaryMatch) {
     const min = parseInt(salaryMatch[1], 10);
     const max = salaryMatch[2] ? parseInt(salaryMatch[2], 10) : min;
     if (Number.isFinite(min)) {
+      const after =
+        salaryMatch.index !== undefined
+          ? working.slice(
+              salaryMatch.index + salaryMatch[0].length,
+              salaryMatch.index + salaryMatch[0].length + 14
+            )
+          : "";
       result.salaryMin = min;
       result.salaryMax = Number.isFinite(max) ? max : min;
-      const unit = salaryMatch[3] ?? "";
-      result.salaryPeriod = HOURLY_KW.test(unit)
+      result.salaryPeriod = HOURLY_KW.test(after)
         ? "hour"
-        : MONTHLY_KW.test(unit)
+        : MONTHLY_KW.test(after)
           ? "month"
           : "month";
     }
   }
 
   // --- meals / lodging ----------------------------------------------------
-  if (/(包吃|管吃|comida\s*inclu|almuerzo\s*inclu|inclu(ye)?\s*comida)/i.test(text)) {
+  // Negative lookbehind so "不管住" / "不包吃" do NOT trigger a positive match.
+  // "包吃住" / "吃住" / "食宿" are compact forms that imply BOTH meals and lodging.
+  if (/(?<!不|没|无)(包吃|管吃|包吃住|包食宿|吃住|食宿|comida\s*inclu|almuerzo\s*inclu|inclu(ye)?\s*comida)/i.test(text)) {
     result.mealsIncluded = true;
   }
-  if (/(包住|管住|alojamiento\s*inclu|inclu(ye)?\s*alojamiento)/i.test(text)) {
+  if (/(?<!不|没|无)(包住|管住|包吃住|包食宿|吃住|食宿|alojamiento\s*inclu|inclu(ye)?\s*alojamiento)/i.test(text)) {
     result.liveIn = true;
   }
 
