@@ -84,6 +84,8 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    // Unprefixed (Chinese) URLs: skip router prefetches, as the CSP guide
+    // recommends — a prefetch needs no nonce and no rewrite.
     {
       source: "/((?!api|_next/static|_next/image|favicon.ico).*)",
       missing: [
@@ -91,5 +93,13 @@ export const config = {
         { type: "header", key: "purpose", value: "prefetch" },
       ],
     },
+    // Locale-prefixed URLs must ALWAYS hit the proxy, prefetches included:
+    // `/es/...` only exists via the rewrite above (and `/zh/...` via the
+    // redirect). Without this entry a `<Link>` prefetch of `/es/employer`
+    // bypasses the proxy and resolves to a non-existent route → 404.
+    // Keep the prefixes in sync with LOCALE_PREFIXES in lib/locale-routing.ts
+    // (matcher values must be static literals, so they can't be imported).
+    "/:locale(es|en|zh)",
+    "/:locale(es|en|zh)/:path*",
   ],
 };
