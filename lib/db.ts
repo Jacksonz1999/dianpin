@@ -650,6 +650,52 @@ export async function createJob(
 // residency *requirement* (not status), city/district and contact.
 // ---------------------------------------------------------------------------
 
+/**
+ * Returns the owner's existing store with the same name + city, or creates a
+ * new (unverified) one. Publishing several posters for the same shop used to
+ * create one duplicate store per poster, each landing in the admin
+ * verification queue.
+ */
+export async function findOrCreatePosterStore(input: {
+  ownerUserId: string;
+  nameZh: string;
+  city: string;
+  district: string;
+  category: string;
+}): Promise<Store> {
+  const [existing] = await db
+    .select()
+    .from(stores)
+    .where(
+      and(
+        eq(stores.owner_user_id, input.ownerUserId),
+        eq(stores.name_zh, input.nameZh.trim()),
+        eq(stores.city, input.city)
+      )
+    )
+    .limit(1);
+  if (existing) return existing;
+  return createPosterStore(input);
+}
+
+/**
+ * Number of poster jobs this owner published since `since`. Backs the publish
+ * rate limit (AGENTS.md §4: every publish path needs frequency control).
+ */
+export async function countRecentPosterJobsByOwner(
+  ownerUserId: string,
+  since: Date
+): Promise<number> {
+  const result = await db.execute<{ n: string }>(sql`
+    SELECT count(*)::text AS n
+    FROM jobs j JOIN stores s ON s.id = j.store_id
+    WHERE s.owner_user_id = ${ownerUserId}
+      AND j.source = 'poster'
+      AND j.published_at >= ${since.toISOString()}
+  `);
+  return Number(result.rows[0]?.n ?? 0);
+}
+
 /** Creates the (unverified) store that a poster job is attached to. */
 export async function createPosterStore(input: {
   ownerUserId: string;
@@ -734,7 +780,17 @@ export async function createPosterJob(input: CreatePosterJobInput): Promise<stri
           ${input.contactWhatsapp}, ${input.titleEn}, ${input.descriptionEn}
         ) RETURNING id
       `);
-      return result.rows[0].id;
+      const jobId = result.rows[0].id;
+      // Poster jobs are published active, so they must notify job-alert
+      // subscribers exactly like createJob does (AGENTS.md §5). Best-effort:
+      // a mail failure never fails the publish.
+      try {
+        const [row] = await db.select().from(jobs).where(eq(jobs.id, jobId));
+        if (row) await notifyJobAlertSubscribers(row);
+      } catch (notifyErr) {
+        console.error(`[job-alerts] notifyJobAlertSubscribers failed for poster job ${jobId}:`, notifyErr);
+      }
+      return jobId;
     } catch (err) {
       const code = (err as { code?: string } | null)?.code;
       if (code === "23505") {

@@ -37,4 +37,8 @@ jobs:
 
       - run: npx tsc --noEmit
 
+      - run: npm run lint
+
+      - run: npm run test:poster
+
       - run: npm run build

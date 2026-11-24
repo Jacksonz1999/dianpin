@@ -1,13 +1,31 @@
 "use client";
 
-import { useEffect, useMemo, useState, useActionState } from "react";
+import { startTransition, useMemo, useState, useActionState } from "react";
 import type { City, JobType } from "@/lib/types";
 import { t, type Locale as LocaleType } from "@/lib/i18n";
 import { parsePosterNote } from "@/lib/poster-parse";
 import { detectDiscrimination } from "@/lib/compliance";
+import { mealsKey } from "@/lib/poster-copy";
 import { createPosterPost, type PosterResult } from "@/app/employer/poster/actions";
 
 const initial: PosterResult = { ok: false };
+
+type Period = "hour" | "day" | "month";
+type Residence = "none" | "prefer" | "required";
+
+interface Overrides {
+  jobTypeId?: string;
+  city?: string;
+  district?: string;
+  salaryPeriod?: Period;
+  salaryMin?: string;
+  salaryMax?: string;
+  mealsIncluded?: boolean;
+  liveIn?: boolean;
+  residenceRequired?: Residence;
+  contactPhone?: string;
+  contactWhatsapp?: string;
+}
 
 export function PosterForm({
   jobTypes,
@@ -23,82 +41,108 @@ export function PosterForm({
   // Primary input: the free-text "smart note" (owner writes like a paper sign).
   const [note, setNote] = useState("");
   const [showDetails, setShowDetails] = useState(false);
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-
-  // Icon-tap fallback (override) fields — pre-filled from the parse for any the
-  // owner hasn't manually edited.
-  const [jobTypeId, setJobTypeId] = useState("");
-  const [cityId, setCityId] = useState("");
-  const [district, setDistrict] = useState("");
-  const [salaryPeriod, setSalaryPeriod] = useState<"hour" | "month">("month");
-  const [salaryMin, setSalaryMin] = useState("");
-  const [salaryMax, setSalaryMax] = useState("");
-  const [meals, setMeals] = useState(false);
-  const [liveIn, setLiveIn] = useState(false);
-  const [residence, setResidence] = useState<"none" | "prefer" | "required">(
-    "none"
-  );
   const [nameZh, setNameZh] = useState("");
-  const [phone, setPhone] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
+
+  // Icon-tap fallback: only fields the owner explicitly edited live here; every
+  // other field is DERIVED from the parse on each render (no effect syncing).
+  const [overrides, setOverrides] = useState<Overrides>({});
+  const setField = <K extends keyof Overrides>(k: K, v: Overrides[K]) =>
+    setOverrides((prev) => ({ ...prev, [k]: v }));
 
   const parsed = useMemo(
     () => parsePosterNote(note, jobTypes, cities),
     [note, jobTypes, cities]
   );
-  const compliance = useMemo(() => detectDiscrimination(note), [note]);
+  const compliance = useMemo(
+    () => detectDiscrimination(`${note}\n${nameZh}`),
+    [note, nameZh]
+  );
 
-  // Auto-fill fallback fields from the parse, except ones the owner touched.
-  useEffect(() => {
-    setJobTypeId((p) => (touched.jobType ? p : parsed.jobTypeId ?? ""));
-    setCityId((p) => (touched.city ? p : parsed.city ?? ""));
-    setDistrict((p) => (touched.district ? p : parsed.district ?? ""));
-    setSalaryPeriod((p) =>
-      touched.salaryPeriod ? p : parsed.salaryPeriod === "hour" ? "hour" : "month"
-    );
-    setSalaryMin((p) =>
-      touched.salaryMin ? p : parsed.salaryMin ? String(parsed.salaryMin) : ""
-    );
-    setSalaryMax((p) =>
-      touched.salaryMax ? p : parsed.salaryMax ? String(parsed.salaryMax) : ""
-    );
-    setMeals((p) => (touched.meals ? p : Boolean(parsed.mealsIncluded)));
-    setLiveIn((p) => (touched.liveIn ? p : Boolean(parsed.liveIn)));
-    setResidence((p) =>
-      touched.residence ? p : (parsed.residenceRequired ?? "none")
-    );
-    setPhone((p) => (touched.phone ? p : parsed.contactPhone ?? ""));
-    setWhatsapp((p) => (touched.whatsapp ? p : parsed.contactWhatsapp ?? ""));
-  }, [parsed, touched]);
+  const jobTypeId = overrides.jobTypeId ?? parsed.jobTypeId ?? "";
+  const cityId = overrides.city ?? parsed.city ?? "";
+  const district = overrides.district ?? parsed.district ?? "";
+  const salaryPeriod = overrides.salaryPeriod ?? parsed.salaryPeriod ?? "month";
+  const salaryMin =
+    overrides.salaryMin ?? (parsed.salaryMin ? String(parsed.salaryMin) : "");
+  const salaryMax =
+    overrides.salaryMax ?? (parsed.salaryMax ? String(parsed.salaryMax) : "");
+  const meals = overrides.mealsIncluded ?? Boolean(parsed.mealsIncluded);
+  const liveIn = overrides.liveIn ?? Boolean(parsed.liveIn);
+  const residence = overrides.residenceRequired ?? parsed.residenceRequired ?? "none";
+  const phone = overrides.contactPhone ?? parsed.contactPhone ?? "";
+  const whatsapp = overrides.contactWhatsapp ?? parsed.contactWhatsapp ?? "";
 
-  const markTouched = (k: string) =>
-    setTouched((prev) => (prev[k] ? prev : { ...prev, [k]: true }));
+  // A "missing fields" error for something that lives in the details panel
+  // opens the panel so the owner sees where to fill it in.
+  const detailsOpen =
+    showDetails ||
+    (state.errorKey === "poster.error.missing" &&
+      (state.terms ?? []).some((f) => f !== "storeName"));
 
-  const jobTypeRow =
-    jobTypes.find((j) => j.id === jobTypeId) ??
-    jobTypes.find((j) => j.id === parsed.jobTypeId);
-  const cityRow =
-    cities.find((c) => c.id === cityId) ??
-    cities.find((c) => c.id === parsed.city);
+  const jobTypeRow = jobTypes.find((j) => j.id === jobTypeId);
+  const cityRow = cities.find((c) => c.id === cityId);
   const minN = parseInt(salaryMin, 10);
   const maxN = parseInt(salaryMax, 10);
-  const salaryPreview =
-    Number.isFinite(minN)
-      ? `€${minN}${Number.isFinite(maxN) && maxN !== minN ? `–${maxN}` : ""}/${
-          salaryPeriod === "hour" ? "小时" : "月"
-        }`
-      : null;
-  const mealsPreview = meals
-    ? liveIn
-      ? "包吃住"
-      : "包吃"
-    : "不包吃住";
+  const salaryPreview = Number.isFinite(minN)
+    ? `€${minN}${Number.isFinite(maxN) && maxN !== minN ? `–${maxN}` : ""}/${t(
+        locale,
+        `poster.unit.${salaryPeriod}`
+      )}`
+    : null;
+  const mealsPreview = t(locale, `poster.meals.${mealsKey(meals, liveIn)}`);
+
+  const errorText = state.errorKey
+    ? state.errorKey === "poster.error.missing"
+      ? t(locale, state.errorKey, {
+          fields: (state.terms ?? []).map((f) => t(locale, `poster.${f}`)).join(" / "),
+        })
+      : t(locale, state.errorKey, state.errorVars) +
+        (state.terms?.length ? ` (${state.terms.join(", ")})` : "")
+    : null;
 
   const inputCls =
     "h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm";
 
+  // Only explicitly edited fields are submitted; the server fills the rest
+  // from its own authoritative parse of the note.
+  const hidden: Array<[string, string]> = [];
+  if (overrides.jobTypeId !== undefined) hidden.push(["jobTypeId", overrides.jobTypeId]);
+  if (overrides.city !== undefined) hidden.push(["city", overrides.city]);
+  if (overrides.district !== undefined) hidden.push(["district", overrides.district]);
+  if (overrides.salaryPeriod !== undefined) hidden.push(["salaryPeriod", overrides.salaryPeriod]);
+  if (overrides.salaryMin !== undefined) hidden.push(["salaryMin", overrides.salaryMin]);
+  if (overrides.salaryMax !== undefined) hidden.push(["salaryMax", overrides.salaryMax]);
+  if (overrides.mealsIncluded !== undefined)
+    hidden.push(["mealsIncluded", overrides.mealsIncluded ? "true" : "false"]);
+  if (overrides.liveIn !== undefined) hidden.push(["liveIn", overrides.liveIn ? "true" : "false"]);
+  if (overrides.residenceRequired !== undefined)
+    hidden.push(["residenceRequired", overrides.residenceRequired]);
+  if (overrides.contactPhone !== undefined) hidden.push(["contactPhone", overrides.contactPhone]);
+  if (overrides.contactWhatsapp !== undefined)
+    hidden.push(["contactWhatsapp", overrides.contactWhatsapp]);
+
+  const periodOptions: Array<[Period, string]> = [
+    ["month", "poster.salaryMonthly"],
+    ["day", "poster.salaryDaily"],
+    ["hour", "poster.salaryHourly"],
+  ];
+
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    <form
+      // Submit via onSubmit instead of `action=`: React resets a form after an
+      // action completes, which visually blanks the controlled <select>s
+      // (city / residence) on a validation error even though state is intact.
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => formAction(data));
+      }}
+      className="flex flex-col gap-5"
+    >
+      {hidden.map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
+
       {/* ---- primary: smart note ---- */}
       <div className="flex flex-col gap-1.5">
         <label htmlFor="note" className="text-sm font-medium">
@@ -116,6 +160,22 @@ export function PosterForm({
         <p className="text-xs text-[var(--color-text-muted)]">
           {t(locale, "poster.noteHint")}
         </p>
+      </div>
+
+      {/* ---- store name: required and not parseable, so always visible ---- */}
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="nameZh" className="text-sm font-medium">
+          {t(locale, "poster.storeName")} <span className="text-red-500">*</span>
+        </label>
+        <input
+          id="nameZh"
+          name="nameZh"
+          required
+          value={nameZh}
+          onChange={(e) => setNameZh(e.target.value)}
+          className={inputCls}
+          placeholder={t(locale, "poster.storeName")}
+        />
       </div>
 
       {/* ---- compliance guard ---- */}
@@ -138,7 +198,7 @@ export function PosterForm({
           {jobTypeRow && (
             <p className="text-base font-semibold">
               {jobTypeRow.icon ? `${jobTypeRow.icon} ` : ""}
-              {locale === "es" ? jobTypeRow.name_es : jobTypeRow.name_zh}
+              {locale === "zh" ? jobTypeRow.name_zh : jobTypeRow.name_es}
             </p>
           )}
           <div className="mt-2 flex flex-col gap-1 text-sm">
@@ -162,8 +222,8 @@ export function PosterForm({
                   {t(locale, "poster.city")}
                 </span>
                 <span className="font-medium">
-                  {locale === "es" ? cityRow.name_es : cityRow.name_zh}
-                  {district ? ` ${district}` : ""}
+                  {locale === "zh" ? cityRow.name_zh : cityRow.name_es}
+                  {district ? ` · ${district}` : ""}
                 </span>
               </div>
             )}
@@ -182,27 +242,28 @@ export function PosterForm({
       {/* ---- fallback: icon-tap details ---- */}
       <button
         type="button"
-        onClick={() => setShowDetails((v) => !v)}
-        className="self-start text-sm font-medium text-[var(--color-primary)]"
+        onClick={() => setShowDetails(!detailsOpen)}
+        aria-expanded={detailsOpen}
+        className="min-h-[44px] self-start text-sm font-medium text-[var(--color-primary)]"
       >
-        {showDetails ? "▴ " : "▾ "}
+        {detailsOpen ? "▴ " : "▾ "}
         {t(locale, "poster.detailsToggle")}
       </button>
 
-      {showDetails && (
+      {detailsOpen && (
         <div className="flex flex-col gap-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
           {/* job type icon grid */}
           <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">{t(locale, "poster.jobType")}</span>
+            <span className="text-sm font-medium">
+              {t(locale, "poster.jobType")} <span className="text-red-500">*</span>
+            </span>
             <div className="flex flex-wrap gap-2">
               {jobTypes.map((jt) => (
                 <button
                   key={jt.id}
                   type="button"
-                  onClick={() => {
-                    markTouched("jobType");
-                    setJobTypeId(jt.id);
-                  }}
+                  onClick={() => setField("jobTypeId", jt.id)}
+                  aria-pressed={jobTypeId === jt.id}
                   className={
                     "flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-xl border text-xs " +
                     (jobTypeId === jt.id
@@ -211,7 +272,7 @@ export function PosterForm({
                   }
                 >
                   <span className="text-2xl">{jt.icon}</span>
-                  <span>{locale === "es" ? jt.name_es : jt.name_zh}</span>
+                  <span>{locale === "zh" ? jt.name_zh : jt.name_es}</span>
                 </button>
               ))}
             </div>
@@ -220,22 +281,18 @@ export function PosterForm({
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="city" className="text-sm font-medium">
-                {t(locale, "poster.city")}
+                {t(locale, "poster.city")} <span className="text-red-500">*</span>
               </label>
               <select
                 id="city"
-                name="city"
                 value={cityId}
-                onChange={(e) => {
-                  markTouched("city");
-                  setCityId(e.target.value);
-                }}
+                onChange={(e) => setField("city", e.target.value)}
                 className={inputCls}
               >
                 <option value="">—</option>
                 {cities.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {locale === "es" ? c.name_es : c.name_zh}
+                    {locale === "zh" ? c.name_zh : c.name_es}
                   </option>
                 ))}
               </select>
@@ -246,12 +303,8 @@ export function PosterForm({
               </label>
               <input
                 id="district"
-                name="district"
                 value={district}
-                onChange={(e) => {
-                  markTouched("district");
-                  setDistrict(e.target.value);
-                }}
+                onChange={(e) => setField("district", e.target.value)}
                 className={inputCls}
                 placeholder={t(locale, "poster.district")}
               />
@@ -260,60 +313,40 @@ export function PosterForm({
 
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium">{t(locale, "poster.salary")}</span>
-            <div className="flex items-center gap-3 text-sm">
-              <label className="inline-flex items-center gap-1.5">
-                <input
-                  type="radio"
-                  name="salaryPeriod"
-                  value="month"
-                  checked={salaryPeriod === "month"}
-                  onChange={() => {
-                    markTouched("salaryPeriod");
-                    setSalaryPeriod("month");
-                  }}
-                />
-                {t(locale, "poster.salaryMonthly")}
-              </label>
-              <label className="inline-flex items-center gap-1.5">
-                <input
-                  type="radio"
-                  name="salaryPeriod"
-                  value="hour"
-                  checked={salaryPeriod === "hour"}
-                  onChange={() => {
-                    markTouched("salaryPeriod");
-                    setSalaryPeriod("hour");
-                  }}
-                />
-                {t(locale, "poster.salaryHourly")}
-              </label>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+              {periodOptions.map(([value, key]) => (
+                <label key={value} className="inline-flex min-h-[44px] items-center gap-1.5">
+                  <input
+                    type="radio"
+                    name="salaryPeriodChoice"
+                    value={value}
+                    checked={salaryPeriod === value}
+                    onChange={() => setField("salaryPeriod", value)}
+                  />
+                  {t(locale, key)}
+                </label>
+              ))}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <input
-                name="salaryMin"
                 type="number"
                 min={0}
                 inputMode="numeric"
                 value={salaryMin}
-                onChange={(e) => {
-                  markTouched("salaryMin");
-                  setSalaryMin(e.target.value);
-                }}
+                onChange={(e) => setField("salaryMin", e.target.value)}
                 className={inputCls}
-                placeholder="最低"
+                aria-label={t(locale, "poster.salaryMinPlaceholder")}
+                placeholder={t(locale, "poster.salaryMinPlaceholder")}
               />
               <input
-                name="salaryMax"
                 type="number"
                 min={0}
                 inputMode="numeric"
                 value={salaryMax}
-                onChange={(e) => {
-                  markTouched("salaryMax");
-                  setSalaryMax(e.target.value);
-                }}
+                onChange={(e) => setField("salaryMax", e.target.value)}
                 className={inputCls}
-                placeholder="最高"
+                aria-label={t(locale, "poster.salaryMaxPlaceholder")}
+                placeholder={t(locale, "poster.salaryMaxPlaceholder")}
               />
             </div>
           </div>
@@ -321,27 +354,19 @@ export function PosterForm({
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium">{t(locale, "poster.mealsIncluded")}</span>
             <div className="flex items-center gap-4 text-sm">
-              <label className="inline-flex items-center gap-1.5">
+              <label className="inline-flex min-h-[44px] items-center gap-1.5">
                 <input
                   type="checkbox"
-                  name="mealsIncluded"
                   checked={meals}
-                  onChange={(e) => {
-                    markTouched("meals");
-                    setMeals(e.target.checked);
-                  }}
+                  onChange={(e) => setField("mealsIncluded", e.target.checked)}
                 />
                 {t(locale, "poster.mealsIncluded")}
               </label>
-              <label className="inline-flex items-center gap-1.5">
+              <label className="inline-flex min-h-[44px] items-center gap-1.5">
                 <input
                   type="checkbox"
-                  name="liveIn"
                   checked={liveIn}
-                  onChange={(e) => {
-                    markTouched("liveIn");
-                    setLiveIn(e.target.checked);
-                  }}
+                  onChange={(e) => setField("liveIn", e.target.checked)}
                 />
                 {t(locale, "poster.liveIn")}
               </label>
@@ -354,53 +379,26 @@ export function PosterForm({
             </label>
             <select
               id="residence"
-              name="residenceRequired"
               value={residence}
-              onChange={(e) => {
-                markTouched("residence");
-                setResidence(e.target.value as "none" | "prefer" | "required");
-              }}
+              onChange={(e) => setField("residenceRequired", e.target.value as Residence)}
               className={inputCls}
             >
               <option value="none">{t(locale, "poster.residenceNone")}</option>
               <option value="prefer">{t(locale, "poster.residencePrefer")}</option>
-              <option value="required">
-                {t(locale, "poster.residenceRequired")}
-              </option>
+              <option value="required">{t(locale, "poster.residenceRequired")}</option>
             </select>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="nameZh" className="text-sm font-medium">
-              {t(locale, "poster.storeName")} <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="nameZh"
-              name="nameZh"
-              required
-              value={nameZh}
-              onChange={(e) => setNameZh(e.target.value)}
-              className={inputCls}
-              placeholder={t(locale, "poster.storeName")}
-            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="contactPhone" className="text-sm font-medium">
-                {t(locale, "poster.contactPhone")}{" "}
-                <span className="text-red-500">*</span>
+                {t(locale, "poster.contactPhone")} <span className="text-red-500">*</span>
               </label>
               <input
                 id="contactPhone"
-                name="contactPhone"
                 type="tel"
-                required
                 value={phone}
-                onChange={(e) => {
-                  markTouched("phone");
-                  setPhone(e.target.value);
-                }}
+                onChange={(e) => setField("contactPhone", e.target.value)}
                 className={inputCls}
                 placeholder="+34 600 000 000"
               />
@@ -411,13 +409,9 @@ export function PosterForm({
               </label>
               <input
                 id="contactWhatsapp"
-                name="contactWhatsapp"
                 type="tel"
                 value={whatsapp}
-                onChange={(e) => {
-                  markTouched("whatsapp");
-                  setWhatsapp(e.target.value);
-                }}
+                onChange={(e) => setField("contactWhatsapp", e.target.value)}
                 className={inputCls}
                 placeholder="+34 600 000 000"
               />
@@ -426,9 +420,12 @@ export function PosterForm({
         </div>
       )}
 
-      {state && !state.ok && state.error && (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {state.error}
+      {errorText && (
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
+          {errorText}
         </p>
       )}
 

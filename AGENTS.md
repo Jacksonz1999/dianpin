@@ -97,7 +97,7 @@ dianpin/
 
 `seeker_posts`：第八轮新增的"反向发帖"——此前只有店主能发布岗位（`jobs`），求职者只能被动投递；这张表让求职者主动发一条结构化的"我要找 XX 工作"帖子，雇主可浏览并联系。字段刻意复用已有枚举（`residence_status` 用 §5 现有五值，`salary_period` 用 `jobs.salary_period` 的 hour/day/month），不新造枚举。`status` 状态机（draft/active/closed）定义在 `lib/status-machine.ts`，与 `jobs.status` 同构但不共用同一张表——求职帖和岗位帖是两种实体，不应该合并成一张多态表，否则筛选/索引都会变复杂。联系方式字段（`contact_phone`/`contact_wechat`）沿用 §4 的自由填写字符串约定，不依赖 OAuth。`is_seed` 对齐 `jobs`/`stores` 已有的演示数据标记约定，但本表**不预置任何种子数据**——真实求职者发的帖子如果和演示数据混在一起，雇主无法分辨哪些是真实可联系的人。展示规则见 §6。
 
-`job_alerts`：真实岗位库存很小（个位数到十几条），"没有符合条件的岗位"不该是死路——求职者可以在筛选结果为空时，或在筛选栏下方常驻入口，免登录留下邮箱订阅"有新岗位通知我"，筛选条件（城市/工种/包吃住/可无居留/薪资下限）随订阅一起存下来。**双重确认（double opt-in）**：提交后发一封确认邮件，只有点击确认链接才会把 `confirmed_at` 置上，未确认的订阅不会收到任何通知邮件——这是 GDPR 合规要求，不是可选项。每封通知邮件都带一次性退订链接（`unsubscribe_token`）。`UNIQUE(email)` 意味着一个邮箱同一时间只有一份订阅条件，重复提交会更新已有条件而不是报错或建新行。触发时机：**仅在 `lib/db.ts` 的 `createJob` 内、且 `status=active` 时同步触发**（员工发布岗位的那次调用），不引入定时任务或常驻 worker（见 §7 的 Hobby 档常驻 worker 成本警告）。`db/import-csv.ts` 的批量导入直接写 `db.insert(jobs)`、不经过 `createJob`，因此批量导入不会触发通知——这是有意为之，避免一次性导入几十上百条历史数据时群发邮件轰炸订阅者。
+`job_alerts`：真实岗位库存很小（个位数到十几条），"没有符合条件的岗位"不该是死路——求职者可以在筛选结果为空时，或在筛选栏下方常驻入口，免登录留下邮箱订阅"有新岗位通知我"，筛选条件（城市/工种/包吃住/可无居留/薪资下限）随订阅一起存下来。**双重确认（double opt-in）**：提交后发一封确认邮件，只有点击确认链接才会把 `confirmed_at` 置上，未确认的订阅不会收到任何通知邮件——这是 GDPR 合规要求，不是可选项。每封通知邮件都带一次性退订链接（`unsubscribe_token`）。`UNIQUE(email)` 意味着一个邮箱同一时间只有一份订阅条件，重复提交会更新已有条件而不是报错或建新行。触发时机：**仅在 `lib/db.ts` 的 `createJob` 与 `createPosterJob`（PegaLocal 告示，发布即 active）内、且 `status=active` 时同步触发**（店主发布岗位的那次调用），不引入定时任务或常驻 worker（见 §7 的 Hobby 档常驻 worker 成本警告）。`db/import-csv.ts` 的批量导入直接写 `db.insert(jobs)`、不经过 `createJob`，因此批量导入不会触发通知——这是有意为之，避免一次性导入几十上百条历史数据时群发邮件轰炸订阅者。
 
 **枚举值（不要自造）**
 - `residence_status`: 有居留 / 办理中 / 学生居留 / 家庭居留 / 无居留
