@@ -84,6 +84,8 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    // Everything except prefetches: prefetched RSC payloads don't need a CSP
+    // nonce, so skipping them keeps prefetching cheap (Next CSP guide).
     {
       source: "/((?!api|_next/static|_next/image|favicon.ico).*)",
       missing: [
@@ -91,5 +93,11 @@ export const config = {
         { type: "header", key: "purpose", value: "prefetch" },
       ],
     },
+    // Locale-prefixed URLs ALWAYS need the proxy, prefetches included: there
+    // is no /es or /en route on disk — only the rewrite above makes them
+    // resolve. Without this entry every <LocaleLink> prefetch under /es/…
+    // (e.g. the employer bottom tabs) 404'd.
+    "/(es|en|zh)",
+    "/(es|en|zh)/:path*",
   ],
 };
