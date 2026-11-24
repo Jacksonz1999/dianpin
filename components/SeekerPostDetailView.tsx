@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink } from "./LocaleLink";
 import type { City, JobType, SeekerPost } from "@/lib/types";
 import { renderJobTypeIcon } from "@/lib/job-type-icons";
 import { useLocale } from "./LocaleProvider";
@@ -16,7 +16,7 @@ export function SeekerPostDetailView({
   jobType: JobType;
   isLoggedInEmployer: boolean;
 }) {
-  const { locale, t } = useLocale();
+  const { locale, t, href } = useLocale();
 
   const cityName = locale === "es" ? city.name_es : city.name_zh;
   const jobTypeName = locale === "es" ? jobType.name_es : jobType.name_zh;
@@ -107,12 +107,12 @@ export function SeekerPostDetailView({
             <span className="text-[var(--color-text-muted)]">
               {t("seekerPost.detail.contactHidden")}
             </span>
-            <Link
-              href={`/login?role=employer&next=${encodeURIComponent(`/employer/seekers/${post.id}`)}`}
+            <LocaleLink
+              href={`/login?role=employer&next=${encodeURIComponent(href(`/employer/seekers/${post.id}`))}`}
               className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--color-primary-text)]"
             >
               {t("seekerPost.detail.loginToView")}
-            </Link>
+            </LocaleLink>
           </div>
         )}
       </div>

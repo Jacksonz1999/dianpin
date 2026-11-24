@@ -2,6 +2,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { UserRole } from "@/lib/types";
+import { getRequestLocale } from "@/lib/locale-server";
+import { localePath } from "@/lib/locale-routing";
 
 const COOKIE_NAME = "dianpin_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
@@ -99,8 +101,12 @@ export async function requireSession(
 ): Promise<SessionPayload> {
   const session = await getSession();
   if (!session) {
-    const qs = nextPath ? `?next=${encodeURIComponent(nextPath)}` : "";
-    redirect(`/login${qs}`);
+    // Keep the visitor in their language: /es/... -> /es/login?next=/es/...
+    const locale = await getRequestLocale();
+    const qs = nextPath
+      ? `?next=${encodeURIComponent(localePath(nextPath, locale))}`
+      : "";
+    redirect(`${localePath("/login", locale)}${qs}`);
   }
   return session;
 }
@@ -129,14 +135,19 @@ export async function requireRole(
   nextPath?: string
 ): Promise<SessionPayload> {
   const session = await getSession();
+  // Callers pass unprefixed paths; localize every redirect so a Spanish
+  // visitor (/es/...) stays on /es/login and lands back on /es/... after.
+  const locale = await getRequestLocale();
   if (!session) {
     const params = new URLSearchParams();
     params.set("role", role);
-    if (nextPath) params.set("next", nextPath);
-    redirect(`/login?${params.toString()}`);
+    if (nextPath) params.set("next", localePath(nextPath, locale));
+    redirect(`${localePath("/login", locale)}?${params.toString()}`);
   }
   if (session.role !== role) {
-    redirect(`/role-mismatch?needed=${role}&have=${session.role}`);
+    redirect(
+      `${localePath("/role-mismatch", locale)}?needed=${role}&have=${session.role}`
+    );
   }
   return session;
 }

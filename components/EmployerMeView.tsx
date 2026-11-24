@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink } from "./LocaleLink";
 import type { User } from "@/lib/types";
 import { LegalLinks } from "./LegalLinks";
 import { useLocale } from "./LocaleProvider";
@@ -26,7 +26,7 @@ export function EmployerMeView({ user }: { user: User | null }) {
           can't actually apply as a seeker (single role per account, see
           AGENTS.md §6's note on this), but can still browse /job listings
           signed out of the employer section. */}
-      <Link
+      <LocaleLink
         href="/"
         className="flex min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm"
       >
@@ -34,7 +34,7 @@ export function EmployerMeView({ user }: { user: User | null }) {
         <span className="shrink-0 text-[var(--color-primary)]">
           {t("nav.seekerExit")} →
         </span>
-      </Link>
+      </LocaleLink>
 
       <LogoutButton />
       <LegalLinks />

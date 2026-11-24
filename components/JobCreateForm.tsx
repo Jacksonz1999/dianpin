@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink } from "./LocaleLink";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createJobAction } from "@/app/actions";
@@ -60,12 +60,12 @@ export function JobCreateForm({
         <p className="text-sm text-[var(--color-text-muted)]">
           {t("job.form.noStores")}
         </p>
-        <Link
+        <LocaleLink
           href="/employer"
           className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-primary)] px-4 text-sm text-[var(--color-primary-text)]"
         >
           {t("employer.job.backToDashboard")}
-        </Link>
+        </LocaleLink>
       </div>
     );
   }

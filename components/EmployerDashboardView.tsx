@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink } from "./LocaleLink";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
@@ -34,24 +34,24 @@ function JobRow({ job, newApplicationsCount }: JobWithNewCount) {
   return (
     <div className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
       <div className="flex items-center justify-between gap-2">
-        <Link
+        <LocaleLink
           href={`/employer/job/${job.id}`}
           className="text-sm font-medium underline-offset-2 hover:underline"
         >
           {locale === "es" ? job.title_es : job.title_zh}
-        </Link>
+        </LocaleLink>
         <span className="shrink-0 rounded-full bg-[var(--color-bg)] px-2 py-1 text-xs">
           {t(`jobStatus.${job.status}`)}
         </span>
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <Link
+        <LocaleLink
           href={`/employer/job/${job.id}`}
           className="inline-flex min-h-[36px] items-center rounded-full border border-[var(--color-border)] px-3 text-xs"
         >
           {t("employer.dashboard.manageJob")}
-        </Link>
+        </LocaleLink>
         {newApplicationsCount > 0 && (
           <span className="rounded-full bg-[var(--color-accent)] px-2 py-1 text-xs text-white">
             {t("employer.dashboard.newApplicationsBadge", {
@@ -154,7 +154,7 @@ export function EmployerDashboardView({
           lib/nav-tabs.ts's shared array — see that file's comment on why).
           This card is what makes /employer/seekers reachable at all on
           mobile, where BottomNav stays at 3 tabs. */}
-      <Link
+      <LocaleLink
         href="/employer/seekers"
         className="flex min-h-[44px] items-center justify-between gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm"
       >
@@ -165,7 +165,7 @@ export function EmployerDashboardView({
         <span className="shrink-0 text-[var(--color-primary)]">
           {t("nav.employer.seekers")} →
         </span>
-      </Link>
+      </LocaleLink>
 
       {groups.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center">
@@ -190,12 +190,12 @@ export function EmployerDashboardView({
         ))
       )}
 
-      <Link
+      <LocaleLink
         href="/employer/new"
         className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[var(--color-border)] px-4 text-sm"
       >
         {t("employer.dashboard.postJobCta")}
-      </Link>
+      </LocaleLink>
 
       <StoreCreateModal
         open={createStoreOpen}
