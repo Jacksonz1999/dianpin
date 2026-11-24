@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink } from "./LocaleLink";
 import { useEffect, useMemo, useState } from "react";
 import { searchSeekerPosts } from "@/app/actions";
 import type { City, JobType, SeekerPostSummary } from "@/lib/types";
@@ -73,12 +73,12 @@ function SeekerPostCard({
       )}
 
       <div className="mt-auto flex items-center justify-end pt-1">
-        <Link
+        <LocaleLink
           href={`/employer/seekers/${post.id}`}
           className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-primary)] px-4 text-xs font-medium text-[var(--color-primary-text)]"
         >
           {t("employer.seekers.viewDetail")}
-        </Link>
+        </LocaleLink>
       </div>
     </div>
   );

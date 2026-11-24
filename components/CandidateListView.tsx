@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink } from "./LocaleLink";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { advanceApplicationStatusAction, updateJobStatusAction } from "@/app/actions";
@@ -193,9 +193,9 @@ export function CandidateListView({
 
   return (
     <div className="flex flex-col gap-4 px-4 py-6">
-      <Link href="/employer" className="text-sm text-[var(--color-text-muted)]">
+      <LocaleLink href="/employer" className="text-sm text-[var(--color-text-muted)]">
         ← {t("employer.job.backToDashboard")}
-      </Link>
+      </LocaleLink>
 
       <div className="flex flex-col gap-1">
         <h1 className="text-lg font-semibold">
