@@ -9,6 +9,7 @@
     "start": "node scripts/start.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "test:poster": "tsx scripts/test-poster-parse.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",

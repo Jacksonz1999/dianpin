@@ -1,7 +1,7 @@
 import { getCities, getJobTypes } from "@/lib/db";
 import { requireRole } from "@/lib/auth/session";
 import { getRequestLocale } from "@/lib/locale-server";
-import { type Locale } from "@/lib/i18n";
+import { t, type Locale } from "@/lib/i18n";
 import { PosterForm } from "@/components/PosterForm";
 
 export const dynamic = "force-dynamic";
@@ -25,8 +25,12 @@ export default async function NewPosterPage() {
           text for the owner. */}
       <div className="flex items-center gap-2">
         <span className="text-sm text-[var(--color-text-muted)]">
-          {isEs ? "Idioma:" : "语言:"}
+          {t(locale, "poster.langPrompt")}
         </span>
+        {/* Plain <a>, not <Link>: switching language must be a full-page
+            navigation so the URL locale (and server-rendered copy) changes —
+            AGENTS.md §6. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a
           href="/employer/poster/new"
           className={
@@ -36,7 +40,7 @@ export default async function NewPosterPage() {
               : "border border-[var(--color-border)]")
           }
         >
-          中文
+          {t(locale, "poster.langZh")}
         </a>
         <a
           href="/es/employer/poster/new"
@@ -47,18 +51,16 @@ export default async function NewPosterPage() {
               : "border border-[var(--color-border)]")
           }
         >
-          Español
+          {t(locale, "poster.langEs")}
         </a>
       </div>
 
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold">
-          {isEs ? "Crear anuncio de empleo" : "生成招聘告示"}
+          {t(locale, "poster.pageTitle")}
         </h1>
         <p className="text-sm text-[var(--color-text-muted)]">
-          {isEs
-            ? "Escribe como si fuera un papel en la puerta. Nosotros hacemos el resto."
-            : "像平时写纸条一样写几句招人话，剩下的交给系统。"}
+          {t(locale, "poster.pageSubtitle")}
         </p>
       </div>
 
