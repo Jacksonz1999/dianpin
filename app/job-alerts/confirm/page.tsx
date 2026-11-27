@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { defaultLocale, t } from "@/lib/i18n";
 import { confirmJobAlert } from "@/lib/job-alerts";
+import { localePath } from "@/lib/locale-routing";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export default async function JobAlertConfirmPage({
           : t(locale, "jobAlert.confirm.invalid")}
       </p>
       <Link
-        href="/"
+        href={localePath("/", locale)}
         className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--color-primary-text)]"
       >
         {t(locale, "jobAlert.backHome")}

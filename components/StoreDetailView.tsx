@@ -7,12 +7,14 @@ import type {
   JobType,
   PublicStore,
   Review,
+  ReviewAccess,
 } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
 import { JobCard } from "./JobCard";
 import { ReportModal } from "./ReportModal";
 import { StoreCoverImage } from "./StoreCoverImage";
 import { StoreVerificationBadge } from "./StoreVerificationBadge";
+import { ReviewForm } from "./ReviewForm";
 
 export function StoreDetailView({
   store,
@@ -21,6 +23,7 @@ export function StoreDetailView({
   jobTypes,
   reviewRows,
   showReviews,
+  reviewAccess,
 }: {
   store: PublicStore;
   city: City;
@@ -28,6 +31,7 @@ export function StoreDetailView({
   jobTypes: JobType[];
   reviewRows: { review: Review; reviewerName: string }[];
   showReviews: boolean;
+  reviewAccess: ReviewAccess;
 }) {
   const { locale, t } = useLocale();
   const [reportOpen, setReportOpen] = useState(false);
@@ -97,6 +101,7 @@ export function StoreDetailView({
 
       <div className="flex flex-col gap-2">
         <h2 className="text-sm font-medium">{t("store.reviewsTitle")}</h2>
+        {showReviews && <ReviewForm storeId={store.id} access={reviewAccess} />}
         {!showReviews ? (
           <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {t("store.ratingHidden")}

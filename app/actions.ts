@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 import {
   adminSetStoreVerification,
+  adminSetReportStatus,
   advanceApplicationStatus,
   createApplication,
   createJob,
   createReport,
+  createReview,
   createSeekerPost,
   createStore,
   getApplicationById,
@@ -26,6 +28,7 @@ import {
   updateJobStatus,
   updateSeekerPostStatus,
   withdrawApplication,
+  ReviewWriteError,
   type JobFilters,
   type SeekerPostFilters,
 } from "@/lib/db";
@@ -35,7 +38,7 @@ import {
 } from "@/lib/job-alerts";
 import { getSession, requireRole, requireSession } from "@/lib/auth/session";
 import { requireAdmin } from "@/lib/admin";
-import { PlaceholderValueError } from "@/lib/validation";
+import { assertNotPlaceholder, PlaceholderValueError } from "@/lib/validation";
 import { isJobExpired } from "@/lib/job-utils";
 import { sanitizePublicStore } from "@/lib/public-store";
 import type { Locale } from "@/lib/i18n";
@@ -180,6 +183,58 @@ export async function submitReportAction(input: {
     reporterUserId: session.userId,
     reason: input.reason,
   });
+}
+
+export type SubmitReviewResult =
+  | { ok: true }
+  | {
+      ok: false;
+      error: "not_eligible" | "already_reviewed" | "invalid_input" | "unknown";
+    };
+
+export async function submitReviewAction(input: {
+  storeId: string;
+  rating: number;
+  comment: string;
+}): Promise<SubmitReviewResult> {
+  const session = await requireRole("seeker", `/store/${input.storeId}`);
+  const comment = input.comment.trim();
+  if (
+    !Number.isInteger(input.rating) ||
+    input.rating < 1 ||
+    input.rating > 5 ||
+    comment.length < 5 ||
+    comment.length > 500
+  ) {
+    return { ok: false, error: "invalid_input" };
+  }
+
+  try {
+    assertNotPlaceholder("comment", comment);
+    await createReview({
+      storeId: input.storeId,
+      seekerUserId: session.userId,
+      rating: input.rating,
+      comment,
+    });
+    revalidatePath(`/store/${input.storeId}`);
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof ReviewWriteError) {
+      return { ok: false, error: err.code };
+    }
+    if (err instanceof PlaceholderValueError) {
+      return { ok: false, error: "invalid_input" };
+    }
+    if (isUniqueViolation(err)) {
+      return { ok: false, error: "already_reviewed" };
+    }
+    console.error(
+      "[reviews] submitReviewAction failed:",
+      err instanceof Error ? err.message : "non-Error value thrown"
+    );
+    return { ok: false, error: "unknown" };
+  }
 }
 
 export async function createStoreAction(
@@ -402,4 +457,13 @@ export async function adminReviewStoreAction(
   // The store's own public pages show its verification badge — keep them
   // from serving a stale "认证中" after an admin just resolved it.
   revalidatePath(`/store/${storeId}`);
+}
+
+export async function adminReviewReportAction(
+  reportId: string,
+  nextStatus: "resolved" | "dismissed"
+): Promise<void> {
+  await requireAdmin();
+  await adminSetReportStatus(reportId, nextStatus);
+  revalidatePath("/admin/reports");
 }

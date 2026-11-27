@@ -1,6 +1,7 @@
 import type {
   ApplicationStatus,
   JobStatus,
+  ReportStatus,
   SeekerPostStatus,
   StoreVerificationStatus,
 } from "./types";
@@ -100,6 +101,11 @@ export function canSubmitStoreForVerification(
  * canSubmitStoreForVerification's transition to get back to pending).
  */
 export function canAdminReviewStore(status: StoreVerificationStatus): boolean {
+  return status === "pending";
+}
+
+/** Reports are resolved once; a terminal moderation decision is not reversible. */
+export function canAdminResolveReport(status: ReportStatus): boolean {
   return status === "pending";
 }
 

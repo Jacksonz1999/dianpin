@@ -318,6 +318,10 @@ export const reviews = pgTable(
   },
   (table) => [
     check("reviews_rating_range", sql`${table.rating} between 1 and 5`),
+    unique("reviews_store_id_seeker_user_id_key").on(
+      table.store_id,
+      table.seeker_user_id
+    ),
   ]
 );
 

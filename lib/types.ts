@@ -25,6 +25,7 @@ export type ResidenceRequired = "none" | "prefer" | "required";
 export type SalaryPeriod = "hour" | "day" | "month";
 
 export type ReportTargetType = "job" | "store";
+export type ReportStatus = "pending" | "resolved" | "dismissed";
 
 export type SeekerPostStatus = "draft" | "active" | "closed";
 
@@ -55,6 +56,16 @@ export interface User {
   /** Login identifier for the email-magic-link auth provider (WP4). */
   email: string | null;
   created_at: string;
+}
+
+/**
+ * Client-safe seeker projection for the employer's candidate list.
+ * `phone` is absent until the application has revealed contact details;
+ * authentication and account metadata never cross the RSC boundary.
+ */
+export interface CandidateSeeker {
+  name: string;
+  phone?: string | null;
 }
 
 export interface SeekerProfile {
@@ -186,8 +197,15 @@ export interface Report {
   target_id: string;
   reporter_user_id: string;
   reason: string;
-  status: string;
+  status: ReportStatus;
 }
+
+export type ReviewAccess =
+  | "anonymous"
+  | "not_seeker"
+  | "not_applied"
+  | "already_reviewed"
+  | "eligible";
 
 /** Fields collected by the employer's "创建门店" form; owner_user_id is supplied separately by the caller. */
 export interface StoreFormValues {

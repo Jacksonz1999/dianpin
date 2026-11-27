@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink as Link } from "./LocaleLink";
 import type { City, JobType, SeekerPost } from "@/lib/types";
 import { renderJobTypeIcon } from "@/lib/job-type-icons";
 import { useLocale } from "./LocaleProvider";

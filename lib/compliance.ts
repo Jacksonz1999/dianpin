@@ -10,8 +10,6 @@
 export interface ComplianceResult {
   flagged: boolean;
   terms: string[];
-  suggestionZh: string;
-  suggestionEs: string;
 }
 
 const ZH_TERMS = [
@@ -71,9 +69,5 @@ export function detectDiscrimination(text: string): ComplianceResult {
   return {
     flagged: terms.length > 0,
     terms,
-    suggestionZh:
-      "请使用中性招聘用语，例如「招聘服务人员」，不要出现国籍、性别、宗教或族裔限制。",
-    suggestionEs:
-      "Usa un lenguaje de contratación neutro, p. ej. «Se busca personal». No incluyas restricciones por nacionalidad, sexo, religión ni etnia.",
   };
 }

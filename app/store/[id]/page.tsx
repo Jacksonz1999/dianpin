@@ -4,6 +4,7 @@ import {
   getCityById,
   getJobTypes,
   getJobsByStore,
+  getReviewAccess,
   getReviewsByStore,
   getStoreById,
   getUserById,
@@ -20,6 +21,8 @@ import {
 } from "@/lib/seo";
 import { localePath } from "@/lib/locale-routing";
 import { StoreDetailView } from "@/components/StoreDetailView";
+import { getSession } from "@/lib/auth/session";
+import type { ReviewAccess } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -56,11 +59,12 @@ export default async function StoreDetailPage({
   ]);
   if (!storeRow) notFound();
 
-  const [city, allJobs, reviews, jobTypes] = await Promise.all([
+  const [city, allJobs, reviews, jobTypes, session] = await Promise.all([
     getCityById(storeRow.city),
     getJobsByStore(storeRow.id),
     getReviewsByStore(storeRow.id),
     getJobTypes(),
+    getSession(),
   ]);
   if (!city) notFound();
 
@@ -72,6 +76,13 @@ export default async function StoreDetailPage({
   // trust signals it failed to earn — no rating, no reviews, no
   // aggregateRating in structured data.
   const showReviews = store.verification_status !== "rejected";
+  const reviewAccess: ReviewAccess = !session
+    ? "anonymous"
+    : session.role !== "seeker"
+      ? "not_seeker"
+      : showReviews
+        ? await getReviewAccess(store.id, session.userId)
+        : "not_seeker";
   const storeName = locale === "es" ? store.name_es : store.name_zh;
   const cityName = locale === "es" ? city.name_es : city.name_zh;
 
@@ -116,6 +127,7 @@ export default async function StoreDetailPage({
         jobTypes={jobTypes}
         reviewRows={reviewRows}
         showReviews={showReviews}
+        reviewAccess={reviewAccess}
       />
     </>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useActionState } from "react";
+import { useMemo, useState, useActionState } from "react";
 import type { City, JobType } from "@/lib/types";
 import { t, type Locale as LocaleType } from "@/lib/i18n";
 import { parsePosterNote } from "@/lib/poster-parse";
@@ -27,20 +27,20 @@ export function PosterForm({
 
   // Icon-tap fallback (override) fields — pre-filled from the parse for any the
   // owner hasn't manually edited.
-  const [jobTypeId, setJobTypeId] = useState("");
-  const [cityId, setCityId] = useState("");
-  const [district, setDistrict] = useState("");
-  const [salaryPeriod, setSalaryPeriod] = useState<"hour" | "month">("month");
-  const [salaryMin, setSalaryMin] = useState("");
-  const [salaryMax, setSalaryMax] = useState("");
-  const [meals, setMeals] = useState(false);
-  const [liveIn, setLiveIn] = useState(false);
-  const [residence, setResidence] = useState<"none" | "prefer" | "required">(
+  const [jobTypeIdInput, setJobTypeId] = useState("");
+  const [cityIdInput, setCityId] = useState("");
+  const [districtInput, setDistrict] = useState("");
+  const [salaryPeriodInput, setSalaryPeriod] = useState<"hour" | "month">("month");
+  const [salaryMinInput, setSalaryMin] = useState("");
+  const [salaryMaxInput, setSalaryMax] = useState("");
+  const [mealsInput, setMeals] = useState(false);
+  const [liveInInput, setLiveIn] = useState(false);
+  const [residenceInput, setResidence] = useState<"none" | "prefer" | "required">(
     "none"
   );
   const [nameZh, setNameZh] = useState("");
-  const [phone, setPhone] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
+  const [phoneInput, setPhone] = useState("");
+  const [whatsappInput, setWhatsapp] = useState("");
 
   const parsed = useMemo(
     () => parsePosterNote(note, jobTypes, cities),
@@ -48,28 +48,36 @@ export function PosterForm({
   );
   const compliance = useMemo(() => detectDiscrimination(note), [note]);
 
-  // Auto-fill fallback fields from the parse, except ones the owner touched.
-  useEffect(() => {
-    setJobTypeId((p) => (touched.jobType ? p : parsed.jobTypeId ?? ""));
-    setCityId((p) => (touched.city ? p : parsed.city ?? ""));
-    setDistrict((p) => (touched.district ? p : parsed.district ?? ""));
-    setSalaryPeriod((p) =>
-      touched.salaryPeriod ? p : parsed.salaryPeriod === "hour" ? "hour" : "month"
-    );
-    setSalaryMin((p) =>
-      touched.salaryMin ? p : parsed.salaryMin ? String(parsed.salaryMin) : ""
-    );
-    setSalaryMax((p) =>
-      touched.salaryMax ? p : parsed.salaryMax ? String(parsed.salaryMax) : ""
-    );
-    setMeals((p) => (touched.meals ? p : Boolean(parsed.mealsIncluded)));
-    setLiveIn((p) => (touched.liveIn ? p : Boolean(parsed.liveIn)));
-    setResidence((p) =>
-      touched.residence ? p : (parsed.residenceRequired ?? "none")
-    );
-    setPhone((p) => (touched.phone ? p : parsed.contactPhone ?? ""));
-    setWhatsapp((p) => (touched.whatsapp ? p : parsed.contactWhatsapp ?? ""));
-  }, [parsed, touched]);
+  // Derived during render instead of synchronizing props/parser output into
+  // state with an effect. Until a field is touched its effective value follows
+  // the latest parse; after that, only the owner's explicit input wins.
+  const jobTypeId = touched.jobType ? jobTypeIdInput : parsed.jobTypeId ?? "";
+  const cityId = touched.city ? cityIdInput : parsed.city ?? "";
+  const district = touched.district ? districtInput : parsed.district ?? "";
+  const salaryPeriod = touched.salaryPeriod
+    ? salaryPeriodInput
+    : parsed.salaryPeriod === "hour"
+      ? "hour"
+      : "month";
+  const salaryMin = touched.salaryMin
+    ? salaryMinInput
+    : parsed.salaryMin
+      ? String(parsed.salaryMin)
+      : "";
+  const salaryMax = touched.salaryMax
+    ? salaryMaxInput
+    : parsed.salaryMax
+      ? String(parsed.salaryMax)
+      : "";
+  const meals = touched.meals ? mealsInput : Boolean(parsed.mealsIncluded);
+  const liveIn = touched.liveIn ? liveInInput : Boolean(parsed.liveIn);
+  const residence = touched.residence
+    ? residenceInput
+    : (parsed.residenceRequired ?? "none");
+  const phone = touched.phone ? phoneInput : parsed.contactPhone ?? "";
+  const whatsapp = touched.whatsapp
+    ? whatsappInput
+    : parsed.contactWhatsapp ?? "";
 
   const markTouched = (k: string) =>
     setTouched((prev) => (prev[k] ? prev : { ...prev, [k]: true }));
@@ -85,20 +93,21 @@ export function PosterForm({
   const salaryPreview =
     Number.isFinite(minN)
       ? `€${minN}${Number.isFinite(maxN) && maxN !== minN ? `–${maxN}` : ""}/${
-          salaryPeriod === "hour" ? "小时" : "月"
+          t(locale, `job.salaryPeriod.${salaryPeriod}`)
         }`
       : null;
   const mealsPreview = meals
     ? liveIn
-      ? "包吃住"
-      : "包吃"
-    : "不包吃住";
+      ? t(locale, "poster.mealsAndLodging")
+      : t(locale, "poster.mealsOnly")
+    : t(locale, "poster.noMealsOrLodging");
 
   const inputCls =
     "h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm";
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
+      <input type="hidden" name="locale" value={locale} />
       {/* ---- primary: smart note ---- */}
       <div className="flex flex-col gap-1.5">
         <label htmlFor="note" className="text-sm font-medium">
@@ -300,7 +309,7 @@ export function PosterForm({
                   setSalaryMin(e.target.value);
                 }}
                 className={inputCls}
-                placeholder="最低"
+                placeholder={t(locale, "poster.salaryMinPlaceholder")}
               />
               <input
                 name="salaryMax"
@@ -313,7 +322,7 @@ export function PosterForm({
                   setSalaryMax(e.target.value);
                 }}
                 className={inputCls}
-                placeholder="最高"
+                placeholder={t(locale, "poster.salaryMaxPlaceholder")}
               />
             </div>
           </div>

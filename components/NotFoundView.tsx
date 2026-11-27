@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink as Link } from "./LocaleLink";
 import { SearchX } from "lucide-react";
 import { useLocale } from "./LocaleProvider";
 

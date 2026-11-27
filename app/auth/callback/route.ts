@@ -9,6 +9,8 @@ import { sanitizeNextPath } from "@/lib/auth/next-path";
 import { createSession } from "@/lib/auth/session";
 import { createUser, getUserByEmail } from "@/lib/db";
 import { getSiteUrl } from "@/lib/site-url";
+import { getRequestLocale } from "@/lib/locale-server";
+import { localePath, stripLocalePrefix } from "@/lib/locale-routing";
 
 const MAX_VERIFY_ATTEMPTS = 5;
 
@@ -32,31 +34,34 @@ export async function GET(request: NextRequest) {
   const challengeId = request.nextUrl.searchParams.get("challenge");
   const code = request.nextUrl.searchParams.get("code");
   const origin = getSiteUrl();
+  const locale = await getRequestLocale();
+  const redirectTo = (path: string) =>
+    NextResponse.redirect(
+      new URL(localePath(stripLocalePrefix(path), locale), origin)
+    );
 
   if (!challengeId || !code) {
-    return NextResponse.redirect(new URL("/login?error=invalid_link", origin));
+    return redirectTo("/login?error=invalid_link");
   }
 
   const challenge = await getAuthChallengeById(challengeId);
   if (!challenge) {
-    return NextResponse.redirect(new URL("/login?error=invalid_link", origin));
+    return redirectTo("/login?error=invalid_link");
   }
   if (challenge.consumed_at) {
-    return NextResponse.redirect(new URL("/login?error=already_used", origin));
+    return redirectTo("/login?error=already_used");
   }
   if (new Date(challenge.expires_at).getTime() < Date.now()) {
-    return NextResponse.redirect(new URL("/login?error=expired", origin));
+    return redirectTo("/login?error=expired");
   }
   if (challenge.attempts >= MAX_VERIFY_ATTEMPTS) {
-    return NextResponse.redirect(
-      new URL("/login?error=too_many_attempts", origin)
-    );
+    return redirectTo("/login?error=too_many_attempts");
   }
 
   const codeHash = createHash("sha256").update(code).digest("hex");
   if (codeHash !== challenge.code_hash) {
     await incrementChallengeAttempts(challengeId);
-    return NextResponse.redirect(new URL("/login?error=invalid_link", origin));
+    return redirectTo("/login?error=invalid_link");
   }
 
   await consumeAuthChallenge(challengeId);
@@ -71,7 +76,7 @@ export async function GET(request: NextRequest) {
       role: challenge.intended_role,
       email: challenge.identifier,
       name: challenge.identifier.split("@")[0],
-      locale: "zh",
+      locale,
     });
   }
 
@@ -80,5 +85,5 @@ export async function GET(request: NextRequest) {
   const nextPath =
     sanitizeNextPath(challenge.next_path) ??
     (user.role === "employer" ? "/employer" : "/me");
-  return NextResponse.redirect(new URL(nextPath, origin));
+  return redirectTo(nextPath);
 }

@@ -14,6 +14,8 @@ import { clearSession } from "@/lib/auth/session";
 import { getAuthProvider } from "@/lib/auth/providers";
 import { getSiteUrl } from "@/lib/site-url";
 import { isTurnstileConfigured, verifyTurnstileToken } from "@/lib/auth/turnstile";
+import { getRequestLocale } from "@/lib/locale-server";
+import { localePath } from "@/lib/locale-routing";
 import type { UserRole } from "@/lib/types";
 
 const CHALLENGE_TTL_MINUTES = 15;
@@ -131,7 +133,9 @@ export async function requestLoginLinkAction(input: {
     expiresAt,
   });
 
-  const verifyUrl = `${getSiteUrl()}/auth/callback?challenge=${challenge.id}&code=${rawCode}`;
+  const locale = await getRequestLocale();
+  const callbackPath = localePath("/auth/callback", locale);
+  const verifyUrl = `${getSiteUrl()}${callbackPath}?challenge=${challenge.id}&code=${rawCode}`;
 
   try {
     await getAuthProvider().deliverCode({
@@ -158,5 +162,5 @@ export async function requestLoginLinkAction(input: {
 
 export async function logoutAction(): Promise<void> {
   await clearSession();
-  redirect("/");
+  redirect(localePath("/", await getRequestLocale()));
 }

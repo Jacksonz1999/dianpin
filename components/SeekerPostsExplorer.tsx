@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink as Link } from "./LocaleLink";
 import { useEffect, useMemo, useState } from "react";
 import { searchSeekerPosts } from "@/app/actions";
 import type { City, JobType, SeekerPostSummary } from "@/lib/types";

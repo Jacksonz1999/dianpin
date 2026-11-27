@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink as Link } from "./LocaleLink";
 import type { User } from "@/lib/types";
 import { LegalLinks } from "./LegalLinks";
 import { useLocale } from "./LocaleProvider";

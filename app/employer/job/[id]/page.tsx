@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import {
   getApplicationsByJob,
+  getCandidateSeekerByUserId,
   getJobById,
   getJobTypes,
   getSeekerProfileByUserId,
   getStoreById,
-  getUserById,
   markSubmittedApplicationsAsViewed,
 } from "@/lib/db";
 import { requireRole } from "@/lib/auth/session";
@@ -39,11 +39,15 @@ export default async function EmployerJobCandidatesPage({
   ]);
 
   const rows: CandidateRow[] = await Promise.all(
-    applications.map(async (application) => ({
-      application,
-      seeker: await getUserById(application.seeker_user_id),
-      profile: await getSeekerProfileByUserId(application.seeker_user_id),
-    }))
+    applications.map(async (application) => {
+      const [seeker, profile] = await Promise.all([
+        getCandidateSeekerByUserId(application.seeker_user_id, {
+          revealContact: application.contact_revealed,
+        }),
+        getSeekerProfileByUserId(application.seeker_user_id),
+      ]);
+      return { application, seeker, profile };
+    })
   );
 
   return (

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { cache } from "react";
-import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   applications,
@@ -16,6 +16,7 @@ import {
 } from "@/db/schema";
 import {
   applicationRevealsContact,
+  canAdminResolveReport,
   canAdminReviewStore,
   canSubmitStoreForVerification,
   canTransitionApplication,
@@ -28,6 +29,7 @@ import type { Locale } from "./i18n";
 import type {
   Application,
   ApplicationStatus,
+  CandidateSeeker,
   City,
   Job,
   JobSort,
@@ -35,8 +37,10 @@ import type {
   JobStatus,
   JobType,
   Report,
+  ReportStatus,
   ReportTargetType,
   Review,
+  ReviewAccess,
   SeekerPost,
   SeekerPostFormValues,
   SeekerPostStatus,
@@ -261,6 +265,120 @@ export async function getReviewsByStore(storeId: string): Promise<Review[]> {
     .orderBy(desc(reviews.created_at));
 }
 
+export async function getReviewAccess(
+  storeId: string,
+  seekerUserId: string
+): Promise<Exclude<ReviewAccess, "anonymous" | "not_seeker">> {
+  const [existingReview, storeApplication] = await Promise.all([
+    db
+      .select({ id: reviews.id })
+      .from(reviews)
+      .where(
+        and(
+          eq(reviews.store_id, storeId),
+          eq(reviews.seeker_user_id, seekerUserId)
+        )
+      )
+      .limit(1),
+    db
+      .select({ id: applications.id })
+      .from(applications)
+      .innerJoin(jobs, eq(applications.job_id, jobs.id))
+      .where(
+        and(
+          eq(applications.seeker_user_id, seekerUserId),
+          eq(jobs.store_id, storeId),
+          ne(applications.status, "withdrawn")
+        )
+      )
+      .limit(1),
+  ]);
+
+  if (existingReview.length > 0) return "already_reviewed";
+  return storeApplication.length > 0 ? "eligible" : "not_applied";
+}
+
+export class ReviewWriteError extends Error {
+  constructor(public readonly code: "not_eligible" | "already_reviewed") {
+    super(code);
+    this.name = "ReviewWriteError";
+  }
+}
+
+export async function createReview(input: {
+  storeId: string;
+  seekerUserId: string;
+  rating: number;
+  comment: string;
+}): Promise<Review> {
+  return db.transaction(async (tx) => {
+    // Serialize review writes per store so the denormalized aggregate cannot
+    // overwrite a concurrent review's contribution with a stale average.
+    const [store] = await tx
+      .select({ id: stores.id, verificationStatus: stores.verification_status })
+      .from(stores)
+      .where(eq(stores.id, input.storeId))
+      .for("update");
+    if (!store || store.verificationStatus === "rejected") {
+      throw new ReviewWriteError("not_eligible");
+    }
+
+    const [existingReview] = await tx
+      .select({ id: reviews.id })
+      .from(reviews)
+      .where(
+        and(
+          eq(reviews.store_id, input.storeId),
+          eq(reviews.seeker_user_id, input.seekerUserId)
+        )
+      )
+      .limit(1);
+    if (existingReview) throw new ReviewWriteError("already_reviewed");
+
+    const [storeApplication] = await tx
+      .select({ id: applications.id })
+      .from(applications)
+      .innerJoin(jobs, eq(applications.job_id, jobs.id))
+      .where(
+        and(
+          eq(applications.seeker_user_id, input.seekerUserId),
+          eq(jobs.store_id, input.storeId),
+          ne(applications.status, "withdrawn")
+        )
+      )
+      .limit(1);
+    if (!storeApplication) throw new ReviewWriteError("not_eligible");
+
+    const [review] = await tx
+      .insert(reviews)
+      .values({
+        id: `review_${randomUUID()}`,
+        store_id: input.storeId,
+        seeker_user_id: input.seekerUserId,
+        rating: input.rating,
+        comment: input.comment,
+      })
+      .returning();
+
+    const [aggregate] = await tx
+      .select({
+        average: sql<string>`coalesce(avg(${reviews.rating}), 0)`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(reviews)
+      .where(eq(reviews.store_id, input.storeId));
+    await tx
+      .update(stores)
+      .set({
+        rating_avg: Number(Number(aggregate.average).toFixed(2)),
+        rating_count: aggregate.count,
+      })
+      .where(eq(stores.id, input.storeId));
+
+    return review;
+  });
+}
+
 export async function getApplicationsBySeeker(
   seekerUserId: string
 ): Promise<Application[]> {
@@ -290,6 +408,33 @@ function toUser(row: typeof users.$inferSelect): User {
 export async function getUserById(id: string): Promise<User | null> {
   const [row] = await db.select().from(users).where(eq(users.id, id));
   return row ? toUser(row) : null;
+}
+
+/**
+ * Minimal candidate DTO for a Client Component. Do not replace this with
+ * getUserById: a full User passed as an RSC prop would expose phone, wechat
+ * and email in the page payload even when the UI visually hides them.
+ *
+ * The unrevealed query does not even select the phone column, so contact
+ * details stay in PostgreSQL until application.contact_revealed is true.
+ */
+export async function getCandidateSeekerByUserId(
+  id: string,
+  options: { revealContact: boolean }
+): Promise<CandidateSeeker | null> {
+  if (!options.revealContact) {
+    const [row] = await db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, id));
+    return row ?? null;
+  }
+
+  const [row] = await db
+    .select({ name: users.name, phone: users.phone })
+    .from(users)
+    .where(eq(users.id, id));
+  return row ?? null;
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
@@ -468,7 +613,7 @@ export async function createReport(input: CreateReportInput): Promise<Report> {
       reason: input.reason,
     })
     .returning();
-  return row;
+  return { ...row, status: row.status as ReportStatus };
 }
 
 export async function createStore(
@@ -580,6 +725,39 @@ export async function adminSetStoreVerification(
     .where(eq(stores.id, storeId))
     .returning();
   return row;
+}
+
+export async function getReportsForAdmin(
+  status?: ReportStatus
+): Promise<Report[]> {
+  const rows = status
+    ? await db
+        .select()
+        .from(reports)
+        .where(eq(reports.status, status))
+        .orderBy(asc(reports.id))
+    : await db.select().from(reports).orderBy(asc(reports.status), asc(reports.id));
+  return rows.map((row) => ({ ...row, status: row.status as ReportStatus }));
+}
+
+export async function adminSetReportStatus(
+  reportId: string,
+  nextStatus: "resolved" | "dismissed"
+): Promise<Report> {
+  const [existing] = await db.select().from(reports).where(eq(reports.id, reportId));
+  if (!existing) throw new Error(`Report ${reportId} not found`);
+  if (!canAdminResolveReport(existing.status as ReportStatus)) {
+    throw new Error(
+      `Cannot admin-review report ${reportId} from status "${existing.status}"`
+    );
+  }
+
+  const [row] = await db
+    .update(reports)
+    .set({ status: nextStatus })
+    .where(eq(reports.id, reportId))
+    .returning();
+  return { ...row, status: row.status as ReportStatus };
 }
 
 /**

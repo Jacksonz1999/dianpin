@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink as Link } from "./LocaleLink";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { advanceApplicationStatusAction, updateJobStatusAction } from "@/app/actions";
@@ -8,18 +8,18 @@ import { nextEmployerApplicationStatuses, nextJobStatuses } from "@/lib/status-m
 import type {
   Application,
   ApplicationStatus,
+  CandidateSeeker,
   Job,
   JobStatus,
   JobType,
   SeekerProfile,
   Store,
-  User,
 } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
 
 export type CandidateRow = {
   application: Application;
-  seeker: User | null;
+  seeker: CandidateSeeker | null;
   profile: SeekerProfile | null;
 };
 

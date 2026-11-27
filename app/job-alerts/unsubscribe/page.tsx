@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { defaultLocale, t } from "@/lib/i18n";
+import { localePath } from "@/lib/locale-routing";
 import {
   getJobAlertByUnsubscribeToken,
   unsubscribeJobAlertByToken,
@@ -26,7 +27,7 @@ export default async function JobAlertUnsubscribePage({
           : t(locale, "jobAlert.unsubscribe.invalid")}
       </p>
       <Link
-        href="/"
+        href={localePath("/", locale)}
         className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--color-primary-text)]"
       >
         {t(locale, "jobAlert.backHome")}

@@ -13,6 +13,9 @@ import {
 } from "@/lib/db";
 import { detectDiscrimination } from "@/lib/compliance";
 import { parsePosterNote } from "@/lib/poster-parse";
+import { t } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/locale-server";
+import { isLocale, localePath } from "@/lib/locale-routing";
 
 export interface PosterResult {
   ok: boolean;
@@ -51,6 +54,10 @@ export async function createPosterPost(
   // requireRole redirects (throws) for non-employer sessions.
   const session = await requireRole("employer");
 
+  const submittedLocale = String(formData.get("locale") ?? "");
+  const locale = isLocale(submittedLocale)
+    ? submittedLocale
+    : await getRequestLocale();
   const note = String(formData.get("note") ?? "").trim();
   const nameZh = String(formData.get("nameZh") ?? "").trim();
   const jobTypeId = String(formData.get("jobTypeId") ?? "").trim();
@@ -75,7 +82,7 @@ export async function createPosterPost(
   if (compliance.flagged) {
     return {
       ok: false,
-      error: `${compliance.suggestionZh} (${compliance.terms.join(", ")})`,
+      error: `${t(locale, "poster.complianceSuggestion")} (${compliance.terms.join(", ")})`,
     };
   }
 
@@ -106,14 +113,14 @@ export async function createPosterPost(
   if (!nameZh || !finalJobTypeId || !finalCity || !finalPhone) {
     return {
       ok: false,
-      error: "信息不足：请写几句招人话，或补充工种 / 城市 / 电话。",
+      error: t(locale, "poster.error.missingFields"),
     };
   }
 
   const jobType = await getJobTypeById(finalJobTypeId);
   const cityRow = await getCityById(finalCity);
   if (!jobType || !cityRow) {
-    return { ok: false, error: "工种或城市无效" };
+    return { ok: false, error: t(locale, "poster.error.invalidReference") };
   }
 
   const store = await createPosterStore({
@@ -213,5 +220,5 @@ export async function createPosterPost(
     contactWhatsapp: finalWhatsapp,
   });
 
-  redirect(`/employer/poster/${jobId}`);
+  redirect(localePath(`/employer/poster/${jobId}`, locale));
 }

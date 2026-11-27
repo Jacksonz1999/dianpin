@@ -1,7 +1,8 @@
 import { getCities, getJobTypes } from "@/lib/db";
 import { requireRole } from "@/lib/auth/session";
 import { getRequestLocale } from "@/lib/locale-server";
-import { type Locale } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { localePath } from "@/lib/locale-routing";
 import { PosterForm } from "@/components/PosterForm";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ export default async function NewPosterPage() {
     getRequestLocale(),
   ]);
 
+  const isZh = locale === "zh";
   const isEs = locale === "es";
 
   return (
@@ -25,21 +27,23 @@ export default async function NewPosterPage() {
           text for the owner. */}
       <div className="flex items-center gap-2">
         <span className="text-sm text-[var(--color-text-muted)]">
-          {isEs ? "Idioma:" : "语言:"}
+          {t(locale, "poster.langPrompt")}:
         </span>
+        {/* Full-page locale navigation is intentional: the server must render
+            URL, metadata and dictionary together. */}
         <a
-          href="/employer/poster/new"
+          href={localePath("/employer/poster/new", "zh")}
           className={
             "rounded-full px-4 py-1.5 text-sm font-medium " +
-            (!isEs
+            (isZh
               ? "bg-[var(--color-primary)] text-[var(--color-primary-text)]"
               : "border border-[var(--color-border)]")
           }
         >
-          中文
+          {t(locale, "poster.langZh")}
         </a>
         <a
-          href="/es/employer/poster/new"
+          href={localePath("/employer/poster/new", "es")}
           className={
             "rounded-full px-4 py-1.5 text-sm font-medium " +
             (isEs
@@ -53,16 +57,14 @@ export default async function NewPosterPage() {
 
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold">
-          {isEs ? "Crear anuncio de empleo" : "生成招聘告示"}
+          {t(locale, "poster.publish")}
         </h1>
         <p className="text-sm text-[var(--color-text-muted)]">
-          {isEs
-            ? "Escribe como si fuera un papel en la puerta. Nosotros hacemos el resto."
-            : "像平时写纸条一样写几句招人话，剩下的交给系统。"}
+          {t(locale, "poster.pageSubtitle")}
         </p>
       </div>
 
-      <PosterForm jobTypes={jobTypes} cities={cities} locale={locale as Locale} />
+      <PosterForm jobTypes={jobTypes} cities={cities} locale={locale} />
     </div>
   );
 }

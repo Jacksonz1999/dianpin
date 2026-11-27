@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { LocaleLink as Link } from "./LocaleLink";
 import { subscribeJobAlertAction } from "@/app/actions";
 import { useLocale } from "./LocaleProvider";
 

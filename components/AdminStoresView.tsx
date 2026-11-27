@@ -5,6 +5,7 @@ import { useState } from "react";
 import { adminReviewStoreAction } from "@/app/actions";
 import type { City, Store, StoreVerificationStatus, User } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
+import { AdminNav } from "./AdminNav";
 
 export type AdminStoreRow = {
   store: Store;
@@ -102,19 +103,20 @@ export function AdminStoresView({
   cities: City[];
   currentStatus: StoreVerificationStatus | "all";
 }) {
-  const { locale, t } = useLocale();
+  const { locale, t, href } = useLocale();
   const router = useRouter();
   const citiesById = new Map(cities.map((c) => [c.id, c]));
 
   return (
     <div className="flex flex-col gap-4 px-4 py-6">
+      <AdminNav />
       <h1 className="text-lg font-semibold">{t("admin.stores.title")}</h1>
 
       <label className="flex flex-col gap-1 text-sm">
         {t("admin.stores.filterLabel")}
         <select
           value={currentStatus}
-          onChange={(e) => router.push(`/admin/stores?status=${e.target.value}`)}
+          onChange={(e) => router.push(href(`/admin/stores?status=${e.target.value}`))}
           className="min-h-[44px] rounded-lg border border-[var(--color-border)] px-3"
         >
           {FILTER_VALUES.map((value) => (

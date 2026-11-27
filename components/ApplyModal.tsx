@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { LocaleLink as Link } from "./LocaleLink";
 import { useRouter } from "next/navigation";
 import { applyToJob, type ApplyToJobResult } from "@/app/actions";
 import type { Job, JobType, SeekerProfileFormValues } from "@/lib/types";

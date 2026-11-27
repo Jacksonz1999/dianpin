@@ -1,6 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getRequestLocale } from "@/lib/locale-server";
+import { localePath } from "@/lib/locale-routing";
 import type { UserRole } from "@/lib/types";
 
 const COOKIE_NAME = "dianpin_session";
@@ -99,8 +101,12 @@ export async function requireSession(
 ): Promise<SessionPayload> {
   const session = await getSession();
   if (!session) {
-    const qs = nextPath ? `?next=${encodeURIComponent(nextPath)}` : "";
-    redirect(`/login${qs}`);
+    const locale = await getRequestLocale();
+    const localizedNext = nextPath ? localePath(nextPath, locale) : null;
+    const qs = localizedNext
+      ? `?next=${encodeURIComponent(localizedNext)}`
+      : "";
+    redirect(localePath(`/login${qs}`, locale));
   }
   return session;
 }
@@ -130,13 +136,17 @@ export async function requireRole(
 ): Promise<SessionPayload> {
   const session = await getSession();
   if (!session) {
+    const locale = await getRequestLocale();
     const params = new URLSearchParams();
     params.set("role", role);
-    if (nextPath) params.set("next", nextPath);
-    redirect(`/login?${params.toString()}`);
+    if (nextPath) params.set("next", localePath(nextPath, locale));
+    redirect(localePath(`/login?${params.toString()}`, locale));
   }
   if (session.role !== role) {
-    redirect(`/role-mismatch?needed=${role}&have=${session.role}`);
+    const locale = await getRequestLocale();
+    redirect(
+      localePath(`/role-mismatch?needed=${role}&have=${session.role}`, locale)
+    );
   }
   return session;
 }
