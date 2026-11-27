@@ -26,6 +26,28 @@ export class PlaceholderValueError extends Error {
   }
 }
 
+export class MissingLocalizedContentError extends Error {
+  constructor(public readonly field: string) {
+    super(`Field "${field}" needs Chinese or Spanish content`);
+    this.name = "MissingLocalizedContentError";
+  }
+}
+
+/**
+ * Keeps NOT NULL bilingual columns honest without inventing a translation.
+ * If one language is absent, the other language's source text is the fallback.
+ */
+export function bilingualWithSourceFallback(
+  zh: string,
+  es: string,
+  field: string
+): { zh: string; es: string } {
+  const zhValue = zh.trim();
+  const esValue = es.trim();
+  if (!zhValue && !esValue) throw new MissingLocalizedContentError(field);
+  return { zh: zhValue || esValue, es: esValue || zhValue };
+}
+
 export function assertNotPlaceholder(field: string, value: string): void {
   if (PLACEHOLDER_PATTERNS.some((pattern) => pattern.test(value))) {
     throw new PlaceholderValueError(field, value);

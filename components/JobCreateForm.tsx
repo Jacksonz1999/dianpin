@@ -81,8 +81,7 @@ export function JobCreateForm({
   function isValid(): boolean {
     return (
       !!storeId &&
-      value.titleZh.trim().length > 0 &&
-      value.titleEs.trim().length > 0 &&
+      (value.titleZh.trim().length > 0 || value.titleEs.trim().length > 0) &&
       !!value.jobType &&
       value.district.trim().length > 0 &&
       value.salaryMin > 0 &&
@@ -90,8 +89,8 @@ export function JobCreateForm({
       value.headcount > 0 &&
       value.schedule.trim().length > 0 &&
       value.languageRequired.trim().length > 0 &&
-      value.descriptionZh.trim().length > 0 &&
-      value.descriptionEs.trim().length > 0
+      (value.descriptionZh.trim().length > 0 ||
+        value.descriptionEs.trim().length > 0)
     );
   }
 
@@ -120,6 +119,9 @@ export function JobCreateForm({
   return (
     <div className="flex flex-col gap-4 px-4 py-6">
       <h1 className="text-lg font-semibold">{t("job.form.title")}</h1>
+      <p className="rounded-lg bg-[var(--color-bg)] px-3 py-2 text-xs text-[var(--color-text-muted)]">
+        {t("job.form.languageHint")}
+      </p>
 
       {success && (
         <p className="rounded-lg bg-[var(--color-bg)] px-3 py-2 text-sm">

@@ -38,7 +38,11 @@ import {
 } from "@/lib/job-alerts";
 import { getSession, requireRole, requireSession } from "@/lib/auth/session";
 import { requireAdmin } from "@/lib/admin";
-import { assertNotPlaceholder, PlaceholderValueError } from "@/lib/validation";
+import {
+  assertNotPlaceholder,
+  MissingLocalizedContentError,
+  PlaceholderValueError,
+} from "@/lib/validation";
 import { isJobExpired } from "@/lib/job-utils";
 import { sanitizePublicStore } from "@/lib/public-store";
 import type { Locale } from "@/lib/i18n";
@@ -246,6 +250,9 @@ export async function createStoreAction(
     revalidatePath("/employer");
     return { ok: true, storeId: store.id };
   } catch (err) {
+    if (err instanceof MissingLocalizedContentError) {
+      return { ok: false, error: "missing_localized_content" };
+    }
     if (err instanceof PlaceholderValueError) {
       return { ok: false, error: "placeholder_content" };
     }
@@ -285,6 +292,9 @@ export async function createJobAction(
     revalidatePath("/employer");
     return { ok: true, jobId: job.id };
   } catch (err) {
+    if (err instanceof MissingLocalizedContentError) {
+      return { ok: false, error: "missing_localized_content" };
+    }
     if (err instanceof PlaceholderValueError) {
       return { ok: false, error: "placeholder_content" };
     }

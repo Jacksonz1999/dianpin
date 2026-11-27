@@ -235,3 +235,60 @@ test("a user report reaches the admin queue and can be resolved", async ({
     await adminContext.close();
   }
 });
+
+test("a Spanish owner creates a store and publishes a job without Chinese", async ({
+  page,
+}) => {
+  const loginPath = await createMagicLogin({
+    email: E2E_EMPLOYER_EMAIL,
+    intendedRole: "employer",
+    locale: "es",
+    nextPath: "/employer",
+  });
+  await page.goto(loginPath);
+
+  await page.getByRole("button", { name: "+ Nueva tienda" }).click();
+  const storeModal = page.locator("div.fixed.inset-0");
+  await storeModal.getByLabel("Nombre en español").fill("Bar Puerto");
+  await storeModal.getByLabel("Distrito").fill("Centro");
+  await storeModal.getByLabel("Dirección completa").fill("Calle Mayor 1, Madrid");
+  await storeModal.getByLabel("Tipo de tienda").fill("Bar");
+  await storeModal.getByRole("button", { name: "Crear tienda" }).click();
+  await expect(storeModal).toHaveCount(0);
+
+  await page.goto("/es/employer/new");
+  await page.getByLabel("Elige la tienda").selectOption({ label: "Bar Puerto" });
+  await page
+    .getByLabel("Nombre del puesto (español)")
+    .fill("Camarero de barra");
+  await page.getByLabel("Salario mínimo").fill("1200");
+  await page.getByLabel("Salario máximo").fill("1400");
+  await page.getByLabel("Horario").fill("Lunes a viernes 08:00-16:00");
+  await page.getByLabel("Idioma requerido").fill("Español");
+  const description = "Atención al cliente y servicio de barra.";
+  await page.getByLabel("Descripción (español)").fill(description);
+  await page.getByRole("button", { name: "Publicar", exact: true }).click();
+  await expect(page.getByText("Empleo publicado")).toBeVisible();
+
+  const storeResult = await pool.query(
+    "SELECT name_zh, name_es FROM stores WHERE name_es = 'Bar Puerto'"
+  );
+  expect(storeResult.rows).toEqual([
+    { name_zh: "Bar Puerto", name_es: "Bar Puerto" },
+  ]);
+  const jobResult = await pool.query(
+    "SELECT id, title_zh, title_es, description_zh, description_es FROM jobs WHERE title_es = 'Camarero de barra'"
+  );
+  expect(jobResult.rows).toHaveLength(1);
+  expect(jobResult.rows[0]).toMatchObject({
+    title_zh: "Camarero de barra",
+    title_es: "Camarero de barra",
+    description_zh: description,
+    description_es: description,
+  });
+
+  await page.goto(`/es/job/${jobResult.rows[0].id}`);
+  await expect(
+    page.getByRole("heading", { name: "Camarero de barra" })
+  ).toBeVisible();
+});

@@ -371,8 +371,10 @@ const zh: Dict = {
   "login.error.too_many_attempts": "尝试次数过多，请重新获取登录链接",
 
   "job.error.store_not_found": "找不到对应的门店，请刷新后重试",
+  "job.error.missing_localized_content": "岗位标题和描述至少需要一种语言",
   "job.error.placeholder_content": "标题或描述里含有「示例/测试」等占位文字，请填写真实内容",
   "store.error.placeholder_content": "门店名称里含有「示例/测试」等占位文字，请填写真实门店名",
+  "store.error.missing_localized_content": "请至少填写门店的中文名或西语名",
 
   "employer.dashboard.newStoreCta": "+ 新建门店",
   "employer.dashboard.noStores": "还没有门店，先创建一个吧",
@@ -386,6 +388,7 @@ const zh: Dict = {
   "store.form.title": "新建门店",
   "store.form.nameZh": "门店中文名",
   "store.form.nameEs": "门店西语名",
+  "store.form.languageHint": "门店名称至少填写中文或西语一种；未填写的语言将展示已填写原文，不会自动生成翻译。",
   "store.form.city": "所在城市",
   "store.form.district": "所在区域",
   "store.form.address": "详细地址",
@@ -401,6 +404,7 @@ const zh: Dict = {
   "job.form.selectStore": "选择门店",
   "job.form.titleZh": "岗位名称（中文）",
   "job.form.titleEs": "岗位名称（西语）",
+  "job.form.languageHint": "岗位标题和描述至少填写中文或西语一种；未填写的语言展示原文。",
   "job.form.salaryMin": "薪资下限",
   "job.form.salaryMax": "薪资上限",
   "job.form.salaryPeriod": "计薪方式",
@@ -933,6 +937,9 @@ const es: Dict = {
   "job.error.placeholder_content": "El título o la descripción parecen texto de ejemplo/prueba, escribe contenido real",
   "store.error.placeholder_content": "El nombre de la tienda parece texto de ejemplo/prueba, escribe el nombre real",
 
+  "job.error.missing_localized_content": "El título y la descripción necesitan contenido en chino o español",
+  "store.error.missing_localized_content": "Escribe el nombre de la tienda en chino o español",
+
   "employer.dashboard.newStoreCta": "+ Nueva tienda",
   "employer.dashboard.noStores": "Aún no tienes tiendas, crea una primero",
   "employer.dashboard.newApplicationsBadge": "{count} nuevas postulaciones",
@@ -945,6 +952,7 @@ const es: Dict = {
   "store.form.title": "Nueva tienda",
   "store.form.nameZh": "Nombre en chino",
   "store.form.nameEs": "Nombre en español",
+  "store.form.languageHint": "Escribe el nombre en chino o español; no hacen falta ambos. Si falta un idioma, se mostrará el texto original sin inventar una traducción.",
   "store.form.city": "Ciudad",
   "store.form.district": "Distrito",
   "store.form.address": "Dirección completa",
@@ -957,6 +965,7 @@ const es: Dict = {
   "store.form.success": "Tienda creada",
 
   "job.form.title": "Publicar empleo",
+  "job.form.languageHint": "Escribe el título y la descripción en chino o español; si falta un idioma, se mostrará el texto original.",
   "job.form.selectStore": "Elige la tienda",
   "job.form.titleZh": "Nombre del puesto (chino)",
   "job.form.titleEs": "Nombre del puesto (español)",
@@ -1171,6 +1180,10 @@ const en: Dict = {
   "common.optional": "optional",
   "common.submit": "Submit",
   "common.fillRequiredFields": "Please fill in all required fields",
+  "store.form.languageHint": "Enter the store name in Chinese or Spanish; if one language is absent, the original text is shown without inventing a translation.",
+  "store.error.missing_localized_content": "Enter the store name in Chinese or Spanish",
+  "job.form.languageHint": "Write the job title and description in Chinese or Spanish; if one language is absent, the original text is shown.",
+  "job.error.missing_localized_content": "Provide the job title and description in Chinese or Spanish",
   "common.skipToContent": "Skip to main content",
   "poster.contactTitle": "Contact the store",
   "poster.langPrompt": "Choose your language",

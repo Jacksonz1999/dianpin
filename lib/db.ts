@@ -23,7 +23,7 @@ import {
   canTransitionJob,
   canTransitionSeekerPost,
 } from "./status-machine";
-import { assertNotPlaceholder } from "./validation";
+import { assertNotPlaceholder, bilingualWithSourceFallback } from "./validation";
 import { notifyJobAlertSubscribers } from "./job-alerts";
 import type { Locale } from "./i18n";
 import type {
@@ -625,14 +625,15 @@ export async function createStore(
   // the free-text address/district, which only the name fields guarded.
   assertNotPlaceholder("address", input.address);
   assertNotPlaceholder("district", input.district);
+  const name = bilingualWithSourceFallback(input.nameZh, input.nameEs, "name");
 
   const [row] = await db
     .insert(stores)
     .values({
       id: `store_${randomUUID()}`,
       owner_user_id: input.ownerUserId,
-      name_zh: input.nameZh.trim(),
-      name_es: input.nameEs.trim(),
+      name_zh: name.zh,
+      name_es: name.es,
       city: input.city,
       // Trailing spaces in `district` polluted filter params (audit P0-5).
       district: input.district.trim(),
@@ -772,14 +773,20 @@ export async function createJob(
   assertNotPlaceholder("titleEs", input.titleEs);
   assertNotPlaceholder("descriptionZh", input.descriptionZh);
   assertNotPlaceholder("descriptionEs", input.descriptionEs);
+  const title = bilingualWithSourceFallback(input.titleZh, input.titleEs, "title");
+  const description = bilingualWithSourceFallback(
+    input.descriptionZh,
+    input.descriptionEs,
+    "description"
+  );
 
   const [row] = await db
     .insert(jobs)
     .values({
       id: `job_${randomUUID()}`,
       store_id: input.storeId,
-      title_zh: input.titleZh,
-      title_es: input.titleEs,
+      title_zh: title.zh,
+      title_es: title.es,
       job_type: input.jobType,
       city: input.city,
       district: input.district.trim(),
@@ -792,8 +799,8 @@ export async function createJob(
       meals_included: input.mealsIncluded,
       language_required: input.languageRequired,
       residence_required: input.residenceRequired,
-      description_zh: input.descriptionZh,
-      description_es: input.descriptionEs,
+      description_zh: description.zh,
+      description_es: description.es,
       status: input.status,
     })
     .returning();

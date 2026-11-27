@@ -33,8 +33,7 @@ export function StoreCreateModal({
 
   async function handleSubmit() {
     if (
-      !value.nameZh.trim() ||
-      !value.nameEs.trim() ||
+      (!value.nameZh.trim() && !value.nameEs.trim()) ||
       !value.city ||
       !value.district.trim() ||
       !value.address.trim() ||
@@ -67,6 +66,9 @@ export function StoreCreateModal({
   return (
     <Modal open={open} onClose={onClose} title={t("store.form.title")}>
       <div className="flex flex-col gap-3">
+        <p className="rounded-lg bg-[var(--color-bg)] px-3 py-2 text-xs text-[var(--color-text-muted)]">
+          {t("store.form.languageHint")}
+        </p>
         <label className="flex flex-col gap-1 text-sm">
           {t("store.form.nameZh")}
           <input
