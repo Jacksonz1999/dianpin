@@ -1,4 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { readFile, rm } from "node:fs/promises";
+import path from "node:path";
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { Locale } from "../../lib/i18n";
@@ -42,6 +44,27 @@ export const E2E_SEEKER_EMAIL = "seeker.private@e2e.test";
 export const E2E_EMPLOYER_EMAIL = "owner@e2e.test";
 export const E2E_ADMIN_EMAIL = "admin@e2e.test";
 export const E2E_SEEKER_PHONE = "+34699999999";
+export const MAIL_OUTBOX = path.resolve("test-results/e2e-mail.jsonl");
+
+export type MailOutboxEntry = { to: string; subject: string; text: string };
+
+export async function resetMailOutbox(): Promise<void> {
+  await rm(MAIL_OUTBOX, { force: true });
+}
+
+export async function readMailOutbox(): Promise<MailOutboxEntry[]> {
+  try {
+    const content = await readFile(MAIL_OUTBOX, "utf8");
+    return content
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as MailOutboxEntry);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+}
 
 function required<T>(value: T | undefined, label: string): T {
   if (!value) throw new Error(`Missing E2E fixture: ${label}`);

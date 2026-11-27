@@ -8,12 +8,14 @@ import {
   E2E_SEEKER_PHONE,
   getOnlyApplication,
   pool,
+  readMailOutbox,
+  resetMailOutbox,
   resetAndSeedDatabase,
   seedSeekerWithApplication,
 } from "./helpers";
 
 test.beforeEach(async () => {
-  await resetAndSeedDatabase();
+  await Promise.all([resetAndSeedDatabase(), resetMailOutbox()]);
 });
 
 test.afterAll(async () => {
@@ -53,6 +55,10 @@ test("seeker applies; employer cannot read contact data until contacted", async 
   const application = await getOnlyApplication();
   expect(application.status).toBe("submitted");
   expect(application.contact_revealed).toBe(false);
+  const newApplicationMails = await readMailOutbox();
+  expect(newApplicationMails).toHaveLength(1);
+  expect(newApplicationMails[0].to).toBe(E2E_EMPLOYER_EMAIL);
+  expect(newApplicationMails[0].text).toContain("测试求职者");
 
   await page.goto("/me/applications");
   await expect(
@@ -95,8 +101,16 @@ test("seeker applies; employer cannot read contact data until contacted", async 
       .getByRole("button", { name: "标记已联系" })
       .click();
     await expect(
-      employerPage.getByText(E2E_SEEKER_PHONE, { exact: true })
+      employerPage.getByText(E2E_SEEKER_PHONE, { exact: false })
     ).toBeVisible();
+    await expect(
+      employerPage.getByRole("link", { name: "WhatsApp", exact: true })
+    ).toHaveAttribute("href", "https://wa.me/34699999999");
+
+    const statusMails = await readMailOutbox();
+    expect(statusMails).toHaveLength(2);
+    expect(statusMails[1].to).toBe(E2E_SEEKER_EMAIL);
+    expect(statusMails[1].text).toContain("已联系");
 
     const contacted = await getOnlyApplication();
     expect(contacted.status).toBe("contacted");

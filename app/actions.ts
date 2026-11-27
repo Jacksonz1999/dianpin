@@ -36,6 +36,10 @@ import {
   sendJobAlertConfirmationEmail,
   subscribeJobAlert,
 } from "@/lib/job-alerts";
+import {
+  notifyEmployerNewApplication,
+  notifySeekerApplicationStatus,
+} from "@/lib/notifications";
 import { getSession, requireRole, requireSession } from "@/lib/auth/session";
 import { requireAdmin } from "@/lib/admin";
 import {
@@ -147,6 +151,7 @@ export async function applyToJob(input: {
   revalidatePath(`/job/${input.jobId}`);
   revalidatePath("/me/applications");
   revalidatePath("/me");
+  await notifyEmployerNewApplication(application.id);
   return { ok: true, applicationId: application.id };
 }
 
@@ -334,6 +339,7 @@ export async function advanceApplicationStatusAction(
   await assertOwnsJob(application.job_id, session.userId);
 
   await advanceApplicationStatus(applicationId, status);
+  await notifySeekerApplicationStatus(applicationId);
   revalidatePath(`/employer/job/${application.job_id}`);
   revalidatePath("/employer");
 }

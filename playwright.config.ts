@@ -1,10 +1,12 @@
 import { defineConfig } from "@playwright/test";
+import path from "node:path";
 
 const baseURL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3100";
 const port = new URL(baseURL).port || "3100";
 const databaseURL =
   process.env.E2E_DATABASE_URL ??
   "postgresql://postgres:postgres@127.0.0.1:5432/dianpin_test";
+const mailOutbox = path.resolve("test-results/e2e-mail.jsonl");
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -32,6 +34,8 @@ export default defineConfig({
         timeout: 120_000,
         env: {
           DATABASE_URL: databaseURL,
+          E2E_DATABASE_URL: databaseURL,
+          E2E_MAIL_OUTBOX: mailOutbox,
           AUTH_SECRET: "e2e-only-auth-secret-not-for-production",
           NEXT_PUBLIC_SITE_URL: baseURL,
           AUTH_PROVIDER: "email",

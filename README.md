@@ -23,6 +23,8 @@ npm run dev          # http://localhost:3000
 
 会话保存在 `auth_sessions`，浏览器 Cookie 只含随机 token，数据库保存 HMAC 哈希；退出登录会立即撤销。魔法链接通过原子 UPDATE 保证只能消费一次。启用该版本后，旧版无状态 Cookie 会失效，用户需要重新登录一次。
 
+业务通知复用 Resend：新投递通知店主，`contacted / hired / rejected` 通知求职者；发送失败不影响业务写入。E2E 使用 `E2E_MAIL_OUTBOX` 写入本地 JSONL outbox，真实断言收件人和内容，不向外部发送测试邮件。
+
 不配置 `NEXT_PUBLIC_TURNSTILE_SITEKEY`/`TURNSTILE_SECRET` 时，登录页验证码走内置的明文算术题（`lib/auth/captcha.ts`）；要换成 Cloudflare Turnstile，去 [Turnstile 控制台](https://dash.cloudflare.com/?to=/:account/turnstile) 建一个 widget，把 site key / secret key 填进这两个变量即可，不需要改代码。
 
 ### 常用命令

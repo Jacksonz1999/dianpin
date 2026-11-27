@@ -127,7 +127,24 @@ function CandidateCard({
           {t("employer.job.contact")}：
         </span>
         {contactVisible ? (
-          <span className="font-medium">{seeker?.phone ?? "—"}</span>
+          <span className="font-medium">
+            {seeker?.phone ?? "—"}
+            {seeker?.phone && (
+              <span className="ml-2 inline-flex gap-2">
+                <a href={`tel:${seeker.phone}`} className="underline">
+                  {t("employer.job.call")}
+                </a>
+                <a
+                  href={`https://wa.me/${seeker.phone.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  WhatsApp
+                </a>
+              </span>
+            )}
+          </span>
         ) : (
           <span className="text-[var(--color-text-muted)]">
             {t("employer.job.contactHidden")}

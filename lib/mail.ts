@@ -1,4 +1,6 @@
 import { Resend } from "resend";
+import { appendFile, mkdir } from "node:fs/promises";
+import path from "node:path";
 
 export interface SendMailInput {
   to: string;
@@ -25,6 +27,24 @@ export interface SendMailInput {
  *     message to the console instead — see README's "本地开发" section.
  */
 export async function sendMail(input: SendMailInput): Promise<void> {
+  const e2eOutbox = process.env.E2E_MAIL_OUTBOX;
+  if (e2eOutbox) {
+    if (!/(test|e2e)/i.test(process.env.E2E_DATABASE_URL ?? "")) {
+      throw new Error("E2E_MAIL_OUTBOX requires a dedicated E2E database");
+    }
+    await mkdir(path.dirname(e2eOutbox), { recursive: true });
+    await appendFile(
+      e2eOutbox,
+      JSON.stringify({
+        to: input.to,
+        subject: input.subject,
+        text: input.text,
+      }) + "\n",
+      "utf8"
+    );
+    return;
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
   // info@dianpin.eu is the only mailbox this project actually owns — see
   // README's mail-setup section. Do not default to noreply@: that account
