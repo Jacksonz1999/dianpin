@@ -3,19 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminReviewReportAction } from "@/app/actions";
-import type { Report, ReportStatus } from "@/lib/types";
+import type { AdminReportRow, ReportStatus } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
 import { LocaleLink } from "./LocaleLink";
 import { AdminNav } from "./AdminNav";
-
-export type AdminReportRow = {
-  report: Report;
-  reporterName: string | null;
-  reporterEmail: string | null;
-  targetTitleZh: string | null;
-  targetTitleEs: string | null;
-  targetHref: string;
-};
 
 const FILTER_VALUES: (ReportStatus | "all")[] = [
   "pending",

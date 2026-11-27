@@ -25,11 +25,15 @@ import {
 } from "./status-machine";
 import { assertNotPlaceholder, bilingualWithSourceFallback } from "./validation";
 import { notifyJobAlertSubscribers } from "./job-alerts";
+import { sanitizePublicStore } from "./public-store";
 import type { Locale } from "./i18n";
 import type {
+  AdminReportRow,
+  AdminStoreRow,
   Application,
+  ApplicationRow,
   ApplicationStatus,
-  CandidateSeeker,
+  CandidateRow,
   City,
   Job,
   JobSort,
@@ -41,6 +45,7 @@ import type {
   ReportTargetType,
   Review,
   ReviewAccess,
+  ReviewRow,
   SeekerPost,
   SeekerPostFormValues,
   SeekerPostStatus,
@@ -257,10 +262,11 @@ export async function getJobsByStore(storeId: string): Promise<Job[]> {
   return db.select().from(jobs).where(eq(jobs.store_id, storeId));
 }
 
-export async function getReviewsByStore(storeId: string): Promise<Review[]> {
+export async function getReviewRowsByStore(storeId: string): Promise<ReviewRow[]> {
   return db
-    .select()
+    .select({ review: reviews, reviewerName: users.name })
     .from(reviews)
+    .innerJoin(users, eq(reviews.seeker_user_id, users.id))
     .where(eq(reviews.store_id, storeId))
     .orderBy(desc(reviews.created_at));
 }
@@ -379,14 +385,20 @@ export async function createReview(input: {
   });
 }
 
-export async function getApplicationsBySeeker(
+export async function getApplicationRowsBySeeker(
   seekerUserId: string
-): Promise<Application[]> {
-  return db
-    .select()
+): Promise<ApplicationRow[]> {
+  const rows = await db
+    .select({ application: applications, job: jobs, store: stores })
     .from(applications)
+    .innerJoin(jobs, eq(applications.job_id, jobs.id))
+    .innerJoin(stores, eq(jobs.store_id, stores.id))
     .where(eq(applications.seeker_user_id, seekerUserId))
     .orderBy(desc(applications.created_at));
+  return rows.map((row) => ({
+    ...row,
+    store: sanitizePublicStore(row.store),
+  }));
 }
 
 export async function getApplicationsByJob(
@@ -397,6 +409,35 @@ export async function getApplicationsByJob(
     .from(applications)
     .where(eq(applications.job_id, jobId))
     .orderBy(asc(applications.created_at));
+}
+
+export async function getCandidateRowsByJob(jobId: string): Promise<CandidateRow[]> {
+  const rows = await db
+    .select({
+      application: applications,
+      seekerName: users.name,
+      seekerPhone: sql<
+        string | null
+      >`case when ${applications.contact_revealed} then ${users.phone} else null end`,
+      profile: seekerProfiles,
+    })
+    .from(applications)
+    .innerJoin(users, eq(applications.seeker_user_id, users.id))
+    .leftJoin(
+      seekerProfiles,
+      eq(applications.seeker_user_id, seekerProfiles.user_id)
+    )
+    .where(eq(applications.job_id, jobId))
+    .orderBy(asc(applications.created_at));
+
+  return rows.map((row) => ({
+    application: row.application,
+    seeker: {
+      name: row.seekerName,
+      ...(row.application.contact_revealed ? { phone: row.seekerPhone } : {}),
+    },
+    profile: row.profile,
+  }));
 }
 
 function toUser(row: typeof users.$inferSelect): User {
@@ -418,25 +459,6 @@ export async function getUserById(id: string): Promise<User | null> {
  * The unrevealed query does not even select the phone column, so contact
  * details stay in PostgreSQL until application.contact_revealed is true.
  */
-export async function getCandidateSeekerByUserId(
-  id: string,
-  options: { revealContact: boolean }
-): Promise<CandidateSeeker | null> {
-  if (!options.revealContact) {
-    const [row] = await db
-      .select({ name: users.name })
-      .from(users)
-      .where(eq(users.id, id));
-    return row ?? null;
-  }
-
-  const [row] = await db
-    .select({ name: users.name, phone: users.phone })
-    .from(users)
-    .where(eq(users.id, id));
-  return row ?? null;
-}
-
 export async function getUserByEmail(email: string): Promise<User | null> {
   const [row] = await db.select().from(users).where(eq(users.email, email));
   return row ? toUser(row) : null;
@@ -679,16 +701,17 @@ export async function submitStoreForVerification(
 // for the access-control side (email allowlist, no "admin" role).
 // ---------------------------------------------------------------------------
 
-/** status omitted = every store, newest first — used by the "全量列表" filter view. */
-export async function getStoresForAdmin(
+export async function getStoreRowsForAdmin(
   status?: StoreVerificationStatus
-): Promise<Store[]> {
-  const query = db.select().from(stores).orderBy(desc(stores.created_at));
-  if (!status) return query;
+): Promise<AdminStoreRow[]> {
   return db
-    .select()
+    .select({
+      store: stores,
+      owner: { name: users.name, phone: users.phone },
+    })
     .from(stores)
-    .where(eq(stores.verification_status, status))
+    .innerJoin(users, eq(stores.owner_user_id, users.id))
+    .where(status ? eq(stores.verification_status, status) : undefined)
     .orderBy(desc(stores.created_at));
 }
 
@@ -728,17 +751,42 @@ export async function adminSetStoreVerification(
   return row;
 }
 
-export async function getReportsForAdmin(
+export async function getReportRowsForAdmin(
   status?: ReportStatus
-): Promise<Report[]> {
-  const rows = status
-    ? await db
-        .select()
-        .from(reports)
-        .where(eq(reports.status, status))
-        .orderBy(asc(reports.id))
-    : await db.select().from(reports).orderBy(asc(reports.status), asc(reports.id));
-  return rows.map((row) => ({ ...row, status: row.status as ReportStatus }));
+): Promise<AdminReportRow[]> {
+  const rows = await db
+    .select({
+      report: reports,
+      reporterName: users.name,
+      reporterEmail: users.email,
+      jobTitleZh: jobs.title_zh,
+      jobTitleEs: jobs.title_es,
+      storeTitleZh: stores.name_zh,
+      storeTitleEs: stores.name_es,
+    })
+    .from(reports)
+    .innerJoin(users, eq(reports.reporter_user_id, users.id))
+    .leftJoin(
+      jobs,
+      and(eq(reports.target_type, "job"), eq(reports.target_id, jobs.id))
+    )
+    .leftJoin(
+      stores,
+      and(eq(reports.target_type, "store"), eq(reports.target_id, stores.id))
+    )
+    .where(status ? eq(reports.status, status) : undefined)
+    .orderBy(asc(reports.status), asc(reports.id));
+
+  return rows.map((row) => ({
+    report: { ...row.report, status: row.report.status as ReportStatus },
+    reporterName: row.reporterName,
+    reporterEmail: row.reporterEmail,
+    targetTitleZh:
+      row.report.target_type === "job" ? row.jobTitleZh : row.storeTitleZh,
+    targetTitleEs:
+      row.report.target_type === "job" ? row.jobTitleEs : row.storeTitleEs,
+    targetHref: `/${row.report.target_type}/${row.report.target_id}`,
+  }));
 }
 
 export async function adminSetReportStatus(

@@ -207,6 +207,37 @@ export type ReviewAccess =
   | "already_reviewed"
   | "eligible";
 
+export interface CandidateRow {
+  application: Application;
+  seeker: CandidateSeeker | null;
+  profile: SeekerProfile | null;
+}
+
+export interface ApplicationRow {
+  application: Application;
+  job: Job;
+  store: PublicStore;
+}
+
+export interface ReviewRow {
+  review: Review;
+  reviewerName: string;
+}
+
+export interface AdminReportRow {
+  report: Report;
+  reporterName: string | null;
+  reporterEmail: string | null;
+  targetTitleZh: string | null;
+  targetTitleEs: string | null;
+  targetHref: string;
+}
+
+export interface AdminStoreRow {
+  store: Store;
+  owner: { name: string; phone: string | null } | null;
+}
+
 /** Fields collected by the employer's "创建门店" form; owner_user_id is supplied separately by the caller. */
 export interface StoreFormValues {
   nameZh: string;

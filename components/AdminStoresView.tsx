@@ -3,14 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { adminReviewStoreAction } from "@/app/actions";
-import type { City, Store, StoreVerificationStatus, User } from "@/lib/types";
+import type { AdminStoreRow, City, StoreVerificationStatus } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
 import { AdminNav } from "./AdminNav";
-
-export type AdminStoreRow = {
-  store: Store;
-  owner: User | null;
-};
 
 const FILTER_VALUES: (StoreVerificationStatus | "all")[] = [
   "pending",

@@ -216,6 +216,7 @@ LEGAL_JURISDICTION=       # 管辖法院所在地
 - [x] 评价与举报闭环：投递资格校验、每店一条评价、事务内评分聚合、`/admin/reports` 处理队列
 - [x] 纯西语建店与岗位发布：中西语至少一种，缺省语言保存原文回退；E2E 覆盖不填中文的完整店主流程
 - [x] 认证与迁移加固：服务端可撤销会话、魔法链接原子消费、并发重放/退出 E2E；`0008` 已纳入 Drizzle journal，备份恢复覆盖 `auth_sessions` 且可重复执行
+- [x] 核心列表查询优化：候选人、投递记录、门店评价、管理员门店与举报均改为单次 join 查询，候选人联系方式继续使用最小 DTO / SQL CASE
 - [x] 备份恢复演练与监控基础：`scripts/db-backup.mjs`、R2 上传门槛、数据库健康检查、Next 服务端错误采集、Slack/飞书 webhook
 - [ ] 生产备份/告警外部配置：R2 生命周期、GitHub `BACKUPS_ENABLED` 与 Secrets、外部 uptime 监控、告警 webhook（只能由运营方启用）
 

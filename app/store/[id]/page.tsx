@@ -5,9 +5,8 @@ import {
   getJobTypes,
   getJobsByStore,
   getReviewAccess,
-  getReviewsByStore,
+  getReviewRowsByStore,
   getStoreById,
-  getUserById,
 } from "@/lib/db";
 import { isJobLive } from "@/lib/job-utils";
 import { getRequestLocale } from "@/lib/locale-server";
@@ -59,10 +58,9 @@ export default async function StoreDetailPage({
   ]);
   if (!storeRow) notFound();
 
-  const [city, allJobs, reviews, jobTypes, session] = await Promise.all([
+  const [city, allJobs, jobTypes, session] = await Promise.all([
     getCityById(storeRow.city),
     getJobsByStore(storeRow.id),
-    getReviewsByStore(storeRow.id),
     getJobTypes(),
     getSession(),
   ]);
@@ -86,14 +84,7 @@ export default async function StoreDetailPage({
   const storeName = locale === "es" ? store.name_es : store.name_zh;
   const cityName = locale === "es" ? city.name_es : city.name_zh;
 
-  const reviewRows = showReviews
-    ? await Promise.all(
-        reviews.map(async (review) => ({
-          review,
-          reviewerName: (await getUserById(review.seeker_user_id))?.name ?? "—",
-        }))
-      )
-    : [];
+  const reviewRows = showReviews ? await getReviewRowsByStore(store.id) : [];
 
   return (
     <>

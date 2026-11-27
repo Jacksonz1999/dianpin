@@ -4,14 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { withdrawApplicationAction } from "@/app/actions";
 import { canTransitionApplication } from "@/lib/status-machine";
-import type { Application, ApplicationStatus, Job, Store } from "@/lib/types";
+import type { ApplicationRow, ApplicationStatus } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
-
-export type ApplicationRow = {
-  application: Application;
-  job: Job | null;
-  store: Store | null;
-};
 
 const STEP_KEYS: ApplicationStatus[] = ["submitted", "viewed", "contacted"];
 

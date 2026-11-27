@@ -6,22 +6,14 @@ import { useMemo, useState } from "react";
 import { advanceApplicationStatusAction, updateJobStatusAction } from "@/app/actions";
 import { nextEmployerApplicationStatuses, nextJobStatuses } from "@/lib/status-machine";
 import type {
-  Application,
   ApplicationStatus,
-  CandidateSeeker,
+  CandidateRow,
   Job,
   JobStatus,
   JobType,
-  SeekerProfile,
   Store,
 } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
-
-export type CandidateRow = {
-  application: Application;
-  seeker: CandidateSeeker | null;
-  profile: SeekerProfile | null;
-};
 
 const ACTION_LABEL_KEY: Record<ApplicationStatus, string> = {
   submitted: "employer.job.markViewed",

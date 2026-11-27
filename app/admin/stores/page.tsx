@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/admin";
-import { getCities, getStoresForAdmin, getUserById } from "@/lib/db";
+import { getCities, getStoreRowsForAdmin } from "@/lib/db";
 import type { StoreVerificationStatus } from "@/lib/types";
-import { AdminStoresView, type AdminStoreRow } from "@/components/AdminStoresView";
+import { AdminStoresView } from "@/components/AdminStoresView";
 
 export const metadata: Metadata = {
   title: "门店认证审批 | 店聘 DianPin",
@@ -39,17 +39,10 @@ export default async function AdminStoresPage({
     params.status === "all" ? "all" : (parseStatus(params.status) ?? "pending");
   const filterStatus = currentStatus === "all" ? undefined : currentStatus;
 
-  const [stores, cities] = await Promise.all([
-    getStoresForAdmin(filterStatus),
+  const [rows, cities] = await Promise.all([
+    getStoreRowsForAdmin(filterStatus),
     getCities(),
   ]);
-
-  const rows: AdminStoreRow[] = await Promise.all(
-    stores.map(async (store) => ({
-      store,
-      owner: await getUserById(store.owner_user_id),
-    }))
-  );
 
   return (
     <AdminStoresView rows={rows} cities={cities} currentStatus={currentStatus} />

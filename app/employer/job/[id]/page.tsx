@@ -1,18 +1,13 @@
 import { notFound } from "next/navigation";
 import {
-  getApplicationsByJob,
-  getCandidateSeekerByUserId,
+  getCandidateRowsByJob,
   getJobById,
   getJobTypes,
-  getSeekerProfileByUserId,
   getStoreById,
   markSubmittedApplicationsAsViewed,
 } from "@/lib/db";
 import { requireRole } from "@/lib/auth/session";
-import {
-  CandidateListView,
-  type CandidateRow,
-} from "@/components/CandidateListView";
+import { CandidateListView } from "@/components/CandidateListView";
 
 export const dynamic = "force-dynamic";
 
@@ -33,22 +28,10 @@ export default async function EmployerJobCandidatesPage({
   // Opening this page is how the "new" badge on the dashboard gets cleared.
   await markSubmittedApplicationsAsViewed(job.id);
 
-  const [applications, jobTypes] = await Promise.all([
-    getApplicationsByJob(job.id),
+  const [rows, jobTypes] = await Promise.all([
+    getCandidateRowsByJob(job.id),
     getJobTypes(),
   ]);
-
-  const rows: CandidateRow[] = await Promise.all(
-    applications.map(async (application) => {
-      const [seeker, profile] = await Promise.all([
-        getCandidateSeekerByUserId(application.seeker_user_id, {
-          revealContact: application.contact_revealed,
-        }),
-        getSeekerProfileByUserId(application.seeker_user_id),
-      ]);
-      return { application, seeker, profile };
-    })
-  );
 
   return (
     <CandidateListView job={job} store={store} rows={rows} jobTypes={jobTypes} />
