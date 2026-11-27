@@ -270,6 +270,7 @@ export interface JobFormValues {
   residenceRequired: ResidenceRequired;
   descriptionZh: string;
   descriptionEs: string;
+  expiresAt: string | null;
 }
 
 /** Monthly-normalized salary, used for the salary-floor filter (hour×8×22, day×22). */

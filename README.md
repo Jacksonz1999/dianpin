@@ -25,6 +25,8 @@ npm run dev          # http://localhost:3000
 
 业务通知复用 Resend：新投递通知店主，`contacted / hired / rejected` 通知求职者；发送失败不影响业务写入。E2E 使用 `E2E_MAIL_OUTBOX` 写入本地 JSONL outbox，真实断言收件人和内容，不向外部发送测试邮件。
 
+雇主可编辑自己的门店与岗位，岗位支持设置有效期；已关闭或到期岗位需在编辑页选择未来日期并明确勾选重新发布，普通编辑不会改变状态。
+
 不配置 `NEXT_PUBLIC_TURNSTILE_SITEKEY`/`TURNSTILE_SECRET` 时，登录页验证码走内置的明文算术题（`lib/auth/captcha.ts`）；要换成 Cloudflare Turnstile，去 [Turnstile 控制台](https://dash.cloudflare.com/?to=/:account/turnstile) 建一个 widget，把 site key / secret key 填进这两个变量即可，不需要改代码。
 
 ### 常用命令

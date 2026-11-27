@@ -84,7 +84,7 @@ function JobRow({ job, newApplicationsCount }: JobWithNewCount) {
   );
 }
 
-function StoreCard({ store }: { store: Store }) {
+function StoreCard({ store, onEdit }: { store: Store; onEdit: () => void }) {
   const { locale, t } = useLocale();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -102,6 +102,13 @@ function StoreCard({ store }: { store: Store }) {
         {locale === "es" ? store.name_es : store.name_zh}
       </h2>
       <div className="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="min-h-[44px] rounded-full border border-[var(--color-border)] px-3 text-xs"
+        >
+          {t("employer.dashboard.editStore")}
+        </button>
         <span className="rounded-full bg-[var(--color-bg)] px-2 py-1 text-xs">
           {t(`verificationStatus.${store.verification_status}`)}
         </span>
@@ -136,6 +143,7 @@ export function EmployerDashboardView({
 }) {
   const { t } = useLocale();
   const [createStoreOpen, setCreateStoreOpen] = useState(false);
+  const [editingStore, setEditingStore] = useState<Store | null>(null);
 
   return (
     <div className="flex flex-col gap-4 px-4 py-6">
@@ -143,7 +151,10 @@ export function EmployerDashboardView({
         <h1 className="text-lg font-semibold">{t("employer.dashboard.title")}</h1>
         <button
           type="button"
-          onClick={() => setCreateStoreOpen(true)}
+          onClick={() => {
+            setEditingStore(null);
+            setCreateStoreOpen(true);
+          }}
           className="min-h-[36px] rounded-full bg-[var(--color-primary)] px-3 text-sm text-[var(--color-primary-text)]"
         >
           {t("employer.dashboard.newStoreCta")}
@@ -176,7 +187,7 @@ export function EmployerDashboardView({
       ) : (
         groups.map(({ store, jobs }) => (
           <div key={store.id} className="flex flex-col gap-2">
-            <StoreCard store={store} />
+            <StoreCard store={store} onEdit={() => setEditingStore(store)} />
             <div className="flex flex-col gap-2">
               {jobs.map(({ job, newApplicationsCount }) => (
                 <JobRow
@@ -198,8 +209,13 @@ export function EmployerDashboardView({
       </Link>
 
       <StoreCreateModal
-        open={createStoreOpen}
-        onClose={() => setCreateStoreOpen(false)}
+        key={editingStore?.id ?? "new-store"}
+        store={editingStore}
+        open={createStoreOpen || editingStore !== null}
+        onClose={() => {
+          setCreateStoreOpen(false);
+          setEditingStore(null);
+        }}
         cities={cities}
       />
     </div>

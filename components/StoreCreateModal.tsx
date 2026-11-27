@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createStoreAction } from "@/app/actions";
-import type { City, StoreFormValues } from "@/lib/types";
+import { createStoreAction, updateStoreAction } from "@/app/actions";
+import type { City, Store, StoreFormValues } from "@/lib/types";
 import { useLocale } from "./LocaleProvider";
 import { Modal } from "./Modal";
 
@@ -11,23 +11,26 @@ export function StoreCreateModal({
   open,
   onClose,
   cities,
+  store,
 }: {
   open: boolean;
   onClose: () => void;
   cities: City[];
+  store?: Store | null;
 }) {
   const { locale, t } = useLocale();
   const router = useRouter();
 
   const [value, setValue] = useState<StoreFormValues>({
-    nameZh: "",
-    nameEs: "",
-    city: cities[0]?.id ?? "",
-    district: "",
-    address: "",
-    category: "",
-    coverImage: "",
+    nameZh: store?.name_zh ?? "",
+    nameEs: store?.name_es ?? "",
+    city: store?.city ?? cities[0]?.id ?? "",
+    district: store?.district ?? "",
+    address: store?.address ?? "",
+    category: store?.category ?? "",
+    coverImage: store?.cover_image ?? "",
   });
+  const editing = Boolean(store);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,10 +53,15 @@ export function StoreCreateModal({
     // a placeholder path; one that pointed at a file nobody ever added
     // was exactly how every seed store's cover image 404'd (see
     // lib/seed.ts's matching fix in this same round).
-    const result = await createStoreAction({
-      ...value,
-      coverImage: value.coverImage.trim(),
-    });
+    const result = store
+      ? await updateStoreAction(store.id, {
+          ...value,
+          coverImage: value.coverImage.trim(),
+        })
+      : await createStoreAction({
+          ...value,
+          coverImage: value.coverImage.trim(),
+        });
     setSaving(false);
     if (result.ok) {
       router.refresh();
@@ -64,7 +72,11 @@ export function StoreCreateModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={t("store.form.title")}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={t(editing ? "store.form.editTitle" : "store.form.title")}
+    >
       <div className="flex flex-col gap-3">
         <p className="rounded-lg bg-[var(--color-bg)] px-3 py-2 text-xs text-[var(--color-text-muted)]">
           {t("store.form.languageHint")}
@@ -154,7 +166,9 @@ export function StoreCreateModal({
           onClick={handleSubmit}
           className="min-h-[44px] rounded-full bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--color-primary-text)] disabled:opacity-60"
         >
-          {saving ? t("store.form.submitting") : t("store.form.submit")}
+          {saving
+            ? t("store.form.submitting")
+            : t(editing ? "store.form.saveChanges" : "store.form.submit")}
         </button>
       </div>
     </Modal>

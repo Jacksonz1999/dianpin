@@ -350,3 +350,60 @@ test("a magic link cannot be replayed concurrently and logout revokes the sessio
     await secondContext.close();
   }
 });
+
+test("an owner edits store/job content and republishes a closed job with a future expiry", async ({
+  page,
+}) => {
+  const loginPath = await createMagicLogin({
+    email: E2E_EMPLOYER_EMAIL,
+    intendedRole: "employer",
+    locale: "es",
+    nextPath: `/employer/job/${E2E_JOB_ID}/edit`,
+  });
+  await page.goto(loginPath);
+  const futureDate = new Date(Date.now() + 7 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  await page
+    .getByLabel("Nombre del puesto (español)")
+    .fill("Cajero actualizado");
+  await page.getByLabel("Válido hasta (déjalo vacío para que no caduque)").fill(futureDate);
+  await page.getByRole("button", { name: "Guardar cambios", exact: true }).click();
+  await expect(page.getByText("Empleo actualizado")).toBeVisible();
+
+  let jobResult = await pool.query(
+    "SELECT title_es, status, expires_at FROM jobs WHERE id = $1",
+    [E2E_JOB_ID]
+  );
+  expect(jobResult.rows[0].title_es).toBe("Cajero actualizado");
+  expect(jobResult.rows[0].status).toBe("active");
+
+  await page.goto("/es/employer");
+  await page.getByRole("button", { name: "Editar tienda" }).click();
+  const modal = page.locator("div.fixed.inset-0");
+  await modal.getByLabel("Nombre en español").fill("Bazar Actualizado");
+  await modal.getByRole("button", { name: "Guardar cambios" }).click();
+  await expect(modal).toHaveCount(0);
+  const storeResult = await pool.query(
+    "SELECT name_es FROM stores WHERE id = 'store_hualian'"
+  );
+  expect(storeResult.rows[0].name_es).toBe("Bazar Actualizado");
+
+  await page.goto(`/es/employer/job/${E2E_JOB_ID}`);
+  await page.getByRole("button", { name: "Cambiar a «Cerrado»" }).click();
+  await expect(
+    page.getByRole("button", { name: "Cambiar a «Cerrado»" })
+  ).toHaveCount(0);
+  await page.goto(`/es/employer/job/${E2E_JOB_ID}/edit`);
+  await page.getByLabel("Válido hasta (déjalo vacío para que no caduque)").fill(futureDate);
+  await page.getByLabel("Volver a publicar al guardar").check();
+  await page.getByRole("button", { name: "Guardar cambios", exact: true }).click();
+  await expect(page.getByText("Empleo actualizado")).toBeVisible();
+
+  jobResult = await pool.query(
+    "SELECT status, expires_at FROM jobs WHERE id = $1",
+    [E2E_JOB_ID]
+  );
+  expect(jobResult.rows[0].status).toBe("active");
+  expect(new Date(jobResult.rows[0].expires_at).getTime()).toBeGreaterThan(Date.now());
+});

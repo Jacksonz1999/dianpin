@@ -17,13 +17,19 @@ import {
 import {
   applicationRevealsContact,
   canAdminResolveReport,
+  canRepublishJob,
   canAdminReviewStore,
   canSubmitStoreForVerification,
   canTransitionApplication,
   canTransitionJob,
   canTransitionSeekerPost,
 } from "./status-machine";
-import { assertNotPlaceholder, bilingualWithSourceFallback } from "./validation";
+import {
+  assertNotPlaceholder,
+  bilingualWithSourceFallback,
+  InvalidJobExpiryError,
+  normalizeJobExpiry,
+} from "./validation";
 import { notifyJobAlertSubscribers } from "./job-alerts";
 import { sanitizePublicStore } from "./public-store";
 import type { Locale } from "./i18n";
@@ -667,6 +673,32 @@ export async function createStore(
   return row;
 }
 
+export async function updateStore(
+  storeId: string,
+  input: StoreFormValues
+): Promise<Store> {
+  assertNotPlaceholder("nameZh", input.nameZh);
+  assertNotPlaceholder("nameEs", input.nameEs);
+  assertNotPlaceholder("address", input.address);
+  assertNotPlaceholder("district", input.district);
+  const name = bilingualWithSourceFallback(input.nameZh, input.nameEs, "name");
+  const [row] = await db
+    .update(stores)
+    .set({
+      name_zh: name.zh,
+      name_es: name.es,
+      city: input.city,
+      district: input.district.trim(),
+      address: input.address.trim(),
+      category: input.category.trim(),
+      cover_image: input.coverImage.startsWith("/seed/") ? "" : input.coverImage.trim(),
+    })
+    .where(eq(stores.id, storeId))
+    .returning();
+  if (!row) throw new Error(`Store ${storeId} not found`);
+  return row;
+}
+
 /**
  * unverified/rejected -> pending only (see canSubmitStoreForVerification).
  * pending -> verified/rejected is an admin action with no UI yet.
@@ -827,6 +859,14 @@ export async function createJob(
     input.descriptionEs,
     "description"
   );
+  const expiresAt = normalizeJobExpiry(input.expiresAt);
+  if (
+    input.status === "active" &&
+    expiresAt !== null &&
+    Date.parse(expiresAt) <= Date.now()
+  ) {
+    throw new InvalidJobExpiryError();
+  }
 
   const [row] = await db
     .insert(jobs)
@@ -849,6 +889,7 @@ export async function createJob(
       residence_required: input.residenceRequired,
       description_zh: description.zh,
       description_es: description.es,
+      expires_at: expiresAt,
       status: input.status,
     })
     .returning();
@@ -867,6 +908,61 @@ export async function createJob(
     }
   }
 
+  return row;
+}
+
+export async function updateJob(
+  jobId: string,
+  input: JobFormValues & { storeId: string; city: string }
+): Promise<Job> {
+  assertNotPlaceholder("titleZh", input.titleZh);
+  assertNotPlaceholder("titleEs", input.titleEs);
+  assertNotPlaceholder("descriptionZh", input.descriptionZh);
+  assertNotPlaceholder("descriptionEs", input.descriptionEs);
+  const title = bilingualWithSourceFallback(input.titleZh, input.titleEs, "title");
+  const description = bilingualWithSourceFallback(
+    input.descriptionZh,
+    input.descriptionEs,
+    "description"
+  );
+  const [row] = await db
+    .update(jobs)
+    .set({
+      store_id: input.storeId,
+      title_zh: title.zh,
+      title_es: title.es,
+      job_type: input.jobType,
+      city: input.city,
+      district: input.district.trim(),
+      salary_min: input.salaryMin,
+      salary_max: input.salaryMax,
+      salary_period: input.salaryPeriod,
+      headcount: input.headcount,
+      schedule: input.schedule,
+      live_in: input.liveIn,
+      meals_included: input.mealsIncluded,
+      language_required: input.languageRequired,
+      residence_required: input.residenceRequired,
+      description_zh: description.zh,
+      description_es: description.es,
+      expires_at: normalizeJobExpiry(input.expiresAt),
+    })
+    .where(eq(jobs.id, jobId))
+    .returning();
+  if (!row) throw new Error(`Job ${jobId} not found`);
+  await touchJobUpdatedAt(jobId);
+  return row;
+}
+
+export async function republishJob(jobId: string): Promise<Job> {
+  const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId));
+  if (!job || !canRepublishJob(job)) throw new InvalidJobExpiryError();
+  const [row] = await db
+    .update(jobs)
+    .set({ status: "active", published_at: new Date().toISOString() })
+    .where(eq(jobs.id, jobId))
+    .returning();
+  await touchJobUpdatedAt(jobId);
   return row;
 }
 

@@ -33,6 +33,20 @@ export class MissingLocalizedContentError extends Error {
   }
 }
 
+export class InvalidJobExpiryError extends Error {
+  constructor() {
+    super("Job expiry must be a valid future date when publishing");
+    this.name = "InvalidJobExpiryError";
+  }
+}
+
+export function normalizeJobExpiry(value: string | null): string | null {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) throw new InvalidJobExpiryError();
+  return new Date(timestamp).toISOString();
+}
+
 /**
  * Keeps NOT NULL bilingual columns honest without inventing a translation.
  * If one language is absent, the other language's source text is the fallback.

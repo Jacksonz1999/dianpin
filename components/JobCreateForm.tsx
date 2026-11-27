@@ -3,9 +3,11 @@
 import { LocaleLink as Link } from "./LocaleLink";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createJobAction } from "@/app/actions";
+import { createJobAction, updateJobAction } from "@/app/actions";
+import { isJobExpired } from "@/lib/job-utils";
 import type {
   JobFormValues,
+  Job,
   JobType,
   ResidenceRequired,
   SalaryPeriod,
@@ -32,27 +34,54 @@ const EMPTY_VALUES: JobFormValues = {
   residenceRequired: "none",
   descriptionZh: "",
   descriptionEs: "",
+  expiresAt: null,
 };
 
 export function JobCreateForm({
   stores,
   jobTypes,
+  job,
 }: {
   stores: Store[];
   jobTypes: JobType[];
+  job?: Job;
 }) {
   const { locale, t } = useLocale();
   const router = useRouter();
 
-  const [storeId, setStoreId] = useState(stores[0]?.id ?? "");
-  const [value, setValue] = useState<JobFormValues>({
-    ...EMPTY_VALUES,
-    district: stores[0]?.district ?? "",
-    jobType: jobTypes[0]?.id ?? "",
-  });
+  const editing = Boolean(job);
+  const [storeId, setStoreId] = useState(job?.store_id ?? stores[0]?.id ?? "");
+  const [value, setValue] = useState<JobFormValues>(() =>
+    job
+      ? {
+          titleZh: job.title_zh,
+          titleEs: job.title_es,
+          jobType: job.job_type,
+          district: job.district,
+          salaryMin: job.salary_min,
+          salaryMax: job.salary_max,
+          salaryPeriod: job.salary_period,
+          headcount: job.headcount,
+          schedule: job.schedule,
+          liveIn: job.live_in,
+          mealsIncluded: job.meals_included,
+          languageRequired: job.language_required,
+          residenceRequired: job.residence_required,
+          descriptionZh: job.description_zh,
+          descriptionEs: job.description_es,
+          expiresAt: job.expires_at?.slice(0, 10) ?? null,
+        }
+      : {
+          ...EMPTY_VALUES,
+          district: stores[0]?.district ?? "",
+          jobType: jobTypes[0]?.id ?? "",
+        }
+  );
+  const [republish, setRepublish] = useState(false);
   const [submitting, setSubmitting] = useState<"draft" | "active" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const canOfferRepublish = job ? job.status === "closed" || isJobExpired(job) : false;
 
   if (stores.length === 0) {
     return (
@@ -91,6 +120,8 @@ export function JobCreateForm({
       value.languageRequired.trim().length > 0 &&
       (value.descriptionZh.trim().length > 0 ||
         value.descriptionEs.trim().length > 0)
+      && (!republish ||
+        (!!value.expiresAt && Date.parse(value.expiresAt) > Date.now()))
     );
   }
 
@@ -101,15 +132,19 @@ export function JobCreateForm({
     }
     setError(null);
     setSubmitting(status);
-    const result = await createJobAction({ ...value, storeId, status });
+    const result = editing && job
+      ? await updateJobAction(job.id, { ...value, storeId, republish })
+      : await createJobAction({ ...value, storeId, status });
     setSubmitting(null);
     if (result.ok) {
       setSuccess(true);
-      setValue({
-        ...EMPTY_VALUES,
-        district: stores.find((s) => s.id === storeId)?.district ?? "",
-        jobType: jobTypes[0]?.id ?? "",
-      });
+      if (!editing) {
+        setValue({
+          ...EMPTY_VALUES,
+          district: stores.find((s) => s.id === storeId)?.district ?? "",
+          jobType: jobTypes[0]?.id ?? "",
+        });
+      }
       router.refresh();
     } else {
       setError(t(`job.error.${result.error}`));
@@ -118,14 +153,16 @@ export function JobCreateForm({
 
   return (
     <div className="flex flex-col gap-4 px-4 py-6">
-      <h1 className="text-lg font-semibold">{t("job.form.title")}</h1>
+      <h1 className="text-lg font-semibold">
+        {t(editing ? "job.form.editTitle" : "job.form.title")}
+      </h1>
       <p className="rounded-lg bg-[var(--color-bg)] px-3 py-2 text-xs text-[var(--color-text-muted)]">
         {t("job.form.languageHint")}
       </p>
 
       {success && (
         <p className="rounded-lg bg-[var(--color-bg)] px-3 py-2 text-sm">
-          {t("job.form.success")}
+          {t(editing ? "job.form.successUpdated" : "job.form.success")}
         </p>
       )}
 
@@ -320,6 +357,18 @@ export function JobCreateForm({
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
+        {t("job.form.expiresAt")}
+        <input
+          type="date"
+          value={value.expiresAt ?? ""}
+          onChange={(e) =>
+            setValue({ ...value, expiresAt: e.target.value || null })
+          }
+          className="min-h-[44px] rounded-lg border border-[var(--color-border)] px-3"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm">
         {t("job.form.descriptionZh")}
         <textarea
           value={value.descriptionZh}
@@ -343,9 +392,21 @@ export function JobCreateForm({
         />
       </label>
 
+      {editing && canOfferRepublish && (
+        <label className="flex min-h-[44px] items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={republish}
+            onChange={(e) => setRepublish(e.target.checked)}
+          />
+          {t("job.form.republish")}
+        </label>
+      )}
+
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="flex gap-2">
+        {!editing && (
         <button
           type="button"
           disabled={submitting !== null}
@@ -354,13 +415,16 @@ export function JobCreateForm({
         >
           {submitting === "draft" ? t("job.form.publishing") : t("job.form.saveDraft")}
         </button>
+        )}
         <button
           type="button"
           disabled={submitting !== null}
-          onClick={() => handleSubmit("active")}
+          onClick={() => handleSubmit(editing ? "draft" : "active")}
           className="min-h-[44px] flex-1 rounded-full bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--color-primary-text)] disabled:opacity-60"
         >
-          {submitting === "active" ? t("job.form.publishing") : t("job.form.publish")}
+          {submitting !== null
+            ? t("job.form.publishing")
+            : t(editing ? "job.form.saveChanges" : "job.form.publish")}
         </button>
       </div>
     </div>

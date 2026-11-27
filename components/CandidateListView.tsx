@@ -205,6 +205,12 @@ export function CandidateListView({
       <Link href="/employer" className="text-sm text-[var(--color-text-muted)]">
         ← {t("employer.job.backToDashboard")}
       </Link>
+      <Link
+        href={`/employer/job/${job.id}/edit`}
+        className="inline-flex min-h-[44px] items-center self-start rounded-full border border-[var(--color-border)] px-4 text-sm"
+      >
+        {t("employer.job.edit")}
+      </Link>
 
       <div className="flex flex-col gap-1">
         <h1 className="text-lg font-semibold">

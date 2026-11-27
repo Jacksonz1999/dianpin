@@ -23,10 +23,13 @@ import {
   getSeekerProfileByUserId,
   getStoreById,
   getStores,
+  republishJob,
   saveSeekerProfile,
   submitStoreForVerification,
+  updateJob,
   updateJobStatus,
   updateSeekerPostStatus,
+  updateStore,
   withdrawApplication,
   ReviewWriteError,
   type JobFilters,
@@ -44,6 +47,7 @@ import { getSession, requireRole, requireSession } from "@/lib/auth/session";
 import { requireAdmin } from "@/lib/admin";
 import {
   assertNotPlaceholder,
+  InvalidJobExpiryError,
   MissingLocalizedContentError,
   PlaceholderValueError,
 } from "@/lib/validation";
@@ -265,6 +269,28 @@ export async function createStoreAction(
   }
 }
 
+export async function updateStoreAction(
+  storeId: string,
+  input: StoreFormValues
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await requireRole("employer", "/employer");
+  await assertOwnsStore(storeId, session.userId);
+  try {
+    await updateStore(storeId, input);
+    revalidatePath("/employer");
+    revalidatePath(`/store/${storeId}`);
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof MissingLocalizedContentError) {
+      return { ok: false, error: "missing_localized_content" };
+    }
+    if (err instanceof PlaceholderValueError) {
+      return { ok: false, error: "placeholder_content" };
+    }
+    throw err;
+  }
+}
+
 async function assertOwnsStore(storeId: string, employerId: string): Promise<void> {
   const store = await getStoreById(storeId);
   if (!store || store.owner_user_id !== employerId) {
@@ -297,6 +323,40 @@ export async function createJobAction(
     revalidatePath("/employer");
     return { ok: true, jobId: job.id };
   } catch (err) {
+    if (err instanceof InvalidJobExpiryError) {
+      return { ok: false, error: "invalid_expiry" };
+    }
+    if (err instanceof MissingLocalizedContentError) {
+      return { ok: false, error: "missing_localized_content" };
+    }
+    if (err instanceof PlaceholderValueError) {
+      return { ok: false, error: "placeholder_content" };
+    }
+    throw err;
+  }
+}
+
+export async function updateJobAction(
+  jobId: string,
+  input: JobFormValues & { storeId: string; republish: boolean }
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await requireRole("employer", `/employer/job/${jobId}/edit`);
+  await assertOwnsJob(jobId, session.userId);
+  const store = await getStoreById(input.storeId);
+  if (!store) return { ok: false, error: "store_not_found" };
+  await assertOwnsStore(store.id, session.userId);
+
+  try {
+    await updateJob(jobId, { ...input, city: store.city });
+    if (input.republish) await republishJob(jobId);
+    revalidatePath("/employer");
+    revalidatePath(`/employer/job/${jobId}`);
+    revalidatePath(`/job/${jobId}`);
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof InvalidJobExpiryError) {
+      return { ok: false, error: "invalid_expiry" };
+    }
     if (err instanceof MissingLocalizedContentError) {
       return { ok: false, error: "missing_localized_content" };
     }

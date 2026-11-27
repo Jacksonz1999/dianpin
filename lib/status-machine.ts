@@ -1,10 +1,12 @@
 import type {
   ApplicationStatus,
+  Job,
   JobStatus,
   ReportStatus,
   SeekerPostStatus,
   StoreVerificationStatus,
 } from "./types";
+import { isJobExpired } from "./job-utils";
 
 /**
  * Centralized state machines for `applications.status` and `jobs.status`.
@@ -79,6 +81,13 @@ export function isTerminalJobStatus(status: JobStatus): boolean {
 /** Only jobs in this status should appear in the public job feed. */
 export function isJobPubliclyVisible(status: JobStatus): boolean {
   return status === "active";
+}
+
+export function canRepublishJob(job: Job, now: number = Date.now()): boolean {
+  if (!job.expires_at) return false;
+  const expiresAt = Date.parse(job.expires_at);
+  if (!Number.isFinite(expiresAt) || expiresAt <= now) return false;
+  return job.status === "closed" || isJobExpired(job, now);
 }
 
 /**
