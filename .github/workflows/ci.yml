@@ -3,28 +3,38 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
 
 jobs:
-  typecheck-and-build:
+  verify-and-e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dianpin_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d dianpin_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     env:
-      # lib/db.ts (via db/client.ts) requires DATABASE_URL to be set to
-      # construct its connection pool at module load time, but the pool
-      # only connects lazily on the first query. Every page in this repo
-      # is `export const dynamic = "force-dynamic"`, so `next build` never
-      # executes a page's data fetching at build time — it only imports
-      # the route modules — so a placeholder value is enough here. Real
-      # migrations/build against a real database happen in Railway's
-      # buildCommand (see railway.toml), not in this workflow.
-      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_placeholder
-      AUTH_SECRET: ci-placeholder-secret-not-used-at-build-time
-      # `next build` always runs with NODE_ENV=production, and
-      # lib/site-url.ts now throws in production if this is unset (see
-      # that file's comment for why — a missing/wrong value here is
-      # exactly how canonical URLs silently point at the wrong domain).
-      # CI never serves real traffic, so a placeholder is fine here; the
-      # real value is set in Railway's service Variables.
-      NEXT_PUBLIC_SITE_URL: https://ci-placeholder.example.com
+      # Dedicated throwaway database. The E2E helper also refuses database
+      # names without test/e2e so a locally exported production URL cannot be
+      # truncated by accident.
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/dianpin_test
+      E2E_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/dianpin_test
+      BACKUP_RESTORE_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/dianpin_restore_test
+      AUTH_SECRET: e2e-only-auth-secret-not-for-production
+      AUTH_PROVIDER: email
+      # Build-time canonical URL and Playwright's production server must agree.
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3100
     steps:
       - uses: actions/checkout@v4
 
@@ -35,6 +45,37 @@ jobs:
 
       - run: npm ci
 
-      - run: npx tsc --noEmit
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      - run: npm run db:migrate
 
       - run: npm run build
+
+      - run: npx playwright install --with-deps chromium
+
+      - run: npm run test:e2e
+
+      - name: Install PostgreSQL client tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16
+
+      - name: Create isolated restore rehearsal database
+        run: psql "$DATABASE_URL" --command "CREATE DATABASE dianpin_restore_test"
+
+      - name: Verify a dump restores successfully
+        run: npm run db:backup
+        env:
+          BACKUP_SKIP_UPLOAD: "1"
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

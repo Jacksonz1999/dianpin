@@ -50,6 +50,33 @@ npm run db:studio    # Drizzle Studio，浏览本地数据库
 
 **部署前必须避开的坑**（详见 AGENTS.md §7）：Railway 服务不会休眠、按时长计费；Railway Postgres 没有自动故障转移，需自行定期 `pg_dump` 备份；不要在 Hobby 套餐跑常驻后台 worker。
 
+### 数据库备份与恢复演练
+
+`scripts/db-backup.mjs` 的顺序固定为 **`pg_dump` → 清空隔离恢复库 → `pg_restore` → 校验表/唯一约束/孤儿记录 → 上传 R2**。上传只会在恢复验证成功后执行；源库和恢复库不能相同，恢复库名称必须包含 `test`、`restore` 或 `e2e`，防止误清生产数据。
+
+本地演练需要 PostgreSQL 16 的 `pg_dump` / `pg_restore` 在 PATH 中，并准备两个不同的数据库：
+
+```bash
+export DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/dianpin_test
+export BACKUP_RESTORE_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/dianpin_restore_test
+export BACKUP_SKIP_UPLOAD=1
+npm run db:backup
+```
+
+本机没有 PostgreSQL 客户端时，可额外设置 `BACKUP_DOCKER_CONTAINER=dianpin-e2e`，脚本会通过 `docker exec` / `docker cp` 复用该 Postgres 容器内的工具；CI 和生产备份不需要这个变量。
+
+PR CI 在 E2E 后自动执行同样的无上传恢复演练。生产每日备份还需运营方完成一次配置：
+
+1. 在 GitHub Secrets 配置 `BACKUP_DATABASE_URL`（Railway **公网**连接串，不能是 `postgres.railway.internal`）和 `R2_ACCOUNT_ID/R2_ACCESS_KEY/R2_SECRET_KEY/R2_BUCKET`。
+2. 在 GitHub Variables 配置 `BACKUPS_ENABLED=1`，启用 `.github/workflows/db-backup.yml` 的每日 03:17 UTC 备份；也可手动触发。
+3. 在 R2 设置生命周期删除规则（建议保留 35 天），并定期检查 Actions 日志中的 `restore verified` 与 `uploaded and verified`。**未配置这些外部资源前，不代表生产备份已经启用。**
+
+### 健康检查与错误告警
+
+`/api/health` 会真实执行 `SELECT 1`：数据库正常时返回 200 和 `database: "up"`，失败时返回 503 和 `database: "down"`，响应禁止缓存。应在外部 uptime 服务（如 Better Stack / UptimeRobot）中每 5 分钟检查一次，并对非 200 告警；仅靠 Railway 自己探活不能覆盖 DNS、CDN 和外部邮件故障。
+
+`instrumentation.ts` 通过 Next `onRequestError` 记录**服务端**结构化错误，不记录 Cookie、请求头或认证链接 query。可选配置 `ERROR_ALERT_WEBHOOK_URL`，并用 `ERROR_ALERT_WEBHOOK_TYPE=slack`（默认）或 `feishu` 指定格式；不配置时只写 Railway 日志。浏览器端错误追踪（Sentry 等）尚未接入。
+
 ### 启用 Cloudflare Turnstile（可选）
 
 不配置这两个变量时登录页会一直用内置的算术验证码，代码已经处理好这个降级（见 `lib/auth/turnstile.ts`），不会报错或白屏。要换成 Turnstile：
@@ -201,7 +228,36 @@ CSV 表头（中文，顺序见 `db/import-csv.ts` 顶部注释）：`门店名�
 
 ## CI
 
-`.github/workflows/ci.yml` 在每个 PR 上跑 `npx tsc --noEmit` 和 `npm run build`，用占位 `DATABASE_URL`/`AUTH_SECRET`（构建期只做模块导入与路由收集，不会真的连接数据库或签发 token，见工作流文件内注释）。
+`.github/workflows/ci.yml` 在 PR 和 `main` 推送上依次跑 ESLint、TypeScript、真实 PostgreSQL 迁移、生产构建、Chromium E2E 和 `pg_dump`/`pg_restore` 恢复演练。E2E 使用独立的 `dianpin_test` 数据库，覆盖数据库健康检查、登录回调、投递、候选人状态与联系方式门槛、西语路径、固定账号角色、评价发布与评分聚合、举报提交与管理员处理；测试辅助函数会拒绝清空名称中不含 `test`/`e2e` 的数据库。
+
+### 本地运行 E2E
+
+先启动一个专用测试库（不要指向开发库或生产库）：
+
+```bash
+docker run --name dianpin-e2e \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=dianpin_test \
+  -p 5432:5432 \
+  -d postgres:16
+```
+
+然后执行：
+
+```bash
+export DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/dianpin_test
+export E2E_DATABASE_URL="$DATABASE_URL"
+export AUTH_SECRET=e2e-only-auth-secret-not-for-production
+export NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3100
+
+npm run db:migrate
+npm run build
+npx playwright install chromium
+npm run test:e2e   # 自动启动 npm start；已有测试服务器时会复用
+```
+
+PowerShell 可用 `$env:DATABASE_URL=...`、`$env:E2E_DATABASE_URL=$env:DATABASE_URL` 等设置同名环境变量。测试报告与失败截图写入 `playwright-report/` 和 `test-results/`，均已加入 `.gitignore`。
 
 ## 目录速览
 

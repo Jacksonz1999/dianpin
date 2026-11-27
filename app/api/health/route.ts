@@ -1,9 +1,35 @@
+import { sql } from "drizzle-orm";
+import { db } from "@/db/client";
+
+export const dynamic = "force-dynamic";
+
 export async function GET() {
-  return Response.json({
-    status: "ok",
-    // Boolean only — never the value itself. Lets `curl .../api/health`
-    // answer "is RESEND_API_KEY actually set in this environment" without
-    // guessing or exposing the credential (see README's mail setup section).
-    emailConfigured: Boolean(process.env.RESEND_API_KEY),
-  });
+  let database: "up" | "down" = "up";
+  try {
+    await db.execute(sql`SELECT 1`);
+  } catch {
+    database = "down";
+    console.error(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: "error",
+        service: "dianpin-web",
+        check: "database",
+        message: "database connection failed",
+      })
+    );
+  }
+
+  return Response.json(
+    {
+      status: database === "up" ? "ok" : "error",
+      database,
+      // Boolean only — never expose the credential itself.
+      emailConfigured: Boolean(process.env.RESEND_API_KEY),
+    },
+    {
+      status: database === "up" ? 200 : 503,
+      headers: { "Cache-Control": "no-store" },
+    }
+  );
 }
