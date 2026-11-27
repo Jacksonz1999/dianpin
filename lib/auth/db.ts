@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { and, count, desc, eq, gte, isNull } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { authChallenges } from "@/db/schema";
+import { authChallenges, authSessions, users } from "@/db/schema";
 import type { AuthChannel, UserRole } from "@/lib/types";
 
 export interface AuthChallengeRow {
@@ -59,19 +59,67 @@ export async function getAuthChallengeById(
 }
 
 export async function incrementChallengeAttempts(id: string): Promise<void> {
-  const existing = await getAuthChallengeById(id);
-  if (!existing) return;
   await db
     .update(authChallenges)
-    .set({ attempts: existing.attempts + 1 })
+    .set({ attempts: sql`${authChallenges.attempts} + 1` })
     .where(eq(authChallenges.id, id));
 }
 
-export async function consumeAuthChallenge(id: string): Promise<void> {
-  await db
+/** Returns true only for the single request that atomically consumes the link. */
+export async function consumeAuthChallenge(id: string): Promise<boolean> {
+  const rows = await db
     .update(authChallenges)
     .set({ consumed_at: new Date().toISOString() })
-    .where(eq(authChallenges.id, id));
+    .where(
+      and(
+        eq(authChallenges.id, id),
+        isNull(authChallenges.consumed_at),
+        gte(authChallenges.expires_at, new Date().toISOString())
+      )
+    )
+    .returning({ id: authChallenges.id });
+  return rows.length === 1;
+}
+
+export async function createPersistentSession(input: {
+  tokenHash: string;
+  userId: string;
+  expiresAt: string;
+}): Promise<void> {
+  await db.insert(authSessions).values({
+    id: `sess_${randomUUID()}`,
+    token_hash: input.tokenHash,
+    user_id: input.userId,
+    expires_at: input.expiresAt,
+  });
+}
+
+export async function getPersistentSession(tokenHash: string) {
+  const [row] = await db
+    .select({
+      userId: users.id,
+      role: users.role,
+      expiresAt: authSessions.expires_at,
+    })
+    .from(authSessions)
+    .innerJoin(users, eq(authSessions.user_id, users.id))
+    .where(
+      and(
+        eq(authSessions.token_hash, tokenHash),
+        isNull(authSessions.revoked_at),
+        gte(authSessions.expires_at, new Date().toISOString())
+      )
+    );
+  return row ?? null;
+}
+
+export async function revokePersistentSession(tokenHash: string): Promise<void> {
+  await db
+    .update(authSessions)
+    .set({ revoked_at: new Date().toISOString() })
+    .where(
+      and(eq(authSessions.token_hash, tokenHash), isNull(authSessions.revoked_at))
+    );
 }
 
 /**

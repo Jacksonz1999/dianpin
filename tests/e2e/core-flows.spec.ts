@@ -292,3 +292,47 @@ test("a Spanish owner creates a store and publishes a job without Chinese", asyn
     page.getByRole("heading", { name: "Camarero de barra" })
   ).toBeVisible();
 });
+
+test("a magic link cannot be replayed concurrently and logout revokes the session", async ({
+  browser,
+}) => {
+  const loginPath = await createMagicLogin({
+    email: E2E_SEEKER_EMAIL,
+    intendedRole: "seeker",
+    locale: "zh",
+  });
+  const firstContext = await browser.newContext({
+    baseURL: test.info().project.use.baseURL as string,
+  });
+  const secondContext = await browser.newContext({
+    baseURL: test.info().project.use.baseURL as string,
+  });
+  try {
+    const first = await firstContext.newPage();
+    const second = await secondContext.newPage();
+    await Promise.all([first.goto(loginPath), second.goto(loginPath)]);
+
+    const pages = [first, second];
+    const winner = pages.find((candidate) => /\/me$/.test(candidate.url()));
+    const loser = pages.find((candidate) =>
+      /\/login\?error=already_used$/.test(candidate.url())
+    );
+    expect(winner).toBeDefined();
+    expect(loser).toBeDefined();
+
+    await winner!.getByRole("button", { name: "退出登录" }).click();
+    await expect(winner!).toHaveURL(/\/$/);
+    await winner!.goto("/me");
+    await expect(winner!).toHaveURL(/\/login\?/);
+
+    const sessions = await pool.query(
+      "SELECT revoked_at FROM auth_sessions WHERE user_id = (SELECT id FROM users WHERE email = $1)",
+      [E2E_SEEKER_EMAIL]
+    );
+    expect(sessions.rows).toHaveLength(1);
+    expect(sessions.rows[0].revoked_at).not.toBeNull();
+  } finally {
+    await firstContext.close();
+    await secondContext.close();
+  }
+});

@@ -33,10 +33,12 @@ const EXPECTED_TABLES = [
   "job_alerts",
   "seeker_posts",
   "auth_challenges",
+  "auth_sessions",
 ];
 const EXPECTED_CONSTRAINTS = [
   "applications_job_id_seeker_user_id_key",
   "reviews_store_id_seeker_user_id_key",
+  "auth_sessions_token_hash_key",
 ];
 const ORPHAN_CHECKS = [
   `SELECT count(*)::int AS count FROM jobs j
@@ -49,6 +51,8 @@ const ORPHAN_CHECKS = [
    LEFT JOIN stores s ON s.id = r.store_id WHERE s.id IS NULL`,
   `SELECT count(*)::int AS count FROM reviews r
    LEFT JOIN users u ON u.id = r.seeker_user_id WHERE u.id IS NULL`,
+  `SELECT count(*)::int AS count FROM auth_sessions s
+   LEFT JOIN users u ON u.id = s.user_id WHERE u.id IS NULL`,
 ];
 
 function redact(value) {
@@ -109,6 +113,7 @@ async function resetRestoreDatabase() {
   const pool = new Pool({ connectionString: restoreUrl, max: 1 });
   try {
     await pool.query("DROP SCHEMA public CASCADE");
+    await pool.query("DROP SCHEMA IF EXISTS drizzle CASCADE");
     await pool.query("CREATE SCHEMA public");
   } finally {
     await pool.end();

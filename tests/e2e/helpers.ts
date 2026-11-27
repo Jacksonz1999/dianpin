@@ -52,6 +52,7 @@ export async function resetAndSeedDatabase(): Promise<void> {
   await pool.query(`
     TRUNCATE TABLE
       auth_challenges,
+      auth_sessions,
       job_alerts,
       seeker_posts,
       reports,

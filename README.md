@@ -21,6 +21,8 @@ npm run dev          # http://localhost:3000
 
 不配置 `RESEND_API_KEY` 时，登录邮件的魔法链接会打印在服务端控制台（终端），不会真实发送，本地登录流程仍可完整走通。
 
+会话保存在 `auth_sessions`，浏览器 Cookie 只含随机 token，数据库保存 HMAC 哈希；退出登录会立即撤销。魔法链接通过原子 UPDATE 保证只能消费一次。启用该版本后，旧版无状态 Cookie 会失效，用户需要重新登录一次。
+
 不配置 `NEXT_PUBLIC_TURNSTILE_SITEKEY`/`TURNSTILE_SECRET` 时，登录页验证码走内置的明文算术题（`lib/auth/captcha.ts`）；要换成 Cloudflare Turnstile，去 [Turnstile 控制台](https://dash.cloudflare.com/?to=/:account/turnstile) 建一个 widget，把 site key / secret key 填进这两个变量即可，不需要改代码。
 
 ### 常用命令

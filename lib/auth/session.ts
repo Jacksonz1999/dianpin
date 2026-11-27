@@ -1,9 +1,14 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getRequestLocale } from "@/lib/locale-server";
 import { localePath } from "@/lib/locale-routing";
 import type { UserRole } from "@/lib/types";
+import {
+  createPersistentSession,
+  getPersistentSession,
+  revokePersistentSession,
+} from "./db";
 
 const COOKIE_NAME = "dianpin_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
@@ -25,50 +30,25 @@ export function getAuthSecret(): string {
   return secret;
 }
 
-function signPayload(payload: SessionPayload): string {
-  const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const sig = createHmac("sha256", getAuthSecret())
-    .update(body)
-    .digest("base64url");
-  return `${body}.${sig}`;
-}
-
-function verifyToken(token: string): SessionPayload | null {
-  const [body, sig] = token.split(".");
-  if (!body || !sig) return null;
-
-  const expectedSig = createHmac("sha256", getAuthSecret())
-    .update(body)
-    .digest("base64url");
-  const a = Buffer.from(sig);
-  const b = Buffer.from(expectedSig);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
-
-  try {
-    const payload = JSON.parse(
-      Buffer.from(body, "base64url").toString("utf8")
-    ) as SessionPayload;
-    if (typeof payload.exp !== "number" || payload.exp < Math.floor(Date.now() / 1000)) {
-      return null;
-    }
-    return payload;
-  } catch {
-    return null;
-  }
+function hashSessionToken(token: string): string {
+  return createHmac("sha256", getAuthSecret()).update(token).digest("hex");
 }
 
 /** Sets the session cookie. Only callable from a Server Action or Route Handler. */
 export async function createSession(
-  userId: string,
-  role: UserRole
+  userId: string
 ): Promise<void> {
-  const payload: SessionPayload = {
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(
+    Date.now() + SESSION_TTL_SECONDS * 1000
+  ).toISOString();
+  await createPersistentSession({
+    tokenHash: hashSessionToken(token),
     userId,
-    role,
-    exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
-  };
+    expiresAt,
+  });
   const jar = await cookies();
-  jar.set(COOKIE_NAME, signPayload(payload), {
+  jar.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -82,12 +62,20 @@ export async function getSession(): Promise<SessionPayload | null> {
   const jar = await cookies();
   const token = jar.get(COOKIE_NAME)?.value;
   if (!token) return null;
-  return verifyToken(token);
+  const session = await getPersistentSession(hashSessionToken(token));
+  if (!session) return null;
+  return {
+    userId: session.userId,
+    role: session.role,
+    exp: Math.floor(new Date(session.expiresAt).getTime() / 1000),
+  };
 }
 
 /** Clears the session cookie (logout). Only callable from a Server Action or Route Handler. */
 export async function clearSession(): Promise<void> {
   const jar = await cookies();
+  const token = jar.get(COOKIE_NAME)?.value;
+  if (token) await revokePersistentSession(hashSessionToken(token));
   jar.delete(COOKIE_NAME);
 }
 

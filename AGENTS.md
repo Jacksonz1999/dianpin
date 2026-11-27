@@ -78,6 +78,8 @@ dianpin/
 
 **无论选哪种，必须做**：限流（每 IP / 每号码）、图形验证码或 hCaptcha、投递与注册频控 —— 防 **SMS pumping（AIT 套利欺诈）**，机器人可把你的账单刷爆。
 
+会话使用 `auth_sessions` 服务端表：浏览器只保存随机 token，数据库保存 `AUTH_SECRET` 下的 HMAC-SHA256 哈希、用户、到期时间和撤销时间；退出登录立即撤销，角色从 `users` 当前记录读取，不信任 Cookie 自声明角色。部署这一改动后旧版无状态 Cookie 统一失效，用户重新登录一次。魔法链接只有在 `consumed_at IS NULL AND expires_at >= now()` 的原子更新成功时才算消费成功，防止并发重放。
+
 **联系方式字段**：做成「电话 / 微信号」自由填写的字符串，不依赖任何 OAuth 授权。微信登录在欧盟有审核限制，v1 不做。
 
 ## 5. 数据模型（PostgreSQL，public schema）
@@ -95,6 +97,7 @@ dianpin/
 | `job_types` | id, name_zh, name_es, icon |
 | `job_alerts`（第七轮新增，见下方说明） | id, email, seeker_user_id(nullable), city(nullable), job_type(nullable), salary_min(nullable), meals_included, residence_ok, locale, confirm_token, confirmed_at, unsubscribe_token, created_at — **UNIQUE(email)** |
 | `seeker_posts`（第八轮新增，见下方说明） | id, user_id(→users), title, job_type(→job_types), city(→cities), district, experience_years, available_from, residence_status, expected_salary_min/max, salary_period, languages[], live_in_ok, bio, contact_phone, contact_wechat, status(draft/active/closed), views, published_at, expires_at, is_seed, created_at, updated_at |
+| `auth_sessions` | id, token_hash(unique), user_id(→users), expires_at, revoked_at, created_at；服务端可撤销会话，索引 `auth_sessions(user_id)` |
 
 `seeker_posts`：第八轮新增的"反向发帖"——此前只有店主能发布岗位（`jobs`），求职者只能被动投递；这张表让求职者主动发一条结构化的"我要找 XX 工作"帖子，雇主可浏览并联系。字段刻意复用已有枚举（`residence_status` 用 §5 现有五值，`salary_period` 用 `jobs.salary_period` 的 hour/day/month），不新造枚举。`status` 状态机（draft/active/closed）定义在 `lib/status-machine.ts`，与 `jobs.status` 同构但不共用同一张表——求职帖和岗位帖是两种实体，不应该合并成一张多态表，否则筛选/索引都会变复杂。联系方式字段（`contact_phone`/`contact_wechat`）沿用 §4 的自由填写字符串约定，不依赖 OAuth。`is_seed` 对齐 `jobs`/`stores` 已有的演示数据标记约定，但本表**不预置任何种子数据**——真实求职者发的帖子如果和演示数据混在一起，雇主无法分辨哪些是真实可联系的人。展示规则见 §6。
 
@@ -212,6 +215,7 @@ LEGAL_JURISDICTION=       # 管辖法院所在地
 - [x] 核心 E2E + CI：数据库健康检查、登录回调、求职投递、雇主联系方式门槛、西语路径、固定账号角色、评价与评分聚合、举报与管理员处理；CI 同时执行 lint / typecheck / 迁移 / 生产构建 / Chromium E2E / 备份恢复演练
 - [x] 评价与举报闭环：投递资格校验、每店一条评价、事务内评分聚合、`/admin/reports` 处理队列
 - [x] 纯西语建店与岗位发布：中西语至少一种，缺省语言保存原文回退；E2E 覆盖不填中文的完整店主流程
+- [x] 认证与迁移加固：服务端可撤销会话、魔法链接原子消费、并发重放/退出 E2E；`0008` 已纳入 Drizzle journal，备份恢复覆盖 `auth_sessions` 且可重复执行
 - [x] 备份恢复演练与监控基础：`scripts/db-backup.mjs`、R2 上传门槛、数据库健康检查、Next 服务端错误采集、Slack/飞书 webhook
 - [ ] 生产备份/告警外部配置：R2 生命周期、GitHub `BACKUPS_ENABLED` 与 Secrets、外部 uptime 监控、告警 webhook（只能由运营方启用）
 

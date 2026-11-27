@@ -501,3 +501,32 @@ export const authChallenges = pgTable(
     index("auth_challenges_ip_idx").on(table.ip),
   ]
 );
+
+export const authSessions = pgTable(
+  "auth_sessions",
+  {
+    id: text("id").primaryKey(),
+    token_hash: text("token_hash").notNull(),
+    user_id: text("user_id")
+      .notNull()
+      .references(() => users.id),
+    expires_at: timestamp("expires_at", {
+      withTimezone: true,
+      mode: "string",
+    }).notNull(),
+    revoked_at: timestamp("revoked_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    created_at: timestamp("created_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("auth_sessions_token_hash_key").on(table.token_hash),
+    index("auth_sessions_user_id_idx").on(table.user_id),
+  ]
+);

@@ -64,7 +64,9 @@ export async function GET(request: NextRequest) {
     return redirectTo("/login?error=invalid_link");
   }
 
-  await consumeAuthChallenge(challengeId);
+  if (!(await consumeAuthChallenge(challengeId))) {
+    return redirectTo("/login?error=already_used");
+  }
 
   // Existing identifier -> log in as whatever role they actually have,
   // never the role requested this time (that's only for brand-new
@@ -80,7 +82,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  await createSession(user.id, user.role);
+  await createSession(user.id);
 
   const nextPath =
     sanitizeNextPath(challenge.next_path) ??
